@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Selector</title>
+<style>
+    body {
+        margin: 0;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: linear-gradient(135deg, #006633, #ff6600); /* EdUHK green & orange */
+        font-family: "Segoe UI", sans-serif;
+        color: #222;
+        text-align: center;
+        overflow: hidden;
+    }
+    .container {
+        max-width: 750px;
+        width: 95%;
+        background: #fff;
+        padding: 30px;
+        border-radius: 20px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+        position: relative;
+    }
+    .header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    .header img {
+        width: 90px;
+        height: 90px;
+        object-fit: contain;
+        margin-bottom: 8px;
+    }
+    .university {
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: #006633;
+    }
+    h1.course-title {
+        font-size: 1.4rem;
+        font-weight: bold;
+        margin: 10px 0 15px;
+        color: #333;
+    }
+    h2 {
+        font-size: 2rem;
+        margin-bottom: 15px;
+        color: #ff6600;
+    }
+    .lang-btn {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: #006633;
+        color: #fff;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+    .lang-btn:hover {
+        background: #00994d;
+    }
+    .inputs {
+        margin: 15px 0;
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    input {
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid #aaa;
+        font-size: 1rem;
+        width: 120px;
+        text-align: center;
+    }
+    .result {
+        font-size: 2.2rem;
+        font-weight: bold;
+        margin: 20px 0;
+        min-height: 70px;
+        color: #222;
+    }
+    button.draw-btn {
+        background: #ff6600;
+        color: #fff;
+        border: none;
+        padding: 15px 30px;
+        font-size: 1.2rem;
+        font-weight: bold;
+        border-radius: 50px;
+        cursor: pointer;
+        transition: transform 0.2s, background 0.3s;
+    }
+    button.draw-btn:hover {
+        transform: scale(1.05);
+        background: #ff8533;
+    }
+    .footer {
+        margin-top: 15px;
+        font-size: 0.9rem;
+        opacity: 0.8;
+        color: #333;
+    }
+    .credit {
+        position: absolute;
+        bottom: 10px;
+        right: 15px;
+        font-weight: bold;
+        font-size: 0.95rem;
+        color: #006633;
+    }
+    /* Confetti */
+    .confetti {
+        position: fixed;
+        top: -10px;
+        width: 10px;
+        height: 10px;
+        background-color: red;
+        opacity: 0.7;
+        animation: fall 3s linear forwards;
+    }
+    @keyframes fall {
+        to {
+            transform: translateY(100vh) rotate(720deg);
+            opacity: 0;
+        }
+    }
+</style>
+</head>
+<body>
+    <div class="container">
+        <button class="lang-btn" onclick="toggleLanguage()">中文</button>
+        
+        <div class="header">
+            <img src="EdUHK.png" alt="EdUHK Logo">
+            <div class="university" id="university">The Education University of Hong Kong</div>
+        </div>
+
+        <h1 class="course-title" id="course-title">Emerging Technologies for Workforce Development</h1>
+        <h2 id="selector-title">🎯 Student Selector 🎯</h2>
+        
+        <div class="inputs">
+            <input type="number" id="rows" placeholder="Rows (e.g. 15)" min="1" value="15">
+            <input type="number" id="cols" placeholder="Columns (e.g. 8)" min="1" value="8">
+        </div>
+
+        <div class="result" id="result">Press the button to select a student!</div>
+        <button class="draw-btn" onclick="draw()" id="draw-btn">Select</button>
+        
+        <div class="footer" id="footer">Randomly selecting a student for class discussion</div>
+        <div class="credit"><b>Richard C Y YEUNG</b></div>
+    </div>
+
+<!-- Spin sound -->
+<audio id="spin-sound" src="spin.mp3" preload="auto"></audio>
+
+<script>
+let currentLang = "en";
+
+const translations = {
+    en: {
+        university: "The Education University of Hong Kong",
+        course: "Emerging Technologies for Workforce Development",
+        selector: "🎯 Student Selector 🎯",
+        start: "Press the button to select a student!",
+        button: "Select",
+        footer: "Randomly selecting a student for class discussion",
+        row: "Row",
+        col: "Column",
+        langBtn: "中文"
+    },
+    zh: {
+        university: "香 港 教 育 大 學",
+        course: "人 力 發 展 的 新 興 科 技",
+        selector: "🎯 學生抽籤器 🎯",
+        start: "按下按鈕以抽出一位學生！",
+        button: "抽籤",
+        footer: "隨機抽出一位學生參與課堂討論",
+        row: "行",
+        col: "列",
+        langBtn: "English"
+    }
+};
+
+function toggleLanguage() {
+    currentLang = currentLang === "en" ? "zh" : "en";
+    const t = translations[currentLang];
+    document.getElementById("university").textContent = t.university;
+    document.getElementById("course-title").textContent = t.course;
+    document.getElementById("selector-title").textContent = t.selector;
+    document.getElementById("result").textContent = t.start;
+    document.getElementById("draw-btn").textContent = t.button;
+    document.getElementById("footer").textContent = t.footer;
+    document.querySelector(".lang-btn").textContent = t.langBtn;
+}
+
+function draw() {
+    const rows = parseInt(document.getElementById("rows").value) || 15;
+    const cols = parseInt(document.getElementById("cols").value) || 8;
+    const resultDiv = document.getElementById("result");
+    const spinSound = document.getElementById("spin-sound");
+
+    let interval;
+    let counter = 0;
+    const duration = 30; // spins count
+
+    // Play spin sound
+    spinSound.currentTime = 0;
+    spinSound.play();
+
+    interval = setInterval(() => {
+        const randRow = Math.floor(Math.random() * rows) + 1;
+        const randCol = Math.floor(Math.random() * cols) + 1;
+        resultDiv.textContent = `${translations[currentLang].row}: ${randRow} | ${translations[currentLang].col}: ${randCol}`;
+        counter++;
+        if (counter > duration) {
+            clearInterval(interval);
+            // Stop spin sound
+            spinSound.pause();
+            spinSound.currentTime = 0;
+
+            // Final result
+            const finalRow = Math.floor(Math.random() * rows) + 1;
+            const finalCol = Math.floor(Math.random() * cols) + 1;
+            resultDiv.textContent = `✅ ${translations[currentLang].row}: ${finalRow} | ${translations[currentLang].col}: ${finalCol}`;
+            launchConfetti();
+        }
+    }, 100);
+}
+
+function launchConfetti() {
+    for (let i = 0; i < 30; i++) {
+        const confetti = document.createElement("div");
+        confetti.classList.add("confetti");
+        confetti.style.left = Math.random() * window.innerWidth + "px";
+        confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
+        confetti.style.animationDuration = (Math.random() * 2 + 2) + "s";
+        document.body.appendChild(confetti);
+        setTimeout(() => confetti.remove(), 3000);
+    }
+}
+</script>
+</body>
+</html>
