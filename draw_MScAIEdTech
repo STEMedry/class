@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Selector</title>
+<style>
+    body {
+        margin: 0;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: linear-gradient(135deg, #006633, #ff6600);
+        font-family: "Segoe UI", sans-serif;
+        color: #222;
+        text-align: center;
+        overflow: hidden;
+    }
+    .container {
+        max-width: 750px;
+        width: 95%;
+        background: #fff;
+        padding: 30px;
+        border-radius: 20px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+        position: relative;
+    }
+    .header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    .header img {
+        width: 90px;
+        height: 90px;
+        object-fit: contain;
+        margin-bottom: 8px;
+    }
+    .university {
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: #006633;
+    }
+    h1.course-title {
+        font-size: 1.4rem;
+        font-weight: bold;
+        margin: 10px 0 15px;
+        color: #333;
+    }
+    h2 {
+        font-size: 2rem;
+        margin-bottom: 15px;
+        color: #ff6600;
+    }
+    .lang-btn {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: #006633;
+        color: #fff;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+    .lang-btn:hover {
+        background: #00994d;
+    }
+    .settings-box {
+        border: 2px solid #ddd;
+        border-radius: 12px;
+        padding: 15px;
+        margin: 20px 0;
+        background: #f9f9f9;
+    }
+    .settings-title {
+        font-weight: bold;
+        font-size: 1.1rem;
+        margin-bottom: 10px;
+        color: #006633;
+    }
+    .inputs {
+        display: flex;
+        gap: 20px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    .input-group {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    label {
+        font-weight: bold;
+        margin-bottom: 5px;
+        color: #333;
+    }
+    input {
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid #aaa;
+        font-size: 1rem;
+        width: 140px;
+        text-align: center;
+    }
+    input::placeholder {
+        color: #999;
+        font-style: italic;
+        font-size: 0.85rem;
+    }
+    .result {
+        font-size: 2.2rem;
+        font-weight: bold;
+        margin: 20px 0;
+        min-height: 70px;
+        color: #222;
+        transition: transform 0.3s ease, color 0.3s ease;
+    }
+    .shaking {
+        animation: shake 0.15s infinite;
+    }
+    @keyframes shake {
+        0% { transform: translateX(0); }
+        25% { transform: translateX(-3px); }
+        50% { transform: translateX(3px); }
+        75% { transform: translateX(-3px); }
+        100% { transform: translateX(0); }
+    }
+    .highlight {
+        animation: bounce 0.6s ease;
+        color: #e60000;
+    }
+    @keyframes bounce {
+        0%   { transform: scale(1); }
+        30%  { transform: scale(1.3); }
+        50%  { transform: scale(0.9); }
+        70%  { transform: scale(1.15); }
+        100% { transform: scale(1); }
+    }
+    button.draw-btn {
+        background: #ff6600;
+        color: #fff;
+        border: none;
+        padding: 15px 30px;
+        font-size: 1.2rem;
+        font-weight: bold;
+        border-radius: 50px;
+        cursor: pointer;
+        transition: transform 0.2s, background 0.3s;
+    }
+    button.draw-btn:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+    }
+    button.draw-btn:hover:enabled {
+        transform: scale(1.05);
+        background: #ff8533;
+    }
+    .footer {
+        margin-top: 15px;
+        font-size: 0.9rem;
+        opacity: 0.8;
+        color: #333;
+    }
+    .credit {
+        position: absolute;
+        bottom: 10px;
+        right: 15px;
+        font-weight: bold;
+        font-size: 0.95rem;
+        color: #006633;
+    }
+    .confetti {
+        position: fixed;
+        top: -10px;
+        width: 10px;
+        height: 10px;
+        background-color: red;
+        opacity: 0.7;
+        animation: fall 3s linear forwards;
+    }
+    @keyframes fall {
+        to {
+            transform: translateY(100vh) rotate(720deg);
+            opacity: 0;
+        }
+    }
+</style>
+</head>
+<body>
+    <div class="container">
+        <button class="lang-btn" onclick="toggleLanguage()">中文</button>
+        
+        <div class="header">
+            <img src="EdUHK.png" alt="EdUHK Logo">
+            <div class="university" id="university">The Education University of Hong Kong</div>
+        </div>
+
+        <h1 class="course-title" id="course-title">Design of Innovative Learning Environments with Technology</h1>
+        <h2 id="selector-title">🎯 Student Selector 🎯</h2>
+        
+        <!-- Classroom Setting Box -->
+        <div class="settings-box">
+            <div class="settings-title" id="classroom-title">Classroom Setting</div>
+            <div class="inputs">
+                <div class="input-group">
+                    <label id="row-label">Row</label>
+                    <input type="text" id="rows" placeholder="Enter number or letter" oninput="checkFields()">
+                </div>
+                <div class="input-group">
+                    <label id="col-label">Column</label>
+                    <input type="text" id="cols" placeholder="Enter number or letter" oninput="checkFields()">
+                </div>
+            </div>
+        </div>
+
+        <div class="result" id="result">Press the button to select a student!</div>
+        <button class="draw-btn" onclick="validateAndDraw()" id="draw-btn" disabled>Select</button>
+        
+        <div class="footer" id="footer">Randomly selecting a student for class discussion</div>
+        <div class="credit"><b>Richard C Y YEUNG</b></div>
+    </div>
+
+<audio id="spin-sound" src="spin.mp3" preload="auto"></audio>
+
+<script>
+let currentLang = "en";
+
+const translations = {
+    en: {
+        university: "The Education University of Hong Kong",
+        course: "Design of Innovative Learning Environments with Technology",
+        selector: "🎯 Student Selector 🎯",
+        start: "Press the button to select a student!",
+        button: "Select",
+        footer: "Randomly selecting a student for class discussion",
+        row: "Row",
+        col: "Column",
+        classTitle: "Classroom Setting",
+        langBtn: "中文",
+        alert: "Please fill in both Row and Column fields!"
+    },
+    zh: {
+        university: "香 港 教 育 大 學",
+        course: "科 技 輔 助 創 新 學 習 環 境 設 計",
+        selector: "🎯 學生抽籤器 🎯",
+        start: "按下按鈕以抽出一位學生！",
+        button: "抽籤",
+        footer: "隨機抽出一位學生參與課堂討論",
+        row: "行",
+        col: "列",
+        classTitle: "課室設定",
+        langBtn: "English",
+        alert: "請填寫「行」和「列」！"
+    }
+};
+
+function toggleLanguage() {
+    currentLang = currentLang === "en" ? "zh" : "en";
+    const t = translations[currentLang];
+    document.getElementById("university").textContent = t.university;
+    document.getElementById("course-title").textContent = t.course;
+    document.getElementById("selector-title").textContent = t.selector;
+    document.getElementById("result").textContent = t.start;
+    document.getElementById("draw-btn").textContent = t.button;
+    document.getElementById("footer").textContent = t.footer;
+    document.querySelector(".lang-btn").textContent = t.langBtn;
+    document.getElementById("row-label").textContent = t.row;
+    document.getElementById("col-label").textContent = t.col;
+    document.getElementById("classroom-title").textContent = t.classTitle;
+}
+
+function checkFields() {
+    const rowInput = document.getElementById("rows").value.trim();
+    const colInput = document.getElementById("cols").value.trim();
+    const drawBtn = document.getElementById("draw-btn");
+    drawBtn.disabled = !(rowInput && colInput);
+}
+
+function validateAndDraw() {
+    const rowInput = document.getElementById("rows").value.trim();
+    const colInput = document.getElementById("cols").value.trim();
+    if (!rowInput || !colInput) {
+        alert(translations[currentLang].alert);
+        return;
+    }
+    draw();
+}
+
+function parseInput(value) {
+    if (!value) return null;
+    if (/^[A-Za-z]$/.test(value)) {
+        return value.toUpperCase().charCodeAt(0) - 64;
+    }
+    return parseInt(value);
+}
+
+function formatResult(num, originalInput) {
+    if (/^[A-Za-z]$/.test(originalInput)) {
+        return String.fromCharCode(64 + num);
+    }
+    return num;
+}
+
+function draw() {
+    const rowInput = document.getElementById("rows").value.trim();
+    const colInput = document.getElementById("cols").value.trim();
+
+    const rows = parseInput(rowInput) || 15;
+    const cols = parseInput(colInput) || 8;
+
+    const resultDiv = document.getElementById("result");
+    const spinSound = document.getElementById("spin-sound");
+
+    let interval;
+    let counter = 0;
+    const duration = 30;
+
+    spinSound.currentTime = 0;
+    spinSound.play();
+    resultDiv.classList.add("shaking");
+
+    interval = setInterval(() => {
+        const randRow = Math.floor(Math.random() * rows) + 1;
+        const randCol = Math.floor(Math.random() * cols) + 1;
+        resultDiv.textContent = `${translations[currentLang].row}: ${formatResult(randRow, rowInput)} | ${translations[currentLang].col}: ${formatResult(randCol, colInput)}`;
+        counter++;
+        if (counter > duration) {
+            clearInterval(interval);
+            spinSound.pause();
+            spinSound.currentTime = 0;
+            resultDiv.classList.remove("shaking");
+
+            const finalRow = Math.floor(Math.random() * rows) + 1;
+            const finalCol = Math.floor(Math.random() * cols) + 1;
+            resultDiv.textContent = `✅ ${translations[currentLang].row}: ${formatResult(finalRow, rowInput)} | ${translations[currentLang].col}: ${formatResult(finalCol, colInput)}`;
+            resultDiv.classList.add("highlight");
+            setTimeout(() => resultDiv.classList.remove("highlight"), 1000);
+            launchConfetti();
+        }
+    }, 100);
+}
+
+function launchConfetti() {
+    for (let i = 0; i < 30; i++) {
+        const confetti = document.createElement("div");
+        confetti.classList.add("confetti");
+        confetti.style.left = Math.random() * window.innerWidth + "px";
+        confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
+        confetti.style.animationDuration = (Math.random() * 2 + 2) + "s";
+        document.body.appendChild(confetti);
+        setTimeout(() => confetti.remove(), 3000);
+    }
+}
+</script>
+</body>
+</html>
