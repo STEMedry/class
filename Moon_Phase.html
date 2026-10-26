@@ -1,0 +1,3673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Sun-Earth-Moon & 24 Solar Terms Simulator</title>
+    <style>
+        * { box-sizing: border-box; user-select: none; }
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #03050a;
+            color: #ffffff;
+            font-family: 'Segoe UI', 'Microsoft JhengHei', 'PingFang TC', sans-serif;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        
+        /* Show Panel Button (when left panel is hidden) */
+        #open-panel-btn {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            z-index: 10;
+            background: rgba(15, 20, 35, 0.92);
+            color: #60a5fa;
+            border: 1px solid rgba(100, 150, 255, 0.4);
+            padding: 9px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: bold;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            display: none;
+            width: auto;
+            flex: none;
+        }
+        #open-panel-btn:hover { background: #1e293b; color: #93c5fd; }
+
+        /* Left Control Panel */
+        #ui-panel {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            width: 356px;
+            background: rgba(15, 20, 35, 0.90);
+            border: 1px solid rgba(100, 150, 255, 0.3);
+            border-radius: 12px;
+            padding: 11px 14px;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65);
+            max-height: 95vh;
+            overflow-y: auto;
+            z-index: 20;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        #ui-panel.hidden {
+            transform: translateX(-395px);
+            opacity: 0;
+            pointer-events: none;
+        }
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+            padding-bottom: 6px;
+            margin-bottom: 7px;
+        }
+        h1 {
+            font-size: 0.98rem;
+            margin: 0;
+            color: #60a5fa;
+        }
+        .icon-btn {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #94a3b8;
+            width: 25px;
+            height: 25px;
+            border-radius: 6px;
+            padding: 0;
+            font-size: 0.9rem;
+            line-height: 1;
+            flex: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .icon-btn:hover {
+            background: #ef4444;
+            color: #ffffff;
+            border-color: #ef4444;
+        }
+
+        .section-title {
+            font-size: 0.71rem;
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            color: #94a3b8;
+            margin: 8px 0 4px 0;
+            font-weight: 700;
+        }
+        .btn-group {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+        button {
+            flex: 1;
+            background: #1e293b;
+            color: #e2e8f0;
+            border: 1px solid #475569;
+            padding: 5px 7px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.74rem;
+            transition: all 0.2s;
+            font-weight: 600;
+            font-family: inherit;
+        }
+        button:hover { background: #334155; border-color: #60a5fa; }
+        button.active {
+            background: #2563eb;
+            border-color: #60a5fa;
+            color: #ffffff;
+        }
+        button.season-jump-btn {
+            background: rgba(30, 41, 59, 0.9);
+            border-color: #f59e0b;
+            color: #fde68a;
+        }
+        button.season-jump-btn:hover {
+            background: #b45309;
+            color: #ffffff;
+        }
+        button.eclipse-jump-btn {
+            background: rgba(49, 46, 129, 0.75);
+            border-color: #818cf8;
+            color: #e0e7ff;
+        }
+        button.eclipse-jump-btn:hover {
+            background: #4338ca;
+            color: #ffffff;
+        }
+        button.solstice-jump-btn {
+            background: rgba(6, 78, 59, 0.75);
+            border-color: #34d399;
+            color: #a7f3d0;
+        }
+        button.solstice-jump-btn:hover {
+            background: #059669;
+            color: #ffffff;
+        }
+        button.play-btn {
+            background: #059669;
+            border-color: #34d399;
+            font-size: 0.82rem;
+            padding: 6px;
+        }
+        button.play-btn.paused {
+            background: #d97706;
+            border-color: #fbbf24;
+        }
+
+        /* Collapsible Learning Support & Right Data Toggle Buttons */
+        .support-toggle-btn {
+            width: 100%;
+            margin-top: 9px;
+            padding: 7px 10px;
+            background: linear-gradient(135deg, rgba(30, 58, 138, 0.75), rgba(15, 23, 42, 0.95));
+            border: 1px solid #60a5fa;
+            color: #93c5fd;
+            border-radius: 8px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            flex: none;
+        }
+        .support-toggle-btn:hover {
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.8), rgba(30, 41, 59, 0.95));
+            color: #ffffff;
+        }
+        .data-drawer-btn {
+            margin-top: 0;
+            background: linear-gradient(135deg, rgba(6, 78, 59, 0.85), rgba(15, 23, 42, 0.95));
+            border: 1px solid #34d399;
+            color: #a7f3d0;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+        }
+        .data-drawer-btn:hover {
+            background: linear-gradient(135deg, rgba(5, 150, 105, 0.9), rgba(30, 41, 59, 0.95));
+            border-color: #6ee7b7;
+            color: #ffffff;
+        }
+        #learning-support-content {
+            display: none;
+            margin-top: 6px;
+            padding-top: 6px;
+            border-top: 1px solid rgba(148, 163, 184, 0.22);
+        }
+        #learning-support-content.open {
+            display: block;
+        }
+
+        .slider-container { margin: 5px 0; }
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            margin-bottom: 2px;
+        }
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+            accent-color: #3b82f6;
+            margin: 2px 0;
+        }
+        .checkbox-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+            font-size: 0.74rem;
+            margin: 4px 0;
+            cursor: pointer;
+            line-height: 1.28;
+        }
+        .checkbox-row input { cursor: pointer; width: 14px; height: 14px; margin-top: 1px; flex-shrink: 0; }
+        .checkbox-highlight {
+            background: rgba(245, 158, 11, 0.14);
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            padding: 4px 6px;
+            border-radius: 6px;
+            color: #fde68a;
+        }
+        .checkbox-solarterm {
+            background: rgba(16, 185, 129, 0.14);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            padding: 4px 6px;
+            border-radius: 6px;
+            color: #a7f3d0;
+        }
+        .checkbox-daynight {
+            background: rgba(56, 189, 248, 0.14);
+            border: 1px solid rgba(56, 189, 248, 0.45);
+            padding: 4px 6px;
+            border-radius: 6px;
+            color: #bae6fd;
+        }
+        .checkbox-counterfactual {
+            background: rgba(168, 85, 247, 0.14);
+            border: 1px solid rgba(168, 85, 247, 0.45);
+            padding: 4px 6px;
+            border-radius: 6px;
+            color: #e9d5ff;
+        }
+
+        .mouse-guide {
+            font-size: 0.69rem;
+            color: #93c5fd;
+            background: rgba(30, 58, 138, 0.35);
+            border: 1px solid rgba(96, 165, 250, 0.35);
+            border-radius: 6px;
+            padding: 4px 7px;
+            margin-bottom: 5px;
+            line-height: 1.35;
+        }
+
+        /* ==========================================
+           RIGHT SIDEBAR (PIP + Fixed Monitor + Condensed Data Drawer)
+           ========================================== */
+        #top-right-wrapper {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 318px;
+            max-height: calc(100vh - 68px);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 8px;
+            z-index: 20;
+            padding-right: 2px;
+        }
+        .top-right-bar {
+            display: flex;
+            justify-content: flex-end;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+        .pill-btn {
+            background: rgba(15, 20, 35, 0.92);
+            border: 1px solid #60a5fa;
+            color: #ffffff;
+            padding: 5px 10px;
+            border-radius: 18px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            flex: none;
+            width: auto;
+        }
+        .pill-btn:hover { background: #2563eb; }
+        .pill-btn.active { background: #0284c7; border-color: #38bdf8; }
+        .pill-btn.tutorial-btn {
+            background: linear-gradient(135deg, #059669, #0284c7);
+            border-color: #34d399;
+        }
+        .pill-btn.tutorial-btn:hover {
+            background: linear-gradient(135deg, #10b981, #2563eb);
+        }
+
+        .right-card {
+            background: rgba(15, 20, 35, 0.90);
+            border: 1px solid rgba(100, 150, 255, 0.35);
+            border-radius: 12px;
+            padding: 9px 12px;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6);
+        }
+
+        /* Condensed by Default: Metrics Card below View of Moon */
+        #metrics-card {
+            display: none;
+        }
+        #metrics-card.open {
+            display: block;
+        }
+
+        #pip-panel { text-align: center; }
+        #pip-title {
+            font-size: 0.78rem;
+            font-weight: bold;
+            color: #e2e8f0;
+            margin-bottom: 5px;
+        }
+        #pip-frame {
+            width: 140px;
+            height: 140px;
+            margin: 0 auto;
+            border: 2px solid #38bdf8;
+            border-radius: 50%;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.28), inset 0 0 18px #000000;
+            background: #000000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #pip-canvas {
+            width: 140px;
+            height: 140px;
+            display: block;
+        }
+        #phase-label {
+            margin-top: 5px;
+            font-size: 0.88rem;
+            font-weight: bold;
+            color: #fbbf24;
+        }
+        #lunar-day-readout {
+            margin-top: 2px;
+            font-size: 0.74rem;
+            color: #93c5fd;
+            font-weight: 600;
+        }
+
+        /* FIXED ECLIPSE & SYZYGY ALIGNMENT MONITOR BOX */
+        #syzygy-monitor-box {
+            margin-top: 6px;
+            background: rgba(15, 23, 42, 0.92);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            border-radius: 8px;
+            padding: 5px 8px;
+            text-align: left;
+            min-height: 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            transition: border-color 0.25s ease, background 0.25s ease;
+        }
+        #syzygy-monitor-box.state-eclipse {
+            background: rgba(127, 29, 29, 0.75);
+            border-color: #f87171;
+        }
+        #syzygy-monitor-box.state-syzygy-miss {
+            background: rgba(6, 78, 59, 0.55);
+            border-color: rgba(52, 211, 153, 0.55);
+        }
+        .monitor-header {
+            font-size: 0.64rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #94a3b8;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+        #syzygy-monitor-status {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #e2e8f0;
+            line-height: 1.3;
+        }
+
+        /* Solar Terms, Seasons & Day/Night Length Analyzer Card */
+        .solar-term-banner {
+            background: linear-gradient(135deg, rgba(6, 78, 59, 0.8), rgba(15, 23, 42, 0.92));
+            border: 1px solid rgba(52, 211, 153, 0.55);
+            border-radius: 8px;
+            padding: 5px 9px;
+            margin-bottom: 6px;
+        }
+        .st-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .st-label {
+            font-size: 0.71rem;
+            color: #a7f3d0;
+            font-weight: 600;
+        }
+        .st-value {
+            font-size: 0.84rem;
+            font-weight: bold;
+            color: #34d399;
+            text-align: right;
+        }
+        .st-sub {
+            font-size: 0.67rem;
+            color: #cbd5e1;
+            margin-top: 2px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Hemisphere Seasons Box */
+        .seasons-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+            margin-bottom: 6px;
+        }
+        .season-cell {
+            background: rgba(30, 41, 59, 0.75);
+            border: 1px solid rgba(148, 163, 184, 0.28);
+            border-radius: 6px;
+            padding: 4px 7px;
+            font-size: 0.71rem;
+        }
+        .season-cell-title {
+            color: #94a3b8;
+            font-size: 0.65rem;
+            font-weight: 600;
+        }
+        .season-cell-val {
+            font-weight: 700;
+            color: #fde68a;
+            margin-top: 1px;
+            font-size: 0.75rem;
+        }
+        .season-cell-sub {
+            font-size: 0.64rem;
+            color: #38bdf8;
+            font-weight: 600;
+        }
+
+        /* Day/Night Length (日長夜短 / 日短夜長) Interactive Analyzer Box */
+        .daylength-box {
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(56, 189, 248, 0.45);
+            border-radius: 8px;
+            padding: 6px 8px;
+            margin-bottom: 6px;
+        }
+        .dl-title-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #bae6fd;
+            margin-bottom: 4px;
+        }
+        .dl-lat-row {
+            margin-bottom: 5px;
+        }
+        .dl-lat-row:last-child {
+            margin-bottom: 0;
+        }
+        .dl-lat-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.67rem;
+            color: #e2e8f0;
+            margin-bottom: 2px;
+        }
+        .dl-bar-track {
+            width: 100%;
+            height: 9px;
+            background: #1e1b4b;
+            border-radius: 5px;
+            overflow: hidden;
+            display: flex;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            position: relative;
+        }
+        .dl-bar-day {
+            height: 100%;
+            background: linear-gradient(90deg, #f59e0b, #fde047);
+            transition: width 0.1s linear;
+        }
+        .dl-bar-midline {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 1.5px;
+            background: rgba(255, 255, 255, 0.65);
+            z-index: 2;
+        }
+
+        /* Live Sun-Earth Distance Progress Bar */
+        .dist-box {
+            background: rgba(30, 41, 59, 0.65);
+            border: 1px solid rgba(251, 191, 36, 0.35);
+            border-radius: 7px;
+            padding: 5px 8px;
+            margin-bottom: 6px;
+            font-size: 0.72rem;
+        }
+        .dist-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3px;
+        }
+        .dist-bar-bg {
+            width: 100%;
+            height: 6px;
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 3px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.12);
+        }
+        .dist-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #38bdf8, #fbbf24, #f97316);
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+        .dist-endpoints {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.62rem;
+            color: #94a3b8;
+            margin-top: 2px;
+        }
+
+        .stats-box {
+            background: rgba(0, 0, 0, 0.38);
+            border-radius: 8px;
+            padding: 5px 9px;
+            font-size: 0.72rem;
+            line-height: 1.45;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .stats-val { color: #38bdf8; font-weight: bold; float: right; }
+
+        /* Collapsible Legend & Teaching Guide Card on Right */
+        #guide-card {
+            display: none;
+            font-size: 0.72rem;
+            line-height: 1.42;
+        }
+        #guide-card.visible { display: block; }
+        .legend-item { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
+        .swatch-yellow { width: 15px; height: 0px; border-top: 3px dashed #fde047; display: inline-block; flex-shrink: 0; }
+        .swatch-pink { width: 15px; height: 0px; border-top: 3px dashed #f472b6; display: inline-block; flex-shrink: 0; }
+        .swatch-gold-ring { width: 13px; height: 13px; border: 2.5px solid #facc15; border-radius: 50%; background: rgba(15, 23, 42, 0.9); display: inline-block; flex-shrink: 0; }
+        .swatch-cyan { width: 15px; height: 4px; background: #22d3ee; border-radius: 2px; display: inline-block; flex-shrink: 0; }
+        .swatch-umbra { width: 15px; height: 8px; background: rgba(30, 27, 75, 0.9); border: 1px solid #818cf8; border-radius: 2px; display: inline-block; flex-shrink: 0; }
+
+        .hint {
+            font-size: 0.71rem;
+            color: #cbd5e1;
+            background: rgba(59, 130, 246, 0.15);
+            border-left: 3px solid #3b82f6;
+            padding: 5px 7px;
+            margin-top: 6px;
+            border-radius: 0 6px 6px 0;
+            line-height: 1.36;
+        }
+
+        /* ==========================================
+           ENRICHED INTERACTIVE TUTORIAL MODAL POP-UP
+           ========================================== */
+        #tutorial-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(3, 7, 18, 0.78);
+            backdrop-filter: blur(6px);
+            z-index: 100;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        #tutorial-modal-overlay.open {
+            display: flex;
+        }
+        .tutorial-modal {
+            background: rgba(15, 23, 42, 0.98);
+            border: 1px solid rgba(96, 165, 250, 0.55);
+            border-radius: 14px;
+            max-width: 840px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 18px 22px;
+            box-shadow: 0 18px 55px rgba(0, 0, 0, 0.9);
+            color: #f8fafc;
+        }
+        .tutorial-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+            padding-bottom: 10px;
+            margin-bottom: 12px;
+        }
+        .tutorial-header h2 {
+            margin: 0;
+            font-size: 1.15rem;
+            color: #38bdf8;
+        }
+        .tut-sec-banner {
+            background: rgba(30, 41, 59, 0.85);
+            border-left: 4px solid #38bdf8;
+            border-radius: 6px;
+            padding: 9px 12px;
+            margin-bottom: 10px;
+            font-size: 0.78rem;
+            line-height: 1.46;
+            color: #e2e8f0;
+        }
+        .tut-sec-banner h4 {
+            margin: 0 0 4px 0;
+            color: #7dd3fc;
+            font-size: 0.86rem;
+        }
+        .tut-sec-banner ul {
+            margin: 4px 0 0 0;
+            padding-left: 18px;
+        }
+        .tut-sec-banner li {
+            margin-bottom: 3px;
+        }
+        .tutorial-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 9px;
+            margin-bottom: 12px;
+        }
+        @media (max-width: 680px) {
+            .tutorial-grid { grid-template-columns: 1fr; }
+        }
+        .tut-card {
+            background: rgba(30, 41, 59, 0.72);
+            border: 1px solid rgba(148, 163, 184, 0.28);
+            border-radius: 9px;
+            padding: 9px 11px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .tut-card h3 {
+            margin: 0 0 4px 0;
+            font-size: 0.84rem;
+            color: #fbbf24;
+        }
+        .tut-card p {
+            margin: 0 0 8px 0;
+            font-size: 0.74rem;
+            color: #cbd5e1;
+            line-height: 1.4;
+        }
+        .tut-action-btn {
+            background: #2563eb;
+            border-color: #60a5fa;
+            color: #ffffff;
+            font-size: 0.72rem;
+            padding: 5px 9px;
+            border-radius: 6px;
+            width: 100%;
+            flex: none;
+        }
+        .tut-action-btn:hover { background: #1d4ed8; }
+        .glossary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-top: 6px;
+        }
+        @media (max-width: 680px) {
+            .glossary-grid { grid-template-columns: 1fr; }
+        }
+        .glossary-item {
+            background: rgba(15, 23, 42, 0.75);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 6px;
+            padding: 5px 8px;
+            font-size: 0.72rem;
+            line-height: 1.35;
+        }
+        .glossary-item b {
+            color: #34d399;
+        }
+        .tutorial-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid rgba(255,255,255,0.12);
+            padding-top: 10px;
+            font-size: 0.74rem;
+            color: #94a3b8;
+        }
+
+        /* ==========================================
+           LOWER RIGHT AUTHOR & EdUHK WATERMARK
+           ========================================== */
+        #author-footer {
+            position: absolute;
+            bottom: 12px;
+            right: 16px;
+            z-index: 25;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(10, 15, 28, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            padding: 6px 13px;
+            border-radius: 10px;
+            backdrop-filter: blur(6px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55);
+            pointer-events: none;
+        }
+        #eduhk-logo {
+            height: 32px;
+            width: auto;
+            object-fit: contain;
+            display: block;
+        }
+        #author-label {
+            font-family: 'Arial Black', Impact, 'Segoe UI Black', sans-serif;
+            font-weight: 900;
+            color: #ffffff;
+            font-size: 0.88rem;
+            letter-spacing: 0.4px;
+            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.85);
+            white-space: nowrap;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+<div id="canvas-container"></div>
+
+<!-- Button to Reopen Left Panel when hidden -->
+<button id="open-panel-btn">☰ Controls</button>
+
+<!-- LEFT PANEL: Streamlined Interactive Controls & Condensed Learning Support -->
+<div id="ui-panel">
+    <div class="panel-header">
+        <h1 id="ui-title">🌍 Sun-Earth-Moon Simulator</h1>
+        <button id="close-panel-btn" class="icon-btn" title="Hide Panel">✕</button>
+    </div>
+
+    <div class="btn-group">
+        <button id="play-btn" class="play-btn">⏸ Pause Simulation</button>
+    </div>
+
+    <div class="section-title" id="sec-speed">Simulation Speed Preset</div>
+    <div class="btn-group">
+        <button class="speed-btn" id="spd-day" data-speed="0.033333">1 Day / 30s</button>
+        <button class="speed-btn active" id="spd-month" data-speed="0.246088">1 Mo / 120s</button>
+        <button class="speed-btn" id="spd-year" data-speed="1.01460">1 Yr / 360s</button>
+    </div>
+
+    <div class="section-title" id="sec-interactive">Interactive Orbit Controls</div>
+    <div class="slider-container">
+        <div class="slider-label">
+            <span id="lbl-move-moon">Move Moon on Orbit (Phase):</span>
+            <span id="angle-val">180°</span>
+        </div>
+        <input type="range" id="moon-slider" min="0" max="360" step="0.5" value="180">
+    </div>
+
+    <div class="slider-container">
+        <div class="slider-label">
+            <span id="lbl-move-earth">Earth Position (Month / Solar Term):</span>
+            <span id="earth-month-val">Jan · Major Cold</span>
+        </div>
+        <input type="range" id="earth-slider" min="0" max="365.25" step="0.25" value="14.76">
+    </div>
+
+    <!-- Quick Jump Buttons for Perihelion/Aphelion & Full Moon Eclipse Comparison -->
+    <div class="btn-group" style="margin-top: 4px;">
+        <button id="jump-jan-btn" class="season-jump-btn">❄️ Jan Full Moon (No Eclipse)</button>
+        <button id="jump-mar-btn" class="eclipse-jump-btn">🌑 Mar Full Moon (Eclipse!)</button>
+    </div>
+    <div class="btn-group" style="margin-top: 4px;">
+        <button id="jump-jul-btn" class="season-jump-btn">☀️ Jul Full Moon (No Eclipse)</button>
+        <button id="jump-sep-btn" class="eclipse-jump-btn">🌑 Sep Full Moon (Eclipse!)</button>
+    </div>
+    <!-- Quick Jump Buttons for Summer Solstice vs. Winter Solstice Day/Night Length (日長夜短 / 日短夜長) -->
+    <div class="btn-group" style="margin-top: 4px;">
+        <button id="jump-sum-sol-btn" class="solstice-jump-btn">☀️ Jun Summer Solstice (Long Day)</button>
+        <button id="jump-win-sol-btn" class="solstice-jump-btn">❄️ Dec Winter Solstice (Short Day)</button>
+    </div>
+
+    <!-- Camera Focus & Mouse Guide (Always Accessible) -->
+    <div class="mouse-guide" id="lbl-mouse-guide" style="margin-top: 7px;">
+        🖱️ <b>Left Drag:</b> Rotate &nbsp;|&nbsp; <b>Right Drag:</b> Move &nbsp;|&nbsp; <b>Scroll:</b> Zoom &nbsp;|&nbsp; 🌍/☀️ <b>Click Earth/Sun:</b> Level Plane
+    </div>
+    <div class="btn-group">
+        <button id="cam-earth-btn" class="active">Focus: Earth & Moon</button>
+        <button id="cam-sun-btn">Focus: Solar System</button>
+    </div>
+
+    <!-- CONDENSED BY DEFAULT: Learning Support Button & Expandable Drawer -->
+    <button id="learning-support-btn" class="support-toggle-btn">
+        <span id="lbl-learning-support-btn">🛠️ Learning Support (Visual Scaffolds)</span>
+        <span id="support-chevron">▼</span>
+    </button>
+
+    <div id="learning-support-content">
+        <!-- ALL BOXES UNCHECKED BY DEFAULT FOR A CLEAN INITIAL VIEW (5° Tilt is active by default; checking tilt-toggle offsets it to 0°) -->
+        <label class="checkbox-row checkbox-daynight">
+            <input type="checkbox" id="season-lab-toggle">
+            <span id="lbl-season-toggle">☀️ Show N/S Sunlight Rays & Day/Night Latitude Circles (日長夜短 / 日短夜長)</span>
+        </label>
+        <label class="checkbox-row checkbox-solarterm">
+            <input type="checkbox" id="solar-terms-toggle">
+            <span id="lbl-solar-terms-toggle">🔶 Show 24 Solar Terms (Diamonds on Orbit)</span>
+        </label>
+        <label class="checkbox-row checkbox-highlight">
+            <input type="checkbox" id="exaggerate-ellipse-toggle">
+            <span id="lbl-exaggerate-toggle">🔍 Exaggerate Elliptical Orbits (Compare flat vs. real orbit)</span>
+        </label>
+        <label class="checkbox-row">
+            <input type="checkbox" id="shadow-toggle">
+            <span id="lbl-shadow-toggle">Show True Tangent Umbra Cones & Gold Terminator Rings</span>
+        </label>
+        <label class="checkbox-row">
+            <input type="checkbox" id="guides-toggle">
+            <span id="lbl-guides-toggle">Show Sunlight Arrow & Earth-Moon View Line (Cyan)</span>
+        </label>
+        <label class="checkbox-row">
+            <input type="checkbox" id="syzygy-toggle">
+            <span id="lbl-syzygy-toggle">Show Labeled Sun–Earth (Yellow) & Sun–Moon (Pink) Lines</span>
+        </label>
+        <label class="checkbox-row">
+            <input type="checkbox" id="day-labels-toggle">
+            <span id="lbl-day-toggle">Show Lunar Days (Day 1–29) & Months (Jan–Dec Circles)</span>
+        </label>
+        <label class="checkbox-row checkbox-counterfactual">
+            <input type="checkbox" id="tilt-toggle">
+            <span id="lbl-tilt-toggle">⚖️ Offset 5° Moon Orbit Tilt (0° Flat Orbit — Unrealistic: Eclipses Every Month)</span>
+        </label>
+    </div>
+</div>
+
+<!-- RIGHT SIDEBAR: Guide / Tutorial / Language + Telescope PIP + Condensed Seasonal & Day/Night Data Drawer -->
+<div id="top-right-wrapper">
+    <div class="top-right-bar">
+        <button id="guide-toggle-btn" class="pill-btn">📖 Legend</button>
+        <button id="tutorial-btn" class="pill-btn tutorial-btn">🎓 Tutorial</button>
+        <button id="lang-btn" class="pill-btn">🌐 繁體中文</button>
+    </div>
+
+    <!-- 1. Telescope PIP Card + Fixed Eclipse & Syzygy Alignment Monitor -->
+    <div id="pip-panel" class="right-card">
+        <div id="pip-title">🔭 View of Moon from Earth (Night)</div>
+        <div id="pip-frame">
+            <canvas id="pip-canvas" width="140" height="140"></canvas>
+        </div>
+        <div id="phase-label">🌕 Full Moon</div>
+        <div id="lunar-day-readout">Lunar Cycle: Day 15</div>
+
+        <!-- FIXED MONITOR BOX: Never appears/disappears abruptly -->
+        <div id="syzygy-monitor-box">
+            <div class="monitor-header">
+                <span id="lbl-monitor-title">🔭 Eclipse & Syzygy Alignment Monitor</span>
+            </div>
+            <div id="syzygy-monitor-status">✨ Full Moon Syzygy: Passes BELOW Earth's Umbra (No Eclipse)</div>
+        </div>
+    </div>
+
+    <!-- BUTTON TO SHOW/HIDE SEASONAL, SOLAR TERMS & DAY/NIGHT DATA (CONDENSED BY DEFAULT) -->
+    <button id="metrics-toggle-btn" class="support-toggle-btn data-drawer-btn">
+        <span id="lbl-metrics-toggle-btn">📊 Seasonal & Day/Night Data (24 Solar Terms)</span>
+        <span id="metrics-chevron">▼</span>
+    </button>
+
+    <!-- 2. Condensed 24 Solar Terms, N/S Hemisphere Seasons, Day/Night Length Analyzer & Distance Card -->
+    <div id="metrics-card" class="right-card">
+        <div class="solar-term-banner">
+            <div class="st-top-row">
+                <span class="st-label" id="lbl-solar-term-title">🔶 24 Solar Term:</span>
+                <span class="st-value" id="stat-solar-term">Major Cold</span>
+            </div>
+            <div class="st-sub">
+                <span id="stat-solar-lon">Solar Lon λ☉: 298°</span>
+                <span id="stat-subsolar-lat" style="color:#fde047; font-weight:600;">Subsolar δ: 20.6°S</span>
+            </div>
+        </div>
+
+        <!-- N. & S. Hemisphere Seasons + Day/Night Tag -->
+        <div class="seasons-grid">
+            <div class="season-cell">
+                <div class="season-cell-title" id="lbl-nh-season-title">🌐 N. Hemisphere</div>
+                <div class="season-cell-val" id="stat-nh-season">❄️ Winter</div>
+                <div class="season-cell-sub" id="stat-nh-sub">🌙 Short Day, Long Night</div>
+            </div>
+            <div class="season-cell">
+                <div class="season-cell-title" id="lbl-sh-season-title">🌐 S. Hemisphere</div>
+                <div class="season-cell-val" id="stat-sh-season">☀️ Summer</div>
+                <div class="season-cell-sub" id="stat-sh-sub">☀️ Long Day, Short Night</div>
+            </div>
+        </div>
+
+        <!-- Day/Night Length (日長夜短 / 日短夜長) Proportion Analyzer -->
+        <div class="daylength-box">
+            <div class="dl-title-row">
+                <span id="lbl-dl-box-title">☀️ Day vs. 🌙 Night Length (24h Rotation)</span>
+            </div>
+            <!-- 45°N Bar -->
+            <div class="dl-lat-row">
+                <div class="dl-lat-header">
+                    <span id="lbl-dl-45n">45°N (Mid-Lat N.):</span>
+                    <span id="val-dl-45n" style="color:#fde047; font-weight:700;">☀️ 9.0h | 🌙 15.0h</span>
+                </div>
+                <div class="dl-bar-track">
+                    <div id="bar-dl-45n" class="dl-bar-day" style="width: 37.5%;"></div>
+                    <div class="dl-bar-midline" title="12h Equal Day/Night Line"></div>
+                </div>
+            </div>
+            <!-- 0° Equator Bar -->
+            <div class="dl-lat-row">
+                <div class="dl-lat-header">
+                    <span id="lbl-dl-eq">0° Equator (Always 12h):</span>
+                    <span id="val-dl-eq" style="color:#a7f3d0; font-weight:700;">☀️ 12.0h | 🌙 12.0h</span>
+                </div>
+                <div class="dl-bar-track">
+                    <div id="bar-dl-eq" class="dl-bar-day" style="width: 50%;"></div>
+                    <div class="dl-bar-midline"></div>
+                </div>
+            </div>
+            <!-- 45°S Bar -->
+            <div class="dl-lat-row">
+                <div class="dl-lat-header">
+                    <span id="lbl-dl-45s">45°S (Mid-Lat S.):</span>
+                    <span id="val-dl-45s" style="color:#fde047; font-weight:700;">☀️ 15.0h | 🌙 9.0h</span>
+                </div>
+                <div class="dl-bar-track">
+                    <div id="bar-dl-45s" class="dl-bar-day" style="width: 62.5%;"></div>
+                    <div class="dl-bar-midline"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Sun-Earth Distance Meter -->
+        <div class="dist-box">
+            <div class="dist-header">
+                <span id="lbl-stat-dist" style="color:#fde68a; font-weight:600;">📏 Sun–Earth Distance:</span>
+                <span id="stat-dist" style="color:#38bdf8; font-weight:bold;">147.1M km (0.984 AU)</span>
+            </div>
+            <div class="dist-bar-bg">
+                <div id="dist-bar-fill" class="dist-bar-fill"></div>
+            </div>
+            <div class="dist-endpoints">
+                <span id="lbl-peri-end">Perihelion: 147.1M km (Jan)</span>
+                <span id="lbl-aph-end">Aphelion: 152.1M km (Jul)</span>
+            </div>
+        </div>
+
+        <div class="stats-box">
+            <div><span id="lbl-stat-days">Earth Rotations (1d):</span> <span id="stat-days" class="stats-val">0.0</span></div>
+            <div><span id="lbl-stat-months">Lunar Cycles (29.5d):</span> <span id="stat-months" class="stats-val">0.00</span></div>
+            <div><span id="lbl-stat-years">Earth Orbits (12m):</span> <span id="stat-years" class="stats-val">0.00</span></div>
+        </div>
+    </div>
+
+    <!-- 3. Collapsible Legend & Astronomy Concept Guide Card -->
+    <div id="guide-card" class="right-card">
+        <div class="legend-item"><span class="swatch-yellow"></span> <span id="leg-syzygy"><b>Yellow Dotted:</b> Sun–Earth Line (Umbra Axis & Distance)</span></div>
+        <div class="legend-item"><span class="swatch-pink"></span> <span id="leg-sun-moon"><b>Pink Dotted:</b> Direct Sun–Moon Sunlight Ray</span></div>
+        <div class="legend-item"><span class="swatch-umbra"></span> <span id="leg-umbra"><b>Umbra Cones:</b> Tangent to Top/Bottom Surfaces</span></div>
+        <div class="legend-item"><span class="swatch-gold-ring"></span> <span id="leg-terminator"><b>Gold Ring:</b> 50% Lit / Night Terminator</span></div>
+        <div class="legend-item"><span class="swatch-cyan"></span> <span id="leg-view"><b>Cyan Ring:</b> Hemisphere Seen from Earth</span></div>
+        <div class="hint" id="ui-hint">
+            💡 <b>Why Days are Longer in Summer (日長夜短):</b><br>
+            Because Earth's axis is tilted 23.5°, the <b>Gold Terminator Ring</b> cuts latitude circles unequally! In June, more than half of the 45°N circle is inside the sunlit hemisphere (~15.4h day), while in December less than half is lit (~8.6h day).
+        </div>
+    </div>
+</div>
+
+<!-- ENRICHED INTERACTIVE POP-UP TUTORIAL MODAL -->
+<div id="tutorial-modal-overlay">
+    <div class="tutorial-modal">
+        <div class="tutorial-header">
+            <h2 id="tut-modal-title">🎓 Sun–Earth–Moon System: Pedagogical & Interactive Guide</h2>
+            <button id="close-tutorial-btn" class="icon-btn" title="Close Tutorial">✕</button>
+        </div>
+
+        <!-- 1. System Introduction & Learning Objectives -->
+        <div class="tut-sec-banner">
+            <h4 id="tut-intro-title">🌌 1. Introduction & Core Learning Objectives</h4>
+            <div id="tut-intro-body">
+                The <b>Sun–Earth–Moon system</b> governs our daily cycles, lunar phases, eclipses, and seasonal day-length changes. As Earth rotates on its <b>23.5° tilted axis</b> every 24 hours, it revolves around the Sun in an elliptical orbit (<b>365.25 days</b>), while the Moon revolves around Earth (<b>29.53 days per synodic month</b>) on an orbit inclined by <b>5°</b> to the ecliptic plane.
+                <ul>
+                    <li><b>Objective 1 (Lunar Phases):</b> Distinguish between the Moon's constant 50% sunlit hemisphere (Terminator) and the changing fraction visible from Earth.</li>
+                    <li><b>Objective 2 (Eclipse Mechanics):</b> Explain why Lunar & Solar Eclipses do not occur every month due to the 5° orbital inclination (enabled by default), occurring only near the <b>Lunar Nodes (March & September)</b>.</li>
+                    <li><b>Objective 3 (Seasons & Day/Night Length 日長夜短 / 日短夜長):</b> Understand how the <b>23.5° axial tilt</b> causes the Terminator Plane to divide latitude circles unequally—creating longer daylight hours in Summer and shorter daylight hours in Winter—even though Earth is closest to the Sun (<b>Perihelion, 147.1M km</b>) in January!</li>
+                    <li><b>Objective 4 (Lunisolar Calendars):</b> Contrast the solar-based <b>24 Solar Terms</b> (🔶 Diamonds) with lunar-based <b>Synodic Days 1–30</b> (🔵 Beads).</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 2. Pedagogical Design Ideas -->
+        <div class="tut-sec-banner" style="border-left-color: #f59e0b;">
+            <h4 id="tut-ped-title" style="color: #fcd34d;">🧠 2. Pedagogical Design Principles of This Simulation</h4>
+            <div id="tut-ped-body">
+                <ul>
+                    <li><b>Clean Default Interface & Progressive Scaffolding:</b> Both <b>🛠️ Learning Support</b> on the left and <b>📊 Seasonal & Day/Night Data</b> on the right are condensed by default so learners first observe the natural 3D system, then expand tools and data as needed.</li>
+                    <li><b>Click Earth or Sun to Level View onto Horizontal Plane:</b> Clicking directly on the 3D <b>Earth</b> or <b>Sun</b> resets the camera onto the horizontal ecliptic plane, letting learners inspect the 23.5° axial tilt, 5° lunar orbit tilt, or full Solar System orbit edge-on.</li>
+                    <li><b>Counterfactual Experimentation:</b> The Moon's <b>5° Orbit Tilt</b> is active by default; learners can check <b>⚖️ Offset 5° Moon Orbit Tilt</b> to flatten the orbit to 0° and see how eclipses would occur every single month without the tilt!</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 3. Hands-On Interactive Missions -->
+        <div class="section-title" id="tut-missions-header" style="margin-bottom: 6px; color: #93c5fd;">🚀 3. Interactive Guided Missions (Click to Auto-Configure & Jump)</div>
+        <div class="tutorial-grid">
+            <div class="tut-card">
+                <div>
+                    <h3 id="tut-c1-title">Mission A: Half-Lit Moon vs. Phases</h3>
+                    <p id="tut-c1-desc">Enables the <b>Gold Terminator Ring</b> & <b>Cyan Viewing Ring</b>. Observe how 50% of the cratered Moon is ALWAYS sunlit, while our viewing angle from Earth creates First Quarter Moon.</p>
+                </div>
+                <button id="tut-btn-phases" class="tut-action-btn">🌓 Launch Mission A: First Quarter Moon</button>
+            </div>
+            <div class="tut-card">
+                <div>
+                    <h3 id="tut-c2-title">Mission B: Why Eclipses Need Nodes</h3>
+                    <p id="tut-c2-desc">Uses the realistic <b>5° Orbit Tilt</b> with <b>Umbra Cones</b> & <b>Labeled Dotted Lines</b>. Jump to the March Eclipse Node to see the Moon pass directly through Earth's Umbra Cone!</p>
+                </div>
+                <button id="tut-btn-eclipse" class="tut-action-btn">🌑 Launch Mission B: March Blood Moon</button>
+            </div>
+            <div class="tut-card">
+                <div>
+                    <h3 id="tut-c3-title">Mission C: Why Summer Days Are Longer (日長夜短)</h3>
+                    <p id="tut-c3-desc">Opens <b>📊 Seasonal Data</b> and enables <b>45°N / 0° / 45°S Latitude Circles</b>, <b>Gold Terminator Ring</b> & <b>Sunlight Rays</b> at June Summer Solstice. Watch the red city marker at 45°N spend 15.4h in daylight!</p>
+                </div>
+                <button id="tut-btn-seasons" class="tut-action-btn">☀️ Launch Mission C: Summer Solstice Day/Night</button>
+            </div>
+            <div class="tut-card">
+                <div>
+                    <h3 id="tut-c4-title">Mission D: 24 Solar Terms vs. Months</h3>
+                    <p id="tut-c4-desc">Switches to the <b>Solar System View</b> and enables <b>🔶 24 Solar Term Diamonds</b> & <b>🔵 Month Spheres</b> along Earth's orbit.</p>
+                </div>
+                <button id="tut-btn-solarsys" class="tut-action-btn">🌌 Launch Mission D: 24 Solar Terms Orbit</button>
+            </div>
+        </div>
+
+        <!-- 4. Essential Terms Glossary -->
+        <div class="tut-sec-banner" style="border-left-color: #10b981; margin-bottom: 12px;">
+            <h4 id="tut-glossary-title" style="color: #6ee7b7;">📖 4. Essential Astronomy Terms</h4>
+            <div class="glossary-grid" id="tut-glossary-grid">
+                <div class="glossary-item"><b>Diurnal Arc & Nocturnal Arc (晝弧與夜弧):</b> The sunlit vs. dark segments of a latitude circle cut by the Terminator Ring; their ratio determines day vs. night length.</div>
+                <div class="glossary-item"><b>Subsolar Point (太陽直射點 δ):</b> The latitude on Earth where noon sunlight hits at 90° (shifts between 23.5°N at Summer Solstice and 23.5°S at Winter Solstice).</div>
+                <div class="glossary-item"><b>Lunar Nodes (黃白交點):</b> The two points (Mar & Sep) where the Moon's 5° tilted orbit crosses the Ecliptic Plane.</div>
+                <div class="glossary-item"><b>Terminator vs. Umbra:</b> The Terminator is the day/night circle on a sphere; the Umbra is the dark shadow cone cast into space.</div>
+                <div class="glossary-item"><b>Perihelion & Aphelion:</b> Earth's closest point (147.1M km, Jan) and farthest point (152.1M km, Jul) from the Sun.</div>
+                <div class="glossary-item"><b>24 Solar Terms vs. Synodic Month:</b> Solar Terms divide Earth's orbit into twenty-four 15° segments; a Synodic Month (29.53d) tracks Moon phases.</div>
+            </div>
+        </div>
+
+        <div class="tutorial-footer">
+            <span id="tut-footer-tip">💡 Tip: Click directly on the Earth or the Sun anytime to level the view onto the horizontal plane!</span>
+            <button id="tut-got-it-btn" style="flex:none; padding: 6px 16px; background:#059669; border-color:#34d399; color:#fff;">Got It!</button>
+        </div>
+    </div>
+</div>
+
+<!-- LOWER RIGHT AUTHOR & EdUHK LOGO -->
+<div id="author-footer">
+    <img id="eduhk-logo" src="EdUHK.png" alt="EdUHK" onerror="this.style.display='none'">
+    <span id="author-label">Richard C. Y. YEUNG, EdUHK</span>
+</div>
+
+<script>
+// ==========================================
+// 1. 24 SOLAR TERMS DATA & DAY/NIGHT CALCULATOR
+// ==========================================
+const SOLAR_TERMS_DATA = [
+    { lon: 285, zh: "小寒", en: "Minor Cold", major: false },
+    { lon: 300, zh: "大寒", en: "Major Cold", major: false },
+    { lon: 315, zh: "立春", en: "Start of Spring", major: true },
+    { lon: 330, zh: "雨水", en: "Rain Water", major: false },
+    { lon: 345, zh: "驚蟄", en: "Awakening of Insects", major: false },
+    { lon: 0,   zh: "春分", en: "Vernal Equinox", major: true },
+    { lon: 15,  zh: "清明", en: "Clear and Bright", major: false },
+    { lon: 30,  zh: "谷雨", en: "Grain Rain", major: false },
+    { lon: 45,  zh: "立夏", en: "Start of Summer", major: true },
+    { lon: 60,  zh: "小滿", en: "Grain Buds", major: false },
+    { lon: 75,  zh: "芒種", en: "Grain in Ear", major: false },
+    { lon: 90,  zh: "夏至", en: "Summer Solstice", major: true },
+    { lon: 105, zh: "小暑", en: "Minor Heat", major: false },
+    { lon: 120, zh: "大暑", en: "Major Heat", major: false },
+    { lon: 135, zh: "立秋", en: "Start of Autumn", major: true },
+    { lon: 150, zh: "處暑", en: "End of Heat", major: false },
+    { lon: 165, zh: "白露", en: "White Dew", major: false },
+    { lon: 180, zh: "秋分", en: "Autumnal Equinox", major: true },
+    { lon: 195, zh: "寒露", en: "Cold Dew", major: false },
+    { lon: 210, zh: "霜降", en: "Frost's Descent", major: false },
+    { lon: 225, zh: "立冬", en: "Start of Winter", major: true },
+    { lon: 240, zh: "小雪", en: "Minor Snow", major: false },
+    { lon: 255, zh: "大雪", en: "Major Snow", major: false },
+    { lon: 270, zh: "冬至", en: "Winter Solstice", major: true }
+];
+
+function solarLonToOrbitAngleRad(lonDeg) {
+    const degFromPerihelion = (lonDeg - 283 + 360) % 360;
+    return THREE.MathUtils.degToRad(degFromPerihelion);
+}
+
+function orbitAngleRadToSolarLon(orbitRad) {
+    const orbitDeg = THREE.MathUtils.radToDeg(orbitRad) % 360;
+    return (orbitDeg + 283 + 360) % 360;
+}
+
+function getCurrentSolarTerm(solarLonDeg) {
+    let bestTerm = SOLAR_TERMS_DATA[0];
+    for (let i = 0; i < SOLAR_TERMS_DATA.length; i++) {
+        const t = SOLAR_TERMS_DATA[i];
+        const diff = (solarLonDeg - t.lon + 360) % 360;
+        if (diff < 15) {
+            bestTerm = t;
+            break;
+        }
+    }
+    return bestTerm;
+}
+
+function getSolarDeclinationDeg(earthOrbitRad) {
+    return -23.44 * Math.cos(earthOrbitRad);
+}
+
+function computeDaylightHours(latDeg, declDeg) {
+    const latRad = THREE.MathUtils.degToRad(latDeg);
+    const declRad = THREE.MathUtils.degToRad(declDeg);
+    const cosH0 = -Math.tan(latRad) * Math.tan(declRad);
+    if (cosH0 <= -1) return 24.0;
+    if (cosH0 >= 1) return 0.0;
+    const H0 = Math.acos(cosH0);
+    return (2 * H0 / Math.PI) * 12.0;
+}
+
+function getHemisphereSeasons(solarLonDeg, declDeg, lang) {
+    const dict = i18n[lang];
+    let astroIdx = 0;
+    if (solarLonDeg >= 0 && solarLonDeg < 90) astroIdx = 0;
+    else if (solarLonDeg >= 90 && solarLonDeg < 180) astroIdx = 1;
+    else if (solarLonDeg >= 180 && solarLonDeg < 270) astroIdx = 2;
+    else astroIdx = 3;
+
+    const southAstroIdx = (astroIdx + 2) % 4;
+
+    let nhDayTag, shDayTag;
+    if (declDeg > 2.0) {
+        nhDayTag = dict.tagLongDay;
+        shDayTag = dict.tagShortDay;
+    } else if (declDeg < -2.0) {
+        nhDayTag = dict.tagShortDay;
+        shDayTag = dict.tagLongDay;
+    } else {
+        nhDayTag = dict.tagEqualDay;
+        shDayTag = dict.tagEqualDay;
+    }
+
+    return {
+        nhAstro: dict.seasonNamesWithIcons[astroIdx],
+        shAstro: dict.seasonNamesWithIcons[southAstroIdx],
+        nhDayTag,
+        shDayTag
+    };
+}
+
+// ==========================================
+// 2. LANGUAGE DICTIONARY (ENGLISH & 繁體中文)
+// ==========================================
+let currentLang = 'en';
+
+const i18n = {
+    en: {
+        langBtn: "🌐 繁體中文",
+        guideBtn: "📖 Legend",
+        tutorialBtn: "🎓 Tutorial",
+        openBtn: "☰ Controls",
+        title: "🌍 Sun-Earth-Moon Simulator",
+        play: "▶ Run Simulation",
+        pause: "⏸ Pause Simulation",
+        secSpeed: "Simulation Speed Preset",
+        spdDay: "1 Day / 30s",
+        spdMonth: "1 Mo / 120s",
+        spdYear: "1 Yr / 360s",
+        secInteractive: "Interactive Orbit Controls",
+        moveMoon: "Move Moon on Orbit (Phase):",
+        moveEarth: "Earth Position (Month / Solar Term):",
+        jumpJan: "❄️ Jan Full Moon (No Eclipse)",
+        jumpMar: "🌑 Mar Full Moon (Eclipse!)",
+        jumpJul: "☀️ Jul Full Moon (No Eclipse)",
+        jumpSep: "🌑 Sep Full Moon (Eclipse!)",
+        jumpSumSol: "☀️ Jun Summer Solstice (Long Day)",
+        jumpWinSol: "❄️ Dec Winter Solstice (Short Day)",
+        metricsToggleBtn: "📊 Seasonal & Day/Night Data (24 Solar Terms)",
+        solarTermTitle: "🔶 24 Solar Term:",
+        nhSeasonTitle: "🌐 N. Hemisphere",
+        shSeasonTitle: "🌐 S. Hemisphere",
+        seasonNamesWithIcons: ["🌱 Spring", "☀️ Summer", "🍂 Autumn", "❄️ Winter"],
+        tagLongDay: "☀️ Long Day, Short Night",
+        tagShortDay: "🌙 Short Day, Long Night",
+        tagEqualDay: "⚖️ Equal Day & Night (12h)",
+        dlBoxTitle: "☀️ Day vs. 🌙 Night Length (24h Rotation)",
+        dl45n: "45°N (Mid-Lat N.):",
+        dlEq: "0° Equator (Always 12h):",
+        dl45s: "45°S (Mid-Lat S.):",
+        statDays: "Earth Rotations (1d):",
+        statMonths: "Lunar Cycles (29.5d):",
+        statYears: "Earth Orbits (12m):",
+        statDist: "📏 Sun–Earth Distance:",
+        periEnd: "Perihelion: 147.1M km (Jan)",
+        aphEnd: "Aphelion: 152.1M km (Jul)",
+        learningSupportBtn: "🛠️ Learning Support (Visual Scaffolds)",
+        mouseGuide: "🖱️ <b>Left Drag:</b> Rotate &nbsp;|&nbsp; <b>Right Drag:</b> Move &nbsp;|&nbsp; <b>Scroll:</b> Zoom &nbsp;|&nbsp; 🌍/☀️ <b>Click Earth/Sun:</b> Level Plane",
+        camEarth: "Focus: Earth & Moon",
+        camSun: "Focus: Solar System",
+        solarTermsToggle: "🔶 Show 24 Solar Terms (Diamonds on Orbit)",
+        exaggerateToggle: "🔍 Exaggerate Elliptical Orbits (Compare flat vs. real orbit)",
+        seasonToggle: "☀️ Show N/S Sunlight Rays & Day/Night Latitude Circles (日長夜短 / 日短夜長)",
+        shadowToggle: "Show True Tangent Umbra Cones & Gold Terminator Rings",
+        guidesToggle: "Show Sunlight Arrow & Earth-Moon View Line (Cyan)",
+        syzygyToggle: "Show Labeled Sun–Earth (Yellow) & Sun–Moon (Pink) Lines",
+        dayToggle: "Show Lunar Days (Day 1–29) & Months (Jan–Dec Circles)",
+        tiltToggle: "⚖️ Offset 5° Moon Orbit Tilt (0° Flat Orbit — Unrealistic: Eclipses Every Month)",
+        legSyzygy: "<b>Yellow Dotted:</b> Sun–Earth Line (Umbra Axis & Distance)",
+        legSunMoon: "<b>Pink Dotted:</b> Direct Sun–Moon Sunlight Ray",
+        legUmbra: "<b>Umbra Cones:</b> Tangent to Top/Bottom Surfaces",
+        legTerminator: "<b>Gold Ring:</b> 50% Lit / Night Terminator",
+        legView: "<b>Cyan Ring:</b> Hemisphere Seen from Earth",
+        hint: "💡 <b>Why Days are Longer in Summer (日長夜短):</b><br>Because Earth's axis is tilted 23.5°, the <b>Gold Terminator Ring</b> cuts latitude circles unequally! In June, more than half of the 45°N circle is inside the sunlit hemisphere (~15.4h day), while in December less than half is lit (~8.6h day).",
+        pipTitle: "🔭 View of Moon from Earth (Night)",
+        monitorTitle: "🔭 Eclipse & Syzygy Alignment Monitor",
+        monEclipse: "🌑 LUNAR ECLIPSE (Blood Moon): Moon inside Earth's Umbra!",
+        monAbove: "✨ Full Moon Syzygy: Passes ABOVE Earth's Umbra (No Eclipse)",
+        monBelow: "✨ Full Moon Syzygy: Passes BELOW Earth's Umbra (No Eclipse)",
+        monNewMoon: "🌑 New Moon Alignment (Conjunction): Moon between Sun & Earth",
+        monNormalPrefix: "🔄 Orbital Phase (",
+        monNormalSuffix: "% Illuminated) — Outside Syzygy Window",
+        lunarDayPrefix: "Lunar Cycle: Day ",
+        nhDirect: "☀️ N. Hemisphere: Direct Sun · Long Day",
+        nhSlanted: "❄️ N. Hemisphere: Slanted Sun · Short Day",
+        nhEqual: "🌤️ N. Hemisphere: Equinox (12h Day/Night)",
+        shDirect: "☀️ S. Hemisphere: Direct Sun · Long Day",
+        shSlanted: "❄️ S. Hemisphere: Slanted Sun · Short Day",
+        shEqual: "🌤️ S. Hemisphere: Equinox (12h Day/Night)",
+        phases: [
+            "🌑 New Moon", "🌒 Waxing Crescent", "🌓 First Quarter", "🌔 Waxing Gibbous",
+            "🌕 Full Moon", "🌖 Waning Gibbous", "🌗 Third Quarter", "🌘 Waning Crescent"
+        ],
+        orbitMarkers: [
+            { day: 1, text: "Day 1 (New)" },
+            { day: 4, text: "Day 4" },
+            { day: 8, text: "Day 8 (1st Qtr)" },
+            { day: 11, text: "Day 11" },
+            { day: 15, text: "Day 15 (Full)" },
+            { day: 19, text: "Day 19" },
+            { day: 22, text: "Day 22 (3rd Qtr)" },
+            { day: 26, text: "Day 26" }
+        ],
+        calMonths: [
+            "Jan (Perihelion)", "Feb", "Mar (Eclipse Node)", "Apr", "May", "Jun",
+            "Jul (Aphelion)", "Aug", "Sep (Eclipse Node)", "Oct", "Nov", "Dec"
+        ],
+        shortMonths: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+        tutModalTitle: "🎓 Sun–Earth–Moon System: Pedagogical & Interactive Guide",
+        tutIntroTitle: "🌌 1. Introduction & Core Learning Objectives",
+        tutIntroBody: `The <b>Sun–Earth–Moon system</b> governs our daily cycles, lunar phases, eclipses, and seasonal day-length changes. As Earth rotates on its <b>23.5° tilted axis</b> every 24 hours, it revolves around the Sun in an elliptical orbit (<b>365.25 days</b>), while the Moon revolves around Earth (<b>29.53 days per synodic month</b>) on an orbit inclined by <b>5°</b> to the ecliptic plane.
+            <ul>
+                <li><b>Objective 1 (Lunar Phases):</b> Distinguish between the Moon's constant 50% sunlit hemisphere (Terminator) and the changing fraction visible from Earth.</li>
+                <li><b>Objective 2 (Eclipse Mechanics):</b> Explain why Lunar & Solar Eclipses do not occur every month due to the 5° orbital inclination (enabled by default), occurring only near the <b>Lunar Nodes (March & September)</b>.</li>
+                <li><b>Objective 3 (Seasons & Day/Night Length 日長夜短 / 日短夜長):</b> Understand how the <b>23.5° axial tilt</b> causes the Terminator Plane to divide latitude circles unequally—creating longer daylight hours in Summer and shorter daylight hours in Winter—even though Earth is closest to the Sun (<b>Perihelion, 147.1M km</b>) in January!</li>
+                <li><b>Objective 4 (Lunisolar Calendars):</b> Contrast the solar-based <b>24 Solar Terms</b> (🔶 Diamonds) with lunar-based <b>Synodic Days 1–30</b> (🔵 Beads).</li>
+            </ul>`,
+        tutPedTitle: "🧠 2. Pedagogical Design Principles of This Simulation",
+        tutPedBody: `<ul>
+                <li><b>Clean Default Interface & Progressive Scaffolding:</b> Both <b>🛠️ Learning Support</b> on the left and <b>📊 Seasonal & Day/Night Data</b> on the right are condensed by default so learners first observe the natural 3D system, then expand tools and data as needed.</li>
+                <li><b>Click Earth or Sun to Level View onto Horizontal Plane:</b> Clicking directly on the 3D <b>Earth</b> or <b>Sun</b> resets the camera onto the horizontal ecliptic plane, letting learners inspect the 23.5° axial tilt, 5° lunar orbit tilt, or full Solar System orbit edge-on.</li>
+                <li><b>Counterfactual Experimentation:</b> The Moon's <b>5° Orbit Tilt</b> is active by default; learners can check <b>⚖️ Offset 5° Moon Orbit Tilt</b> to flatten the orbit to 0° and see how eclipses would occur every single month without the tilt!</li>
+            </ul>`,
+        tutMissionsHeader: "🚀 3. Interactive Guided Missions (Click to Auto-Configure & Jump)",
+        tutC1Title: "Mission A: Half-Lit Moon vs. Phases",
+        tutC1Desc: "Enables the <b>Gold Terminator Ring</b> & <b>Cyan Viewing Ring</b>. Observe how 50% of the cratered Moon is ALWAYS sunlit, while our viewing angle from Earth creates First Quarter Moon.",
+        tutBtnPhases: "🌓 Launch Mission A: First Quarter Moon",
+        tutC2Title: "Mission B: Why Eclipses Need Nodes",
+        tutC2Desc: "Uses the realistic <b>5° Orbit Tilt</b> with <b>Umbra Cones</b> & <b>Labeled Dotted Lines</b>. Jump to the March Eclipse Node to see the Moon pass directly through Earth's Umbra Cone!",
+        tutBtnEclipse: "🌑 Launch Mission B: March Blood Moon",
+        tutC3Title: "Mission C: Why Summer Days Are Longer (日長夜短)",
+        tutC3Desc: "Opens <b>📊 Seasonal Data</b> and enables <b>45°N / 0° / 45°S Latitude Circles</b>, <b>Gold Terminator Ring</b> & <b>Sunlight Rays</b> at June Summer Solstice. Watch the red city marker at 45°N spend 15.4h in daylight!",
+        tutBtnSeasons: "☀️ Launch Mission C: Summer Solstice Day/Night",
+        tutC4Title: "Mission D: 24 Solar Terms vs. Months",
+        tutC4Desc: "Switches to the <b>Solar System View</b> and enables <b>🔶 24 Solar Term Diamonds</b> & <b>🔵 Month Spheres</b> along Earth's orbit.",
+        tutBtnSolarsys: "🌌 Launch Mission D: 24 Solar Terms Orbit",
+        tutGlossaryTitle: "📖 4. Essential Astronomy Terms",
+        tutGlossaryGrid: `
+            <div class="glossary-item"><b>Diurnal Arc & Nocturnal Arc (晝弧與夜弧):</b> The sunlit vs. dark segments of a latitude circle cut by the Terminator Ring; their ratio determines day vs. night length.</div>
+            <div class="glossary-item"><b>Subsolar Point (太陽直射點 δ):</b> The latitude on Earth where noon sunlight hits at 90° (shifts between 23.5°N at Summer Solstice and 23.5°S at Winter Solstice).</div>
+            <div class="glossary-item"><b>Lunar Nodes (黃白交點):</b> The two points (Mar & Sep) where the Moon's 5° tilted orbit crosses the Ecliptic Plane.</div>
+            <div class="glossary-item"><b>Terminator vs. Umbra:</b> The Terminator is the day/night circle on a sphere; the Umbra is the dark shadow cone cast into space.</div>
+            <div class="glossary-item"><b>Perihelion & Aphelion:</b> Earth's closest point (147.1M km, Jan) and farthest point (152.1M km, Jul) from the Sun.</div>
+            <div class="glossary-item"><b>24 Solar Terms vs. Synodic Month:</b> Solar Terms divide Earth's orbit into twenty-four 15° segments; a Synodic Month (29.53d) tracks Moon phases.</div>`,
+        tutFooterTip: "💡 Tip: Click directly on the Earth or the Sun anytime to level the view onto the horizontal plane!",
+        tutGotIt: "Got It!"
+    },
+    zh: {
+        langBtn: "🌐 English",
+        guideBtn: "📖 圖例",
+        tutorialBtn: "🎓 教學指引",
+        openBtn: "☰ 控制面板",
+        title: "🌍 日地月與二十四節氣模擬",
+        play: "▶ 自動運行模擬",
+        pause: "⏸ 暫停模擬",
+        secSpeed: "模擬速度設定",
+        spdDay: "1日 (自轉) / 30秒",
+        spdMonth: "1個月 (朔望) / 120秒",
+        spdYear: "1年 (公轉) / 360秒",
+        secInteractive: "互動軌道控制",
+        moveMoon: "拖動月球公轉位置 (月相)：",
+        moveEarth: "拖動地球公轉 (月份 / 二十四節氣)：",
+        jumpJan: "❄️ 1月滿月 (無月食：偏下)",
+        jumpMar: "🌑 3月滿月 (食季：發生月食！)",
+        jumpJul: "☀️ 7月滿月 (無月食：偏上)",
+        jumpSep: "🌑 9月滿月 (食季：發生月食！)",
+        jumpSumSol: "☀️ 6月夏至 (北半球日長夜短)",
+        jumpWinSol: "❄️ 12月冬至 (北半球日短夜長)",
+        metricsToggleBtn: "📊 節氣、四季與晝夜長短數據",
+        solarTermTitle: "🔶 當前二十四節氣：",
+        nhSeasonTitle: "🌐 北半球季節",
+        shSeasonTitle: "🌐 南半球季節",
+        seasonNamesWithIcons: ["🌱 春季", "☀️ 夏季", "🍂 秋季", "❄️ 冬季"],
+        tagLongDay: "☀️ 日長夜短 (晝長夜短)",
+        tagShortDay: "🌙 日短夜長 (晝短夜長)",
+        tagEqualDay: "⚖️ 晝夜平分 (各12小時)",
+        dlBoxTitle: "☀️ 晝長 vs. 🌙 夜長比例 (24小時自轉)",
+        dl45n: "北緯 45°N (中緯度)：",
+        dlEq: "赤道 0° (終年晝夜平分)：",
+        dl45s: "南緯 45°S (中緯度)：",
+        statDays: "地球自轉 (日)：",
+        statMonths: "朔望月週期 (29.5日)：",
+        statYears: "地球公轉 (12個月)：",
+        statDist: "📏 日地實時距離：",
+        periEnd: "近日點: 1.471億 km (1月)",
+        aphEnd: "遠日點: 1.521億 km (7月)",
+        learningSupportBtn: "🛠️ 學習支援工具 (視覺鷹架開關)",
+        mouseGuide: "🖱️ <b>左鍵拖曳：</b>旋轉 &nbsp;|&nbsp; <b>右鍵拖曳：</b>平移 &nbsp;|&nbsp; <b>滾輪：</b>縮放 &nbsp;|&nbsp; 🌍/☀️ <b>點擊地球/太陽：</b>回復水平視角",
+        camEarth: "視角：地球與月球",
+        camSun: "視角：整個太陽系",
+        solarTermsToggle: "🔶 顯示地球軌道上的「二十四節氣」(八面體鑽石標記)",
+        exaggerateToggle: "🔍 誇大橢圓軌道離心率（對比誇張橢圓與真實軌道）",
+        seasonToggle: "☀️ 顯示南北半球陽光箭頭及「日長夜短 / 日短夜長」緯度圈",
+        shadowToggle: "顯示精確相切於球面頂底的地球與月球本影錐及金黃晨昏圈",
+        guidesToggle: "顯示太陽光箭頭及地球觀測視線 (青色視野環)",
+        syzygyToggle: "顯示帶標籤之日地虛線 (黃色) 與 日月陽光虛線 (粉紅)",
+        dayToggle: "顯示農曆日期 (初一至廿九) 及公曆月份 (圓球標記)",
+        tiltToggle: "⚖️ 抵銷 5° 白道傾角 (設為 0° 無傾角 — 非真實情況：每月皆發生日月食)",
+        legSyzygy: "<b>黃色虛線：</b>日地連心線 (本影錐軸線及實時距離)",
+        legSunMoon: "<b>粉紅虛線：</b>太陽直射月球的陽光連線",
+        legUmbra: "<b>本影錐：</b>底面完美貼合星球頂底表面並收斂至頂點",
+        legTerminator: "<b>金黃圓環：</b>星球 50% 向陽與背陽分界線 (晨昏圈)",
+        legView: "<b>青色圓環：</b>地球夜空望遠鏡實際觀測到的月球半球",
+        hint: "💡 <b>為何不同季節會出現「日長夜短」與「日短夜長」？</b><br>因地軸傾斜 23.5°，<b>金黃色晨昏圈</b>會不對稱地切過各條緯度圈！夏至時，北緯 45°N 緯度圈有超過一半位於向陽面（晝弧長 ≈ 15.4小時，日長夜短）；冬至時則不足一半位於向陽面（晝弧短 ≈ 8.6小時，日短夜長）。",
+        pipTitle: "🔭 地球夜空觀測到的月相",
+        monitorTitle: "🔭 月食與朔望連珠監測器",
+        monEclipse: "🌑 發生月食 (血月)：滿月進入地球本影錐！",
+        monAbove: "✨ 滿月望日：因 5° 傾角從地球本影上方掠過 (無月食)",
+        monBelow: "✨ 滿月望日：因 5° 傾角從地球本影下方掠過 (無月食)",
+        monNewMoon: "🌑 新月合日 (朔)：月球位於日地之間 (背陽面朝向地球)",
+        monNormalPrefix: "🔄 一般公轉月相 (向陽面可見比例 ",
+        monNormalSuffix: "%) — 非朔望食季位置",
+        lunarDayPrefix: "農曆日期：約 ",
+        nhDirect: "☀️ 北半球：陽光直射 · 日長夜短",
+        nhSlanted: "❄️ 北半球：陽光斜射 · 日短夜長",
+        nhEqual: "🌤️ 北半球：春分/秋分 (晝夜平分)",
+        shDirect: "☀️ 南半球：陽光直射 · 日長夜短",
+        shSlanted: "❄️ 南半球：陽光斜射 · 日短夜長",
+        shEqual: "🌤️ 南半球：春分/秋分 (晝夜平分)",
+        phases: [
+            "🌑 新月 (朔)", "🌒 眉月", "🌓 上弦月", "🌔 盈凸月",
+            "🌕 滿月 (望)", "🌖 虧凸月", "🌗 下弦月", "🌘 殘月"
+        ],
+        orbitMarkers: [
+            { day: 1, text: "初一 (新月)" },
+            { day: 4, text: "初四" },
+            { day: 8, text: "初八 (上弦)" },
+            { day: 11, text: "十一" },
+            { day: 15, text: "十五 (滿月)" },
+            { day: 19, text: "十九" },
+            { day: 22, text: "廿二 (下弦)" },
+            { day: 26, text: "廿六" }
+        ],
+        calMonths: [
+            "1月 (近日點)", "2月", "3月 (食季交點)", "4月", "5月", "6月",
+            "7月 (遠日點)", "8月", "9月 (食季交點)", "10月", "11月", "12月"
+        ],
+        shortMonths: ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"],
+        tutModalTitle: "🎓 日地月系統：教學設計理念與互動學習指南",
+        tutIntroTitle: "🌌 1. 系統簡介與核心學習目標",
+        tutIntroBody: `<b>日、地、月三體系統</b>主宰了晝夜交替、月相盈虧、日月食及四季晝夜長短變化。地球以 <b>23.5° 地軸傾角</b>每 24 小時自轉一圈，並沿橢圓軌道繞太陽公轉（<b>365.25 日</b>）；同時月球沿著與黃道面傾斜 <b>5°</b> 的白道繞地球公轉（朔望月週期 <b>29.53 日</b>）。
+            <ul>
+                <li><b>目標 1（月相成因）：</b>區分月球「永遠有 50% 被太陽照亮（金黃晨昏圈）」與「從地球視角所見亮面比例（青色視野環）」的關係。</li>
+                <li><b>目標 2（月食與交點）：</b>解釋為何白道與黃道的 5° 傾角（預設開啟）使月食不會每月發生，唯有滿月恰逢<b>3月及9月黃白交點（食季）</b>時才進入地球本影錐。</li>
+                <li><b>目標 3（四季成因與「日長夜短 / 日短夜長」）：</b>觀察 <b>23.5° 地軸傾斜</b>如何令晨昏圈不對稱地切割緯度圈——使夏季向陽的「晝弧」長於背陽的「夜弧」（日長夜短），冬季則晝弧短於夜弧（日短夜長），同時破除「日地距離造成四季」的迷思！</li>
+                <li><b>目標 4（陰陽合曆）：</b>對比反映太陽黃經的<b>二十四節氣（🔶 鑽石標記）</b>與反映月相的<b>農曆初一至三十（🔵 圓珠）</b>。</li>
+            </ul>`,
+        tutPedTitle: "🧠 2. 本模擬器的教學設計理念 (Pedagogical Design)",
+        tutPedBody: `<ul>
+                <li><b>簡潔初始畫面與漸進式鷹架：</b>左側「🛠️ 學習支援工具」與右側「📊 節氣、四季與晝夜長短數據」預設皆為收合狀態，讓學生先觀察純淨真實的星體與高對比月相，再按需要展開輔助線與數據。</li>
+                <li><b>點擊地球或太陽回復水平面視角：</b>直接點擊 3D 畫面中的<b>地球</b>或<b>太陽</b>即可將視角水平對齊黃道面，方便平視觀察 23.5° 地軸傾角、5° 白道傾角或整個太陽系公轉平面。</li>
+                <li><b>反事實探究實驗 (Counterfactual Inquiry)：</b>系統預設採用真實的 <b>5° 白道傾角</b>；學生可勾選「⚖️ 抵銷 5° 白道傾角」將軌道壓平為 0°，驗證若無傾角則每逢初一、十五皆會發生日月食！</li>
+            </ul>`,
+        tutMissionsHeader: "🚀 3. 互動探究任務（點擊自動開啟對應視覺鷹架並跳轉）",
+        tutC1Title: "任務 A：月球永遠半亮 vs 月相盈虧",
+        tutC1Desc: "自動開啟<b>金黃晨昏圈</b>與<b>青色視野環</b>，跳轉至上弦月（初八），觀察地球視線如何只看到佈滿隕石坑向陽面的一半。",
+        tutBtnPhases: "🌓 啟動任務 A：觀察上弦月視角",
+        tutC2Title: "任務 B：為何月食需要黃白交點？",
+        tutC2Desc: "保持真實 <b>5° 白道傾角</b>並開啟<b>本影錐</b>與<b>日地/日月連線標籤</b>，跳轉至 3 月食季滿月，觀察血月月食！",
+        tutBtnEclipse: "🌑 啟動任務 B：觀察 3 月血月月食",
+        tutC3Title: "任務 C：為何夏季「日長夜短」？(晝弧與夜弧)",
+        tutC3Desc: "自動展開右側<b>📊 晝夜長短數據</b>並開啟地球 <b>45°N / 0° / 45°S 緯度圈</b>、<b>金黃晨昏圈</b>與<b>陽光箭頭</b>跳轉至夏至。觀察北緯 45°N 紅點城市在向陽面停留達 15.4 小時！",
+        tutBtnSeasons: "☀️ 啟動任務 C：夏至「日長夜短」幾何剖析",
+        tutC4Title: "任務 D：二十四節氣 vs 公曆月份",
+        tutC4Desc: "切換至<b>太陽系全景視角</b>，開啟軌道上的<b>🔶 二十四節氣鑽石標記</b>與<b>🔵 月份圓球標記</b>。",
+        tutBtnSolarsys: "🌌 啟動任務 D：太陽系全景與二十四節氣",
+        tutGlossaryTitle: "📖 4. 核心天文詞彙表",
+        tutGlossaryGrid: `
+            <div class="glossary-item"><b>晝弧與夜弧 (Diurnal & Nocturnal Arcs)：</b>晨昏圈將緯度圈切分為向陽的「晝弧」與背陽的「夜弧」，兩者長短比例決定日長夜短或日短夜長。</div>
+            <div class="glossary-item"><b>太陽直射點 (Subsolar Point δ)：</b>正午陽光以 90° 垂直照射的地球緯度（於夏至 23.5°N 與冬至 23.5°S 之間移動）。</div>
+            <div class="glossary-item"><b>黃白交點 (Lunar Nodes)：</b>月球 5° 傾斜軌道（白道）穿過黃道面的兩個交點（位於 3 月與 9 月方向）。</div>
+            <div class="glossary-item"><b>晨昏圈 vs 本影錐：</b>晨昏圈是星球晝夜分界圓環；本影錐則是星球背光投射至太空的黑暗圓錐影區。</div>
+            <div class="glossary-item"><b>近日點與遠日點：</b>地球公轉距離太陽最近（1.471億 km，1月初）與最遠（1.521億 km，7月初）的位置。</div>
+            <div class="glossary-item"><b>二十四節氣 vs 朔望月：</b>節氣按太陽黃經每 15° 劃分（陽曆）；朔望月（29.53日）則按月相圓缺劃分（陰曆）。</div>`,
+        tutFooterTip: "💡 提示：隨時可直接點擊 3D 地球或太陽回復水平面視角！",
+        tutGotIt: "開始探索！"
+    }
+};
+
+function getChineseLunarDayName(dayNum) {
+    const digits = ["", "一", "二", "三", "四", "五", "六", "七", "八", "九", "十"];
+    if (dayNum <= 10) return "初" + digits[dayNum];
+    if (dayNum < 20) return "十" + digits[dayNum - 10];
+    if (dayNum === 20) return "二十";
+    if (dayNum < 30) return "廿" + digits[dayNum - 20];
+    return "三十";
+}
+
+// ==========================================
+// 3. HIGH-REALISM TEXTURES: GOOGLE EARTH SATELLITE + FRACTAL ROCKY FALLBACK & 3D SPHERICAL CLOUDS
+// ==========================================
+
+function pseudoRand(seed) {
+    const x = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
+    return x - Math.floor(x);
+}
+
+// Isotropic 3D Gradient Noise (Eliminates 2D grid / chain artifacts on spheres)
+function gradHash3D(ix, iy, iz) {
+    const h = Math.sin(ix * 127.1 + iy * 311.7 + iz * 74.7) * 43758.5453123;
+    const h2 = Math.sin(ix * 269.5 + iy * 183.3 + iz * 246.1) * 43758.5453123;
+    const h3 = Math.sin(ix * 419.2 + iy * 371.9 + iz * 128.5) * 43758.5453123;
+    return [
+        (h - Math.floor(h)) * 2 - 1,
+        (h2 - Math.floor(h2)) * 2 - 1,
+        (h3 - Math.floor(h3)) * 2 - 1
+    ];
+}
+
+function noise3D(x, y, z) {
+    const ix = Math.floor(x), iy = Math.floor(y), iz = Math.floor(z);
+    const fx = x - ix, fy = y - iy, fz = z - iz;
+    const ux = fx * fx * fx * (fx * (fx * 6 - 15) + 10);
+    const uy = fy * fy * fy * (fy * (fy * 6 - 15) + 10);
+    const uz = fz * fz * fz * (fz * (fz * 6 - 15) + 10);
+
+    function dotGrid(dx, dy, dz) {
+        const g = gradHash3D(ix + dx, iy + dy, iz + dz);
+        return g[0] * (fx - dx) + g[1] * (fy - dy) + g[2] * (fz - dz);
+    }
+
+    const n000 = dotGrid(0,0,0), n100 = dotGrid(1,0,0);
+    const n010 = dotGrid(0,1,0), n110 = dotGrid(1,1,0);
+    const n001 = dotGrid(0,0,1), n101 = dotGrid(1,0,1);
+    const n011 = dotGrid(0,1,1), n111 = dotGrid(1,1,1);
+
+    const nx00 = n000 + ux * (n100 - n000);
+    const nx10 = n010 + ux * (n110 - n010);
+    const nx01 = n001 + ux * (n101 - n001);
+    const nx11 = n011 + ux * (n111 - n011);
+
+    const nxy0 = nx00 + uy * (nx10 - nx00);
+    const nxy1 = nx01 + uy * (nx11 - nx01);
+
+    return 0.5 + 0.5 * (nxy0 + uz * (nxy1 - nxy0));
+}
+
+function fbm3D(x, y, z, octaves = 5) {
+    let total = 0, amp = 0.5, freq = 1.0;
+    for (let i = 0; i < octaves; i++) {
+        total += amp * noise3D(x * freq + i * 17.3, y * freq + i * 31.7, z * freq + i * 47.1);
+        freq *= 2.05;
+        amp *= 0.5;
+    }
+    return total;
+}
+
+// Ridged multifractal 3D noise for rugged rocky mountain chains (Google Earth relief look)
+function ridged3D(x, y, z, octaves = 4) {
+    let total = 0, amp = 0.5, freq = 1.0, weight = 1.0;
+    for (let i = 0; i < octaves; i++) {
+        let signal = 1.0 - Math.abs(noise3D(x * freq + i * 23.1, y * freq + i * 41.9, z * freq + i * 59.3) * 2.0 - 1.0);
+        signal = signal * signal * weight;
+        weight = Math.max(0.0, Math.min(1.0, signal * 2.0));
+        total += signal * amp;
+        freq *= 2.15;
+        amp *= 0.5;
+    }
+    return total;
+}
+
+// Fractal Coastline Midpoint Subdivision (Turns straight polygon lines into rough, natural coastlines)
+function fractalizePolygon(pts, iterations = 4, roughness = 0.24, seedBase = 1) {
+    let current = pts.map(p => [p[0], p[1]]);
+    for (let iter = 0; iter < iterations; iter++) {
+        const next = [];
+        const n = current.length;
+        for (let i = 0; i < n; i++) {
+            const p1 = current[i];
+            const p2 = current[(i + 1) % n];
+            next.push(p1);
+            const dx = p2[0] - p1[0];
+            const dy = p2[1] - p1[1];
+            const len = Math.hypot(dx, dy);
+            if (len > 2.2) {
+                const nx = -dy / len;
+                const ny = dx / len;
+                const rnd = (pseudoRand(seedBase + iter * 97 + i * 31) - 0.5) * 2.0;
+                const t = 0.5 + (pseudoRand(seedBase + iter * 53 + i * 19) - 0.5) * 0.22;
+                const offset = rnd * len * roughness;
+                next.push([
+                    p1[0] + dx * t + nx * offset,
+                    Math.max(4, Math.min(508, p1[1] + dy * t + ny * offset))
+                ]);
+            }
+        }
+        current = next;
+        roughness *= 0.78;
+    }
+    return current;
+}
+
+// 3A. Circular Glowing Star Sprite Texture
+function createStarPointTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 64; canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+
+    const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    grad.addColorStop(0.0, 'rgba(255, 255, 255, 1.0)');
+    grad.addColorStop(0.22, 'rgba(248, 250, 252, 0.92)');
+    grad.addColorStop(0.50, 'rgba(186, 230, 253, 0.32)');
+    grad.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
+
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(32, 32, 32, 0, Math.PI * 2);
+    ctx.fill();
+
+    return new THREE.CanvasTexture(canvas);
+}
+
+// 3B. Realistic Solar Photosphere Texture
+function createRealisticSunTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024; canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+
+    const baseGrad = ctx.createLinearGradient(0, 0, 0, 512);
+    baseGrad.addColorStop(0.0, '#d97706');
+    baseGrad.addColorStop(0.2, '#f59e0b');
+    baseGrad.addColorStop(0.5, '#fef08a');
+    baseGrad.addColorStop(0.8, '#f59e0b');
+    baseGrad.addColorStop(1.0, '#d97706');
+    ctx.fillStyle = baseGrad;
+    ctx.fillRect(0, 0, 1024, 512);
+
+    for (let i = 0; i < 1800; i++) {
+        const x = (i * 137.5) % 1024;
+        const y = ((i * 293.1) % 470) + 21;
+        const r = (i % 14) + 3;
+        const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+        if (i % 3 === 0) {
+            g.addColorStop(0, 'rgba(255, 255, 240, 0.45)');
+            g.addColorStop(1, 'rgba(245, 158, 11, 0)');
+        } else {
+            g.addColorStop(0, 'rgba(180, 83, 9, 0.35)');
+            g.addColorStop(1, 'rgba(234, 88, 12, 0)');
+        }
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    }
+
+    const sunspots = [
+        [210, 195, 14], [232, 202, 8], [540, 310, 16], [565, 318, 10],
+        [780, 185, 12], [800, 192, 7], [380, 295, 11]
+    ];
+    sunspots.forEach(([sx, sy, sr]) => {
+        const pg = ctx.createRadialGradient(sx, sy, sr * 0.2, sx, sy, sr * 2.2);
+        pg.addColorStop(0, '#451a03');
+        pg.addColorStop(0.45, '#9a3412');
+        pg.addColorStop(0.8, 'rgba(254, 240, 138, 0.5)');
+        pg.addColorStop(1, 'rgba(245, 158, 11, 0)');
+        ctx.fillStyle = pg;
+        ctx.beginPath(); ctx.arc(sx, sy, sr * 2.2, 0, Math.PI * 2); ctx.fill();
+    });
+
+    return new THREE.CanvasTexture(canvas);
+}
+
+// 3C. Google Earth–Style Solid Rocky Earth Texture & Topographic Bump Map
+function createRealisticEarthTextures() {
+    const w = 1024, h = 512;
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+
+    const bumpCanvas = document.createElement('canvas');
+    bumpCanvas.width = w; bumpCanvas.height = h;
+    const bCtx = bumpCanvas.getContext('2d');
+
+    const roughCanvas = document.createElement('canvas');
+    roughCanvas.width = w; roughCanvas.height = h;
+    const rCtx = roughCanvas.getContext('2d');
+
+    const maskCanvas = document.createElement('canvas');
+    maskCanvas.width = w; maskCanvas.height = h;
+    const mCtx = maskCanvas.getContext('2d');
+    mCtx.fillStyle = '#000000';
+    mCtx.fillRect(0, 0, w, h);
+
+    const rawContinents = [
+        [[72,78],[105,62],[148,54],[192,56],[238,65],[282,82],[306,108],[285,134],[268,156],[252,182],[238,195],[222,188],[208,210],[228,238],[242,252],[224,255],[202,232],[184,198],[162,165],[142,135],[112,108],[82,95]],
+        [[242,252],[268,246],[304,262],[342,288],[368,314],[356,352],[332,388],[308,425],[296,452],[282,446],[276,396],[266,345],[252,302],[240,275]],
+        [[325,36],[375,30],[418,35],[412,68],[395,94],[352,90],[332,65]],
+        [[245,42],[288,38],[296,65],[262,72]],
+        [[448,178],[482,168],[522,172],[558,180],[585,196],[608,228],[632,256],[608,292],[592,328],[580,368],[552,408],[524,402],[512,365],[502,322],[492,276],[462,258],[442,232],[438,202]],
+        [[612,338],[628,334],[626,376],[610,372]],
+        [[456,155],[465,128],[486,105],[505,82],[532,62],[578,52],[642,48],[718,46],[795,52],[868,62],[932,88],[952,112],[912,136],[885,165],[865,196],[845,232],[818,262],[798,248],[776,232],[752,248],[728,282],[712,286],[695,245],[672,222],[648,212],[632,238],[606,225],[586,192],[565,172],[538,165],[512,158],[488,162]],
+        [[462,102],[478,98],[480,124],[464,122]],
+        [[876,146],[895,162],[886,196],[868,182]],
+        [[778,268],[805,278],[812,302],[782,292]],
+        [[818,275],[845,278],[848,304],[820,302]],
+        [[848,218],[865,222],[862,252],[845,248]],
+        [[868,288],[912,295],[925,316],[875,312]],
+        [[775,338],[815,318],[856,316],[892,338],[908,372],[892,412],[845,412],[795,398],[768,372]],
+        [[928,412],[948,405],[944,442],[924,436]],
+        [[0,478],[140,468],[290,462],[450,468],[610,460],[780,458],[920,465],[1024,475],[1024,512],[0,512]]
+    ];
+
+    rawContinents.forEach((poly, idx) => {
+        const isAntarctica = (idx === rawContinents.length - 1);
+        const fracPoly = isAntarctica ? poly : fractalizePolygon(poly, 4, 0.25, (idx + 1) * 137);
+
+        mCtx.save();
+        mCtx.beginPath();
+        fracPoly.forEach(([x, y], i) => i === 0 ? mCtx.moveTo(x, y) : mCtx.lineTo(x, y));
+        mCtx.closePath();
+        mCtx.lineJoin = 'round';
+
+        mCtx.lineWidth = 18;
+        mCtx.strokeStyle = 'rgba(0, 0, 120, 0.45)';
+        mCtx.stroke();
+        mCtx.lineWidth = 8;
+        mCtx.strokeStyle = 'rgba(0, 0, 220, 0.75)';
+        mCtx.stroke();
+
+        mCtx.fillStyle = '#ff00ff';
+        mCtx.fill();
+        mCtx.restore();
+    });
+
+    const maskData = mCtx.getImageData(0, 0, w, h).data;
+    const imgData = ctx.createImageData(w, h);
+    const bumpData = bCtx.createImageData(w, h);
+    const roughData = rCtx.createImageData(w, h);
+    const p = imgData.data;
+    const bp = bumpData.data;
+    const rp = roughData.data;
+
+    const mountainZones = [
+        [0.71, 0.35, 0.075, 0.045, 1.00],
+        [0.27, 0.68, 0.025, 0.160, 0.90],
+        [0.18, 0.30, 0.045, 0.110, 0.78],
+        [0.52, 0.26, 0.040, 0.025, 0.72],
+        [0.58, 0.54, 0.030, 0.085, 0.65]
+    ];
+
+    for (let y = 0; y < h; y++) {
+        const v = y / h;
+        const lat = (0.5 - v) * Math.PI;
+        const absLatDeg = Math.abs(lat) * (180 / Math.PI);
+        const cosLat = Math.cos(lat);
+        const sinLat = Math.sin(lat);
+
+        for (let x = 0; x < w; x++) {
+            const u = x / w;
+            const lon = u * Math.PI * 2;
+            const idx = (y * w + x) * 4;
+
+            const sx = cosLat * Math.cos(lon);
+            const sy = sinLat;
+            const sz = cosLat * Math.sin(lon);
+
+            const fNoise = fbm3D(sx * 3.8, sy * 3.8, sz * 3.8, 5);
+            const rNoise = ridged3D(sx * 5.2, sy * 5.2, sz * 5.2, 4);
+            const detailNoise = noise3D(sx * 18.0, sy * 18.0, sz * 18.0);
+
+            const maskLand = maskData[idx] / 255.0;
+            const maskShelf = maskData[idx + 2] / 255.0;
+
+            const coastalThreshold = 0.48 + (fNoise - 0.5) * 0.42 + (detailNoise - 0.5) * 0.18;
+            const isLand = maskLand > coastalThreshold;
+
+            let r, g, b, bumpVal, roughVal;
+
+            if (!isLand) {
+                const shelfFactor = Math.max(0, Math.min(1, maskShelf * 0.9 + (fNoise - 0.45) * 0.35));
+                const abyss = fbm3D(sx * 2.5 + 9.1, sy * 2.5, sz * 2.5, 3);
+
+                r = Math.round(6 + shelfFactor * 18 + abyss * 8);
+                g = Math.round(24 + shelfFactor * 72 + abyss * 22);
+                b = Math.round(58 + shelfFactor * 88 + abyss * 38);
+
+                if (absLatDeg > 74 + (fNoise - 0.5) * 10) {
+                    r = 228; g = 238; b = 248;
+                    bumpVal = 65;
+                    roughVal = 160;
+                } else {
+                    bumpVal = Math.round(25 + shelfFactor * 15);
+                    roughVal = 52;
+                }
+            } else {
+                let mtnBoost = 0;
+                for (let m = 0; m < mountainZones.length; m++) {
+                    const [mu, mv, rx, ry, boost] = mountainZones[m];
+                    const du = (u - mu) / rx;
+                    const dv = (v - mv) / ry;
+                    const d2 = du * du + dv * dv;
+                    if (d2 < 2.5) {
+                        mtnBoost += boost * Math.exp(-d2 * 1.2);
+                    }
+                }
+
+                const elevation = Math.min(1.0, Math.max(0.0,
+                    0.22 * fNoise + 0.48 * rNoise + 0.45 * mtnBoost * rNoise + 0.08 * detailNoise
+                ));
+
+                let aridity = Math.exp(-Math.pow((absLatDeg - 24) / 11, 2)) * 0.75;
+                if (u > 0.43 && u < 0.66 && v > 0.30 && v < 0.48) aridity += 0.55;
+                if (u > 0.76 && u < 0.90 && v > 0.64 && v < 0.78) aridity += 0.55;
+                if (u > 0.64 && u < 0.80 && v > 0.24 && v < 0.34) aridity += 0.45;
+                if (absLatDeg < 11) aridity -= 0.50;
+
+                const moisture = Math.max(0.0, Math.min(1.0, 0.68 - aridity + (fNoise - 0.5) * 0.38));
+
+                if (absLatDeg > 68 + (fNoise - 0.5) * 12 || elevation > 0.78) {
+                    const snowMix = Math.min(1.0, (elevation - 0.68) * 3.2 + (absLatDeg > 68 ? 0.85 : 0));
+                    r = Math.round(145 + snowMix * 98);
+                    g = Math.round(142 + snowMix * 102);
+                    b = Math.round(138 + snowMix * 108);
+                } else if (elevation > 0.52) {
+                    const rockT = (elevation - 0.52) / 0.26;
+                    r = Math.round(92 + rockT * 48 + (detailNoise - 0.5) * 22);
+                    g = Math.round(82 + rockT * 40 + (detailNoise - 0.5) * 18);
+                    b = Math.round(68 + rockT * 34 + (detailNoise - 0.5) * 15);
+                } else if (moisture < 0.36) {
+                    const sandT = fNoise;
+                    r = Math.round(168 + sandT * 46 + (detailNoise - 0.5) * 20);
+                    g = Math.round(132 + sandT * 38 + (detailNoise - 0.5) * 16);
+                    b = Math.round(82 + sandT * 24 + (detailNoise - 0.5) * 12);
+                } else if (moisture < 0.56) {
+                    const savT = (moisture - 0.36) / 0.20;
+                    r = Math.round(134 - savT * 48 + (detailNoise - 0.5) * 16);
+                    g = Math.round(126 - savT * 18 + (detailNoise - 0.5) * 16);
+                    b = Math.round(68 - savT * 18 + (detailNoise - 0.5) * 10);
+                } else {
+                    const lushT = (moisture - 0.56) / 0.44;
+                    r = Math.round(42 - lushT * 18 + (detailNoise - 0.5) * 14);
+                    g = Math.round(88 - lushT * 16 + (fNoise - 0.5) * 24);
+                    b = Math.round(38 - lushT * 12 + (detailNoise - 0.5) * 10);
+                }
+
+                bumpVal = Math.min(255, Math.round(85 + elevation * 170));
+                roughVal = 230;
+            }
+
+            p[idx] = Math.max(0, Math.min(255, r));
+            p[idx + 1] = Math.max(0, Math.min(255, g));
+            p[idx + 2] = Math.max(0, Math.min(255, b));
+            p[idx + 3] = 255;
+
+            bp[idx] = bumpVal;
+            bp[idx + 1] = bumpVal;
+            bp[idx + 2] = bumpVal;
+            bp[idx + 3] = 255;
+
+            rp[idx] = roughVal;
+            rp[idx + 1] = roughVal;
+            rp[idx + 2] = roughVal;
+            rp[idx + 3] = 255;
+        }
+    }
+
+    ctx.putImageData(imgData, 0, 0);
+    bCtx.putImageData(bumpData, 0, 0);
+    rCtx.putImageData(roughData, 0, 0);
+
+    return {
+        map: new THREE.CanvasTexture(canvas),
+        bumpMap: new THREE.CanvasTexture(bumpCanvas),
+        roughnessMap: new THREE.CanvasTexture(roughCanvas)
+    };
+}
+
+// 3D. Natural Wispy Atmospheric Clouds Evaluated in 3D Spherical Space
+function createEarthCloudTexture() {
+    const w = 1024, h = 512;
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    const imgData = ctx.createImageData(w, h);
+    const data = imgData.data;
+
+    for (let y = 0; y < h; y++) {
+        const v = y / h;
+        const lat = (0.5 - v) * Math.PI;
+        const absLatDeg = Math.abs(lat) * (180 / Math.PI);
+        const cosLat = Math.cos(lat);
+        const sinLat = Math.sin(lat);
+
+        const itcz = Math.exp(-Math.pow((absLatDeg - 4) / 10, 2)) * 0.14;
+        const midLat = Math.exp(-Math.pow((absLatDeg - 48) / 16, 2)) * 0.16;
+        const horseLatDry = -Math.exp(-Math.pow((absLatDeg - 25) / 11, 2)) * 0.12;
+
+        for (let x = 0; x < w; x++) {
+            const u = x / w;
+            const lon = u * Math.PI * 2;
+
+            const sx = cosLat * Math.cos(lon);
+            const sy = sinLat;
+            const sz = cosLat * Math.sin(lon);
+
+            const curlX = fbm3D(sx * 2.2 + 5.1, sy * 2.2, sz * 2.2, 3) - 0.5;
+            const curlY = fbm3D(sx * 2.2, sy * 2.2 + 8.3, sz * 2.2, 3) - 0.5;
+            const curlZ = fbm3D(sx * 2.2, sy * 2.2, sz * 2.2 + 12.7, 3) - 0.5;
+
+            const wx = sx * 2.8 + curlX * 0.85;
+            const wy = sy * 4.2 + curlY * 0.55;
+            const wz = sz * 2.8 + curlZ * 0.85;
+
+            const baseCloud = fbm3D(wx, wy, wz, 5);
+            const wispyDetail = fbm3D(wx * 2.6, wy * 2.6, wz * 2.6, 3);
+
+            const density = baseCloud * 0.76 + wispyDetail * 0.24 + itcz + midLat + horseLatDry;
+
+            let alpha = 0;
+            const threshold = 0.53;
+            if (density > threshold) {
+                const t = Math.min(1.0, (density - threshold) / 0.27);
+                alpha = t * t * (3 - 2 * t) * 210;
+            }
+
+            const idx = (y * w + x) * 4;
+            data[idx] = 250;
+            data[idx + 1] = 252;
+            data[idx + 2] = 255;
+            data[idx + 3] = Math.round(alpha);
+        }
+    }
+
+    ctx.putImageData(imgData, 0, 0);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.ClampToEdgeWrapping;
+    return tex;
+}
+
+// Progressive Satellite Texture Enhancer
+function applySatelliteEarthTextures(earthMesh, earthCloudMesh) {
+    const loader = new THREE.TextureLoader();
+    loader.setCrossOrigin('anonymous');
+    const baseUrl = 'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/textures/planets/';
+
+    loader.load(baseUrl + 'earth_atmos_2048.jpg', (satMap) => {
+        earthMesh.material.map = satMap;
+        earthMesh.material.needsUpdate = true;
+    });
+
+    loader.load(baseUrl + 'earth_normal_2048.jpg', (normalMap) => {
+        earthMesh.material.normalMap = normalMap;
+        earthMesh.material.normalScale = new THREE.Vector2(0.85, 0.85);
+        earthMesh.material.needsUpdate = true;
+    });
+
+    loader.load(baseUrl + 'earth_clouds_1024.png', (cloudMap) => {
+        cloudMap.wrapS = THREE.RepeatWrapping;
+        cloudMap.wrapT = THREE.ClampToEdgeWrapping;
+        earthCloudMesh.material.map = cloudMap;
+        earthCloudMesh.material.opacity = 0.82;
+        earthCloudMesh.material.needsUpdate = true;
+    });
+}
+
+// 3E. Ultra-Realistic Lunar Texture & Deep Bump Map
+function createRealisticMoonTextures(uCenter = 0.0) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024; canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+
+    const bumpCanvas = document.createElement('canvas');
+    bumpCanvas.width = 1024; bumpCanvas.height = 512;
+    const bCtx = bumpCanvas.getContext('2d');
+
+    const baseGrad = ctx.createLinearGradient(0, 0, 0, 512);
+    baseGrad.addColorStop(0.0, '#94a3b8');
+    baseGrad.addColorStop(0.25, '#cbd5e1');
+    baseGrad.addColorStop(0.5, '#e2e8f0');
+    baseGrad.addColorStop(0.75, '#cbd5e1');
+    baseGrad.addColorStop(1.0, '#94a3b8');
+    ctx.fillStyle = baseGrad;
+    ctx.fillRect(0, 0, 1024, 512);
+
+    bCtx.fillStyle = '#808080';
+    bCtx.fillRect(0, 0, 1024, 512);
+
+    for (let i = 0; i < 2400; i++) {
+        const x = pseudoRand(i * 2 + 1) * 1024;
+        const y = 18 + pseudoRand(i * 2 + 2) * 476;
+        const r = 1.5 + pseudoRand(i * 3) * 11;
+        ctx.fillStyle = (i % 2 === 0)
+            ? 'rgba(100, 116, 139, 0.20)'
+            : 'rgba(248, 250, 252, 0.22)';
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    }
+
+    const cx = uCenter * 1024;
+    const mariaRegions = [
+        [-95, -55, 76, 62, 0.2],
+        [15, -48, 56, 48, -0.1],
+        [68, -5, 62, 48, 0.25],
+        [-118, 22, 92, 68, -0.15],
+        [118, 38, 45, 38, 0.1],
+        [148, -38, 35, 30, 0.0],
+        [-45, 55, 52, 38, 0.1],
+        [-82, 68, 38, 30, -0.1]
+    ];
+    mariaRegions.forEach(([dx, dy, w, h, rot]) => {
+        [-1024, 0, 1024].forEach(wrap => {
+            const mx = cx + dx + wrap;
+            const my = 256 + dy;
+            const mg = ctx.createRadialGradient(mx, my, w * 0.12, mx, my, w * 1.18);
+            mg.addColorStop(0.0, 'rgba(40, 52, 72, 0.84)');
+            mg.addColorStop(0.55, 'rgba(62, 76, 98, 0.70)');
+            mg.addColorStop(0.85, 'rgba(82, 96, 118, 0.36)');
+            mg.addColorStop(1.0, 'rgba(148, 163, 184, 0)');
+            ctx.fillStyle = mg;
+            ctx.beginPath();
+            ctx.ellipse(mx, my, w * 1.18, h * 1.18, rot, 0, Math.PI * 2);
+            ctx.fill();
+
+            bCtx.fillStyle = 'rgba(75, 75, 75, 0.65)';
+            bCtx.beginPath();
+            bCtx.ellipse(mx, my, w, h, rot, 0, Math.PI * 2);
+            bCtx.fill();
+        });
+    });
+
+    function drawShadedCrater(x, y, r, depthFactor = 1.0, hasCentralPeak = false, hasEjectaRays = false) {
+        [-1024, 0, 1024].forEach(wrap => {
+            const cxPos = x + wrap;
+            if (cxPos < -r * 6 || cxPos > 1024 + r * 6) return;
+
+            ctx.save();
+
+            if (hasEjectaRays) {
+                const rayCount = 16;
+                for (let k = 0; k < rayCount; k++) {
+                    const ang = (k / rayCount) * Math.PI * 2 + pseudoRand(x + k) * 0.35;
+                    const rayLen = r * (3.8 + pseudoRand(y + k) * 4.2);
+                    const rg = ctx.createLinearGradient(
+                        cxPos + Math.cos(ang) * r, y + Math.sin(ang) * r,
+                        cxPos + Math.cos(ang) * rayLen, y + Math.sin(ang) * rayLen
+                    );
+                    rg.addColorStop(0.0, 'rgba(248, 250, 252, 0.48)');
+                    rg.addColorStop(0.5, 'rgba(226, 232, 240, 0.22)');
+                    rg.addColorStop(1.0, 'rgba(226, 232, 240, 0)');
+                    ctx.strokeStyle = rg;
+                    ctx.lineWidth = Math.max(1.2, r * 0.18);
+                    ctx.beginPath();
+                    ctx.moveTo(cxPos + Math.cos(ang) * (r * 0.9), y + Math.sin(ang) * (r * 0.9));
+                    ctx.lineTo(cxPos + Math.cos(ang) * rayLen, y + Math.sin(ang) * rayLen);
+                    ctx.stroke();
+                }
+            }
+
+            const haloGrad = ctx.createRadialGradient(cxPos, y, r * 0.85, cxPos, y, r * 1.45);
+            haloGrad.addColorStop(0.0, `rgba(226, 232, 240, ${0.35 * depthFactor})`);
+            haloGrad.addColorStop(1.0, 'rgba(203, 213, 225, 0)');
+            ctx.fillStyle = haloGrad;
+            ctx.beginPath(); ctx.arc(cxPos, y, r * 1.45, 0, Math.PI * 2); ctx.fill();
+
+            const shadowOffsetX = -r * 0.28;
+            const shadowOffsetY = -r * 0.18;
+            const bowlGrad = ctx.createRadialGradient(
+                cxPos + shadowOffsetX, y + shadowOffsetY, r * 0.08,
+                cxPos, y, r
+            );
+            bowlGrad.addColorStop(0.0, `rgba(15, 23, 42, ${0.80 * depthFactor})`);
+            bowlGrad.addColorStop(0.48, `rgba(51, 65, 85, ${0.70 * depthFactor})`);
+            bowlGrad.addColorStop(0.82, `rgba(148, 163, 184, ${0.65 * depthFactor})`);
+            bowlGrad.addColorStop(1.0, `rgba(248, 250, 252, ${0.80 * depthFactor})`);
+            ctx.fillStyle = bowlGrad;
+            ctx.beginPath(); ctx.arc(cxPos, y, r, 0, Math.PI * 2); ctx.fill();
+
+            ctx.lineWidth = Math.max(1.0, r * 0.14);
+            ctx.strokeStyle = `rgba(248, 250, 252, ${0.72 * depthFactor})`;
+            ctx.beginPath(); ctx.arc(cxPos, y, r, -Math.PI * 0.35, Math.PI * 0.65); ctx.stroke();
+
+            ctx.strokeStyle = `rgba(15, 23, 42, ${0.65 * depthFactor})`;
+            ctx.beginPath(); ctx.arc(cxPos, y, r * 0.92, Math.PI * 0.65, Math.PI * 1.65); ctx.stroke();
+
+            if (hasCentralPeak && r >= 8) {
+                ctx.fillStyle = 'rgba(248, 250, 252, 0.85)';
+                ctx.beginPath(); ctx.arc(cxPos + r * 0.06, y + r * 0.04, r * 0.18, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
+                ctx.beginPath(); ctx.arc(cxPos - r * 0.10, y - r * 0.06, r * 0.14, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.restore();
+
+            const bGrad = bCtx.createRadialGradient(cxPos, y, r * 0.1, cxPos, y, r * 1.2);
+            bGrad.addColorStop(0.0, '#080808');
+            bGrad.addColorStop(0.68, '#222222');
+            bGrad.addColorStop(0.88, '#ffffff');
+            bGrad.addColorStop(1.0, '#808080');
+            bCtx.fillStyle = bGrad;
+            ctx.beginPath(); bCtx.arc(cxPos, y, r * 1.2, 0, Math.PI * 2); bCtx.fill();
+
+            if (hasCentralPeak && r >= 8) {
+                bCtx.fillStyle = '#ffffff';
+                bCtx.beginPath(); bCtx.arc(cxPos, y, r * 0.2, 0, Math.PI * 2); bCtx.fill();
+            }
+        });
+    }
+
+    const majorCraters = [
+        [cx - 28, 372, 18, 1.0, true, true],
+        [cx - 62, 232, 17, 1.0, true, true],
+        [cx - 98, 245, 13, 0.95, true, true],
+        [cx - 32, 138, 16, 0.95, false, false],
+        [cx - 125, 192, 14, 1.0, true, true],
+        [cx + 85, 325, 21, 0.95, true, false],
+        [cx - 15, 398, 24, 0.90, true, false],
+        [512, 295, 28, 0.95, true, false],
+        [440, 195, 22, 0.95, true, true],
+        [620, 220, 20, 0.90, true, false]
+    ];
+    majorCraters.forEach(([x, y, r, df, peak, rays]) => drawShadedCrater(x, y, r, df, peak, rays));
+
+    for (let i = 0; i < 95; i++) {
+        const x = pseudoRand(i * 11 + 1) * 1024;
+        const y = 38 + pseudoRand(i * 11 + 2) * 436;
+        const r = 6.5 + pseudoRand(i * 11 + 3) * 8.5;
+        const hasPeak = r > 10.5;
+        drawShadedCrater(x, y, r, 0.88, hasPeak, false);
+    }
+
+    for (let i = 0; i < 480; i++) {
+        const x = pseudoRand(i * 19 + 7) * 1024;
+        const y = 24 + pseudoRand(i * 19 + 8) * 464;
+        const r = 2.0 + pseudoRand(i * 19 + 9) * 4.2;
+        drawShadedCrater(x, y, r, 0.78, false, false);
+    }
+
+    return {
+        map: new THREE.CanvasTexture(canvas),
+        bumpMap: new THREE.CanvasTexture(bumpCanvas)
+    };
+}
+
+// 3F. Auto-Fitting High-Resolution Text Sprites (Prevents any text from spilling out of boxes)
+function createTextSprite(text, borderColor = 'rgba(96, 165, 250, 0.85)', scale = 5.5, shape = 'rounded') {
+    const canvas = document.createElement('canvas');
+    canvas.width = 768;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    const tex = new THREE.CanvasTexture(canvas);
+    const mat = new THREE.SpriteMaterial({ map: tex, depthTest: false });
+    const sprite = new THREE.Sprite(mat);
+    sprite.userData = { canvas, ctx, tex, borderColor, shape, baseScale: scale, currentText: '' };
+    updateTextSprite(sprite, text, borderColor);
+    return sprite;
+}
+
+function updateTextSprite(sprite, text, borderColor) {
+    const data = sprite.userData;
+    if (!data) return;
+    if (data.currentText === text && (!borderColor || data.borderColor === borderColor)) return;
+    data.currentText = text;
+    if (borderColor) data.borderColor = borderColor;
+
+    const { ctx, canvas, tex, shape, baseScale } = data;
+    const h = 128;
+    const fontSize = 38;
+    const fontStr = `bold ${fontSize}px "Segoe UI", "Microsoft JhengHei", sans-serif`;
+
+    // Measure text width first so the box dynamically expands to fit all words inside
+    ctx.font = fontStr;
+    const textMetrics = ctx.measureText(text);
+    const horizontalPad = shape === 'diamond' ? 116 : 76;
+    const neededWidth = Math.max(380, Math.ceil(textMetrics.width + horizontalPad));
+
+    if (canvas.width !== neededWidth || canvas.height !== h) {
+        canvas.width = neededWidth;
+        canvas.height = h;
+    }
+
+    const w = canvas.width;
+    ctx.clearRect(0, 0, w, h);
+
+    ctx.lineWidth = 5.5;
+    ctx.strokeStyle = data.borderColor;
+
+    if (shape === 'diamond') {
+        ctx.fillStyle = 'rgba(6, 48, 38, 0.94)';
+        ctx.beginPath();
+        ctx.moveTo(40, 10);
+        ctx.lineTo(w - 40, 10);
+        ctx.lineTo(w - 8, h / 2);
+        ctx.lineTo(w - 40, h - 10);
+        ctx.lineTo(40, h - 10);
+        ctx.lineTo(8, h / 2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+    } else {
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.94)';
+        ctx.beginPath();
+        ctx.roundRect(10, 12, w - 20, h - 24, 24);
+        ctx.fill();
+        ctx.stroke();
+    }
+
+    ctx.font = fontStr;
+    ctx.fillStyle = '#f8fafc';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, w / 2, h / 2 + 1);
+
+    // Update 3D sprite dimensions proportionally to the measured box aspect ratio
+    const spriteHeight = baseScale * 0.27;
+    const spriteWidth = spriteHeight * (w / h);
+    sprite.scale.set(spriteWidth, spriteHeight, 1);
+
+    tex.needsUpdate = true;
+}
+
+// ==========================================
+// 4. MAIN 3D SCENE & RIGHT-CLICK PANNING CONTROLS
+// ==========================================
+const container = document.getElementById('canvas-container');
+const scene = new THREE.Scene();
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+container.appendChild(renderer.domElement);
+
+renderer.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
+
+const mainCamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2400);
+mainCamera.position.set(0, 32, 54);
+
+const controls = new THREE.OrbitControls(mainCamera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.enablePan = true;
+controls.screenSpacePanning = true;
+controls.panSpeed = 1.0;
+controls.mouseButtons = {
+    LEFT: THREE.MOUSE.ROTATE,
+    MIDDLE: THREE.MOUSE.DOLLY,
+    RIGHT: THREE.MOUSE.PAN
+};
+
+// Realistic Circular Glowing Starfield
+const starGeo = new THREE.BufferGeometry();
+const starPts = [];
+const starCols = [];
+for (let i = 0; i < 2600; i++) {
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    const r = 420 + Math.random() * 680;
+    starPts.push(
+        r * Math.sin(phi) * Math.cos(theta),
+        r * Math.cos(phi),
+        r * Math.sin(phi) * Math.sin(theta)
+    );
+    const tint = Math.random();
+    if (tint < 0.25) starCols.push(0.82, 0.90, 1.0);
+    else if (tint < 0.80) starCols.push(0.98, 0.98, 1.0);
+    else starCols.push(1.0, 0.94, 0.82);
+}
+starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPts, 3));
+starGeo.setAttribute('color', new THREE.Float32BufferAttribute(starCols, 3));
+
+const starPoints = new THREE.Points(
+    starGeo,
+    new THREE.PointsMaterial({
+        map: createStarPointTexture(),
+        size: 3.2,
+        sizeAttenuation: true,
+        transparent: true,
+        alphaTest: 0.02,
+        depthWrite: false,
+        vertexColors: true
+    })
+);
+scene.add(starPoints);
+
+// --- TELESCOPE PIP RENDERER & CAMERA ---
+const pipCanvas = document.getElementById('pip-canvas');
+const pipRenderer = new THREE.WebGLRenderer({ canvas: pipCanvas, antialias: true });
+pipRenderer.setSize(140, 140, false);
+pipRenderer.setPixelRatio(window.devicePixelRatio);
+pipRenderer.setClearColor(0x000000, 1);
+
+const pipCamera = new THREE.PerspectiveCamera(34, 1, 1.5, 9.0);
+
+// ==========================================
+// 5. CELESTIAL BODIES, ENLARGED 24 SOLAR TERMS & MONTH LABELS
+// ==========================================
+const SUN_SEMI_MAJOR = 110;
+const REAL_EARTH_ECCENTRICITY = 0.0167;
+const EXAGGERATED_EARTH_ECCENTRICITY = 0.42;
+const REAL_MOON_ECCENTRICITY = 0.0549;
+
+const MOON_SEMI_MAJOR = 18;
+const EARTH_RADIUS = 3.2;
+const MOON_RADIUS = 1.25;
+const SYNODIC_MONTH = 29.53059;
+const SIDEREAL_YEAR = 365.256;
+
+let isEllipseExaggerated = false;
+
+function getEarthOrbitRadius(angle) {
+    const e = isEllipseExaggerated ? EXAGGERATED_EARTH_ECCENTRICITY : REAL_EARTH_ECCENTRICITY;
+    return (SUN_SEMI_MAJOR * (1 - e * e)) / (1 + e * Math.cos(angle));
+}
+
+function getMoonOrbitRadius(localAngle) {
+    const e = isEllipseExaggerated ? 0.22 : REAL_MOON_ECCENTRICITY;
+    return (MOON_SEMI_MAJOR * (1 - e * e)) / (1 + e * Math.cos(localAngle));
+}
+
+// --- THE SUN ---
+const sunMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(8, 48, 48),
+    new THREE.MeshBasicMaterial({ map: createRealisticSunTexture() })
+);
+scene.add(sunMesh);
+
+const sunGlowInner = new THREE.Mesh(
+    new THREE.SphereGeometry(9.6, 32, 32),
+    new THREE.MeshBasicMaterial({ color: 0xf59e0b, transparent: true, opacity: 0.32 })
+);
+sunMesh.add(sunGlowInner);
+
+const sunGlowOuter = new THREE.Mesh(
+    new THREE.SphereGeometry(11.4, 32, 32),
+    new THREE.MeshBasicMaterial({ color: 0xea580c, transparent: true, opacity: 0.16 })
+);
+sunMesh.add(sunGlowOuter);
+
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.11);
+scene.add(ambientLight);
+
+const sunLight = new THREE.DirectionalLight(0xffffff, 2.65);
+scene.add(sunLight);
+scene.add(sunLight.target);
+
+// --- EARTH ELLIPTICAL ORBIT LINE ---
+const earthOrbitLineGeo = new THREE.BufferGeometry();
+const earthOrbitLineMat = new THREE.LineBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.55 });
+const earthOrbitLine = new THREE.Line(earthOrbitLineGeo, earthOrbitLineMat);
+earthOrbitLine.frustumCulled = false;
+scene.add(earthOrbitLine);
+
+function updateEarthOrbitGeometry() {
+    const pts = [];
+    for (let i = 0; i <= 160; i++) {
+        const a = (i / 160) * Math.PI * 2;
+        const r = getEarthOrbitRadius(a);
+        pts.push(new THREE.Vector3(Math.cos(a) * r, 0, -Math.sin(a) * r));
+    }
+    earthOrbitLineGeo.setFromPoints(pts);
+}
+
+// --- ENLARGED CALENDAR MONTH MARKERS ON EARTH ORBIT (Clearly Visible in Solar System View) ---
+const calendarMonthsGroup = new THREE.Group();
+calendarMonthsGroup.visible = false;
+scene.add(calendarMonthsGroup);
+
+function buildCalendarMonthMarkers() {
+    while (calendarMonthsGroup.children.length > 0) {
+        calendarMonthsGroup.remove(calendarMonthsGroup.children[0]);
+    }
+    const months = i18n[currentLang].calMonths;
+    const dotGeo = new THREE.SphereGeometry(1.45, 20, 20);
+
+    for (let m = 0; m < 12; m++) {
+        const angle = (m / 12) * Math.PI * 2;
+        const r = getEarthOrbitRadius(angle);
+        const x = Math.cos(angle) * r;
+        const z = -Math.sin(angle) * r;
+
+        const isNodeMonth = (m === 2 || m === 8);
+        const isPeriOrAph = (m === 0 || m === 6);
+        const dotColor = isNodeMonth ? 0xf472b6 : (isPeriOrAph ? 0xfbbf24 : 0x38bdf8);
+        const dot = new THREE.Mesh(dotGeo, new THREE.MeshBasicMaterial({ color: dotColor }));
+        dot.position.set(x, 0, z);
+        calendarMonthsGroup.add(dot);
+
+        const borderCol = isNodeMonth
+            ? 'rgba(244, 114, 182, 0.98)'
+            : (isPeriOrAph ? 'rgba(251, 191, 36, 0.98)' : 'rgba(56, 189, 248, 0.98)');
+        // Significantly enlarged scale (26 to 31) so months are clearly legible in Focus: Solar System view
+        const scale = (isPeriOrAph || isNodeMonth) ? 31.0 : 26.5;
+        const sprite = createTextSprite(`🔵 ${months[m]}`, borderCol, scale, 'rounded');
+        const labelR = r + 14.0;
+        const yPos = (m % 2 === 0) ? 5.2 : 8.5;
+        sprite.position.set(Math.cos(angle) * labelR, yPos, -Math.sin(angle) * labelR);
+        calendarMonthsGroup.add(sprite);
+    }
+}
+
+// --- ENLARGED 24 SOLAR TERMS MARKERS ON EARTH ORBIT (Clearly Visible in Solar System View) ---
+const solarTermsGroup = new THREE.Group();
+solarTermsGroup.visible = false;
+scene.add(solarTermsGroup);
+
+function buildSolarTermsMarkers() {
+    while (solarTermsGroup.children.length > 0) {
+        solarTermsGroup.remove(solarTermsGroup.children[0]);
+    }
+    const minorDiamondGeo = new THREE.OctahedronGeometry(1.15, 0);
+    const majorDiamondGeo = new THREE.OctahedronGeometry(1.75, 0);
+
+    SOLAR_TERMS_DATA.forEach((term, idx) => {
+        const angle = solarLonToOrbitAngleRad(term.lon);
+        const r = getEarthOrbitRadius(angle);
+        const x = Math.cos(angle) * r;
+        const z = -Math.sin(angle) * r;
+
+        const diamondColor = term.major ? 0xfbbf24 : 0x10b981;
+        const diamondMesh = new THREE.Mesh(
+            term.major ? majorDiamondGeo : minorDiamondGeo,
+            new THREE.MeshBasicMaterial({ color: diamondColor })
+        );
+        diamondMesh.position.set(x, 0, z);
+        diamondMesh.rotation.y = angle;
+        solarTermsGroup.add(diamondMesh);
+
+        const wire = new THREE.LineSegments(
+            new THREE.EdgesGeometry(term.major ? majorDiamondGeo : minorDiamondGeo),
+            new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.75 })
+        );
+        diamondMesh.add(wire);
+
+        const labelText = currentLang === 'zh'
+            ? `🔶 ${term.zh} (${term.lon}°)`
+            : `🔶 ${term.en} (${term.lon}°)`;
+        const borderCol = term.major ? 'rgba(251, 191, 36, 0.98)' : 'rgba(16, 185, 129, 0.95)';
+        // Significantly enlarged scale (21 to 27) + radial/vertical staggering so all 24 Solar Terms are easy to read in Solar System view
+        const scale = term.major ? 27.0 : 21.5;
+        const sprite = createTextSprite(labelText, borderCol, scale, 'diamond');
+        const radialOffset = (idx % 2 === 0) ? -9.5 : 8.5;
+        const labelRadius = Math.max(25, r + radialOffset);
+        const yStagger = (idx % 3 === 0) ? -4.5 : ((idx % 3 === 1) ? -8.5 : -12.5);
+        sprite.position.set(Math.cos(angle) * labelRadius, yStagger, -Math.sin(angle) * labelRadius);
+        solarTermsGroup.add(sprite);
+    });
+}
+
+// --- ROBUST DYNAMIC DASHED LINES & EXPLICIT 3D LABELS FOR SUN-EARTH & SUN-MOON ---
+function createRobustDashedLine(colorHex, dashSize, gapSize) {
+    const geo = new THREE.BufferGeometry();
+    const positions = new Float32Array(6);
+    const lineDistances = new Float32Array(2);
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geo.setAttribute('lineDistance', new THREE.BufferAttribute(lineDistances, 1));
+
+    const mat = new THREE.LineDashedMaterial({
+        color: colorHex,
+        dashSize: dashSize,
+        gapSize: gapSize,
+        linewidth: 2
+    });
+    const line = new THREE.Line(geo, mat);
+    line.frustumCulled = false;
+    return line;
+}
+
+function updateRobustDashedLine(line, startVec, endVec) {
+    const posAttr = line.geometry.attributes.position;
+    const distAttr = line.geometry.attributes.lineDistance;
+
+    posAttr.setXYZ(0, startVec.x, startVec.y, startVec.z);
+    posAttr.setXYZ(1, endVec.x, endVec.y, endVec.z);
+    posAttr.needsUpdate = true;
+
+    distAttr.setX(0, 0);
+    distAttr.setX(1, startVec.distanceTo(endVec));
+    distAttr.needsUpdate = true;
+}
+
+const syzygyLinesGroup = new THREE.Group();
+syzygyLinesGroup.visible = false;
+scene.add(syzygyLinesGroup);
+
+const syzygyLine = createRobustDashedLine(0xfde047, 1.6, 1.1);
+syzygyLinesGroup.add(syzygyLine);
+
+const sunMoonLine = createRobustDashedLine(0xf472b6, 1.4, 1.0);
+syzygyLinesGroup.add(sunMoonLine);
+
+const sunEarthDistSprite = createTextSprite("🟡 Sun–Earth Line · 147.1M km", "rgba(250, 204, 21, 0.95)", 6.2, 'rounded');
+syzygyLinesGroup.add(sunEarthDistSprite);
+
+const sunMoonRaySprite = createTextSprite("🩷 Sun–Moon Sunlight Ray", "rgba(244, 114, 182, 0.95)", 5.8, 'rounded');
+syzygyLinesGroup.add(sunMoonRaySprite);
+
+// --- EARTH SYSTEM GROUP ---
+const earthSystem = new THREE.Group();
+scene.add(earthSystem);
+
+const earthTiltGroup = new THREE.Group();
+earthTiltGroup.rotation.z = THREE.MathUtils.degToRad(-23.5);
+earthSystem.add(earthTiltGroup);
+
+const earthTextures = createRealisticEarthTextures();
+const earthMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(EARTH_RADIUS, 64, 64),
+    new THREE.MeshStandardMaterial({
+        map: earthTextures.map,
+        bumpMap: earthTextures.bumpMap,
+        bumpScale: 0.085,
+        roughnessMap: earthTextures.roughnessMap,
+        roughness: 0.85,
+        metalness: 0.06
+    })
+);
+earthTiltGroup.add(earthMesh);
+
+// Semi-Transparent Independent 3D Spherical Cloud Layer
+const earthCloudMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(EARTH_RADIUS * 1.014, 64, 64),
+    new THREE.MeshStandardMaterial({
+        map: createEarthCloudTexture(),
+        transparent: true,
+        opacity: 0.78,
+        depthWrite: false,
+        roughness: 0.95
+    })
+);
+earthTiltGroup.add(earthCloudMesh);
+
+// Progressively enhance with real satellite imagery when online
+applySatelliteEarthTextures(earthMesh, earthCloudMesh);
+
+// Subtle blue atmospheric halo around Earth
+const earthAtmosphere = new THREE.Mesh(
+    new THREE.SphereGeometry(EARTH_RADIUS * 1.038, 32, 32),
+    new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.14, side: THREE.BackSide })
+);
+earthTiltGroup.add(earthAtmosphere);
+
+const axisLine = new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, -5.2, 0), new THREE.Vector3(0, 5.2, 0)]),
+    new THREE.LineBasicMaterial({ color: 0xef4444 })
+);
+earthTiltGroup.add(axisLine);
+
+const northPoleSprite = createTextSprite("N (23.5°)", "rgba(239, 68, 68, 0.9)", 4.6);
+northPoleSprite.position.set(0, 6.0, 0);
+earthTiltGroup.add(northPoleSprite);
+
+// --- 3D LATITUDE CIRCLES FOR DAY/NIGHT LENGTH (日長夜短 / 日短夜長) PEDAGOGY ---
+const latitudeCirclesGroup = new THREE.Group();
+latitudeCirclesGroup.visible = false;
+earthTiltGroup.add(latitudeCirclesGroup);
+
+const equatorRingMesh = new THREE.Mesh(
+    new THREE.TorusGeometry(EARTH_RADIUS * 1.022, 0.055, 16, 64),
+    new THREE.MeshBasicMaterial({ color: 0x34d399 })
+);
+equatorRingMesh.rotation.x = Math.PI / 2;
+latitudeCirclesGroup.add(equatorRingMesh);
+
+const lat45Rad = THREE.MathUtils.degToRad(45);
+const lat45Radius = EARTH_RADIUS * Math.cos(lat45Rad) * 1.024;
+const lat45Y = EARTH_RADIUS * Math.sin(lat45Rad);
+
+const north45RingMesh = new THREE.Mesh(
+    new THREE.TorusGeometry(lat45Radius, 0.06, 16, 64),
+    new THREE.MeshBasicMaterial({ color: 0xfde047 })
+);
+north45RingMesh.rotation.x = Math.PI / 2;
+north45RingMesh.position.y = lat45Y;
+latitudeCirclesGroup.add(north45RingMesh);
+
+const south45RingMesh = new THREE.Mesh(
+    new THREE.TorusGeometry(lat45Radius, 0.06, 16, 64),
+    new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
+);
+south45RingMesh.rotation.x = Math.PI / 2;
+south45RingMesh.position.y = -lat45Y;
+latitudeCirclesGroup.add(south45RingMesh);
+
+const observerCityMarker = new THREE.Mesh(
+    new THREE.SphereGeometry(0.24, 16, 16),
+    new THREE.MeshBasicMaterial({ color: 0xef4444 })
+);
+observerCityMarker.position.set(lat45Radius, lat45Y, 0);
+observerCityMarker.visible = false;
+earthMesh.add(observerCityMarker);
+
+// ==========================================
+// TRUE TANGENT UMBRA CONE BUILDER & GOLD TERMINATOR RINGS
+// ==========================================
+function createTangentUmbraCone(baseRadius, coneLength) {
+    const geo = new THREE.CylinderGeometry(0.0, baseRadius, coneLength, 48, 1, true);
+    geo.rotateX(Math.PI / 2);
+    geo.translate(0, 0, coneLength / 2);
+
+    const mat = new THREE.MeshBasicMaterial({
+        color: 0x1e1b4b,
+        transparent: true,
+        opacity: 0.56,
+        side: THREE.DoubleSide,
+        depthWrite: false
+    });
+    return new THREE.Mesh(geo, mat);
+}
+
+const EARTH_UMBRA_LENGTH = 38.0;
+const earthUmbraGroup = new THREE.Group();
+earthUmbraGroup.visible = false;
+earthSystem.add(earthUmbraGroup);
+
+const shadowCone = createTangentUmbraCone(EARTH_RADIUS, EARTH_UMBRA_LENGTH);
+earthUmbraGroup.add(shadowCone);
+
+const earthTerminatorRing = new THREE.Mesh(
+    new THREE.RingGeometry(EARTH_RADIUS * 1.01, EARTH_RADIUS * 1.11, 64),
+    new THREE.MeshBasicMaterial({
+        color: 0xfacc15,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.85
+    })
+);
+earthTerminatorRing.visible = false;
+earthSystem.add(earthTerminatorRing);
+
+const MOON_UMBRA_LENGTH = 16.5;
+const moonUmbraGroup = new THREE.Group();
+moonUmbraGroup.visible = false;
+scene.add(moonUmbraGroup);
+
+const moonShadowCone = createTangentUmbraCone(MOON_RADIUS, MOON_UMBRA_LENGTH);
+moonUmbraGroup.add(moonShadowCone);
+
+const moonTerminatorRing = new THREE.Mesh(
+    new THREE.RingGeometry(MOON_RADIUS * 1.0, MOON_RADIUS * 1.18, 48),
+    new THREE.MeshBasicMaterial({
+        color: 0xfacc15,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.92
+    })
+);
+moonUmbraGroup.add(moonTerminatorRing);
+
+// --- MOON ELLIPTICAL ORBIT PLANE (REALISTIC 5° TILT ENABLED BY DEFAULT!) ---
+const moonOrbitPlane = new THREE.Group();
+const REALISTIC_TILT = THREE.MathUtils.degToRad(14.5);
+let isOrbitTilted = true;
+moonOrbitPlane.rotation.z = -REALISTIC_TILT;
+earthSystem.add(moonOrbitPlane);
+
+const moonOrbitLineGeo = new THREE.BufferGeometry();
+const moonOrbitLine = new THREE.Line(
+    moonOrbitLineGeo,
+    new THREE.LineBasicMaterial({ color: 0x94a3b8, transparent: true, opacity: 0.6 })
+);
+moonOrbitLine.frustumCulled = false;
+moonOrbitPlane.add(moonOrbitLine);
+
+function updateMoonOrbitGeometry() {
+    const pts = [];
+    for (let i = 0; i <= 90; i++) {
+        const a = (i / 90) * Math.PI * 2;
+        const r = getMoonOrbitRadius(a);
+        pts.push(new THREE.Vector3(Math.cos(a) * r, 0, -Math.sin(a) * r));
+    }
+    moonOrbitLineGeo.setFromPoints(pts);
+}
+
+// --- LUNAR DAY MARKERS GROUP (Day 1 to Day 29) ---
+const synodicMarkersGroup = new THREE.Group();
+synodicMarkersGroup.visible = false;
+moonOrbitPlane.add(synodicMarkersGroup);
+
+function buildLunarDayMarkers() {
+    while (synodicMarkersGroup.children.length > 0) {
+        synodicMarkersGroup.remove(synodicMarkersGroup.children[0]);
+    }
+
+    const beadGeo = new THREE.SphereGeometry(0.18, 12, 12);
+    const majorBeadGeo = new THREE.SphereGeometry(0.35, 16, 12);
+    const beadMat = new THREE.MeshBasicMaterial({ color: 0x64748b });
+    const majorBeadMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+
+    const majorDays = i18n[currentLang].orbitMarkers;
+
+    for (let day = 1; day <= 29; day++) {
+        const phaseFrac = (day - 1) / SYNODIC_MONTH;
+        const angle = phaseFrac * Math.PI * 2;
+        const r = getMoonOrbitRadius(angle + Math.PI);
+        const x = Math.cos(angle) * r;
+        const z = -Math.sin(angle) * r;
+
+        const majorInfo = majorDays.find(m => m.day === day);
+        const dot = new THREE.Mesh(majorInfo ? majorBeadGeo : beadGeo, majorInfo ? majorBeadMat : beadMat);
+        dot.position.set(x, 0, z);
+        synodicMarkersGroup.add(dot);
+
+        if (majorInfo) {
+            const sprite = createTextSprite(majorInfo.text, 'rgba(96, 165, 250, 0.85)', 5.6, 'rounded');
+            const labelDist = r + 2.2;
+            sprite.position.set(Math.cos(angle) * labelDist, 1.0, -Math.sin(angle) * labelDist);
+            synodicMarkersGroup.add(sprite);
+        }
+    }
+}
+
+// --- THE MOON ---
+const moonTextures = createRealisticMoonTextures(0.0);
+const moonMat = new THREE.MeshStandardMaterial({
+    map: moonTextures.map,
+    bumpMap: moonTextures.bumpMap,
+    bumpScale: 0.085,
+    roughness: 0.86,
+    metalness: 0.0,
+    emissive: new THREE.Color(0x000000),
+    emissiveIntensity: 0
+});
+const moonMesh = new THREE.Mesh(new THREE.SphereGeometry(MOON_RADIUS, 64, 64), moonMat);
+moonOrbitPlane.add(moonMesh);
+
+updateEarthOrbitGeometry();
+updateMoonOrbitGeometry();
+buildLunarDayMarkers();
+buildCalendarMonthMarkers();
+buildSolarTermsMarkers();
+
+// ==========================================
+// 6. DEDICATED SEASONAL SUNLIGHT RAYS & DAY/NIGHT LABELS GROUP
+// ==========================================
+const seasonLabGroup = new THREE.Group();
+seasonLabGroup.visible = false;
+scene.add(seasonLabGroup);
+
+const earthNorthRay = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 0), 8.5, 0xfde047, 1.4, 0.95);
+const earthEquatorRay = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 0), 8.5, 0xf59e0b, 1.4, 0.95);
+const earthSouthRay = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 0), 8.5, 0xfde047, 1.4, 0.95);
+seasonLabGroup.add(earthNorthRay, earthEquatorRay, earthSouthRay);
+
+const hitDotGeo = new THREE.SphereGeometry(0.28, 16, 16);
+const northHitDot = new THREE.Mesh(hitDotGeo, new THREE.MeshBasicMaterial({ color: 0xfde047 }));
+const equatorHitDot = new THREE.Mesh(hitDotGeo, new THREE.MeshBasicMaterial({ color: 0xf97316 }));
+const southHitDot = new THREE.Mesh(hitDotGeo, new THREE.MeshBasicMaterial({ color: 0xfde047 }));
+seasonLabGroup.add(northHitDot, equatorHitDot, southHitDot);
+
+// Auto-fitting N/S Hemisphere boxes (will never split or overflow out of the box)
+const nhRayLabel = createTextSprite("☀️ N. Hemisphere", "rgba(250, 204, 21, 0.95)", 5.6, 'rounded');
+const shRayLabel = createTextSprite("❄️ S. Hemisphere", "rgba(56, 189, 248, 0.95)", 5.6, 'rounded');
+seasonLabGroup.add(nhRayLabel, shRayLabel);
+
+const teachingGuidesGroup = new THREE.Group();
+teachingGuidesGroup.visible = false;
+scene.add(teachingGuidesGroup);
+
+const moonSunArrow = new THREE.ArrowHelper(
+    new THREE.Vector3(1, 0, 0),
+    new THREE.Vector3(0, 0, 0),
+    5.8,
+    0xf97316,
+    1.5,
+    1.1
+);
+teachingGuidesGroup.add(moonSunArrow);
+
+const earthToMoonArrow = new THREE.ArrowHelper(
+    new THREE.Vector3(1, 0, 0),
+    new THREE.Vector3(0, 0, 0),
+    10,
+    0x22d3ee,
+    1.3,
+    0.9
+);
+teachingGuidesGroup.add(earthToMoonArrow);
+
+const visRingGeo = new THREE.RingGeometry(MOON_RADIUS * 1.15, MOON_RADIUS * 1.32, 48);
+const visRingMat = new THREE.MeshBasicMaterial({
+    color: 0x22d3ee,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.90
+});
+const moonVisibilityRing = new THREE.Mesh(visRingGeo, visRingMat);
+teachingGuidesGroup.add(moonVisibilityRing);
+
+// ==========================================
+// 7. SIMULATION PHYSICS & ASTRONOMY STATE
+// ==========================================
+let totalDays = SYNODIC_MONTH * 0.5;
+let isPlaying = true;
+let simSpeed = 0.246088;
+let cameraFocus = 'earth';
+let isFirstFrame = true;
+let currentIsLunarEclipse = false;
+
+function updateAstronomy() {
+    const dict = i18n[currentLang];
+
+    sunMesh.rotation.y = (totalDays / 25.0) * Math.PI * 2;
+
+    // 1. Earth Elliptical Orbit around the Sun
+    const earthOrbitAngle = ((totalDays % SIDEREAL_YEAR) / SIDEREAL_YEAR) * Math.PI * 2;
+    const earthDistUnits = getEarthOrbitRadius(earthOrbitAngle);
+    const ex = Math.cos(earthOrbitAngle) * earthDistUnits;
+    const ez = -Math.sin(earthOrbitAngle) * earthDistUnits;
+    
+    const prevEarthPos = earthSystem.position.clone();
+    earthSystem.position.set(ex, 0, ez);
+
+    if (isFirstFrame) {
+        mainCamera.position.copy(earthSystem.position).add(new THREE.Vector3(0, 32, 48));
+        controls.target.copy(earthSystem.position);
+        isFirstFrame = false;
+    } else if (cameraFocus === 'earth') {
+        const delta = earthSystem.position.clone().sub(prevEarthPos);
+        mainCamera.position.add(delta);
+        controls.target.add(delta);
+    }
+
+    // 2. Earth Self-Rotation & Independent Cloud Drift
+    earthMesh.rotation.y = totalDays * Math.PI * 2 * (1 + 1 / SIDEREAL_YEAR);
+    earthCloudMesh.rotation.y = totalDays * Math.PI * 2 * (1.03 + 1 / SIDEREAL_YEAR);
+
+    // 3. Orient Moon Orbit Plane (isOrbitTilted is true by default)
+    moonOrbitPlane.rotation.set(0, 0, isOrbitTilted ? -REALISTIC_TILT : 0, 'YXZ');
+    synodicMarkersGroup.rotation.y = earthOrbitAngle + Math.PI;
+
+    // 4. Moon Elliptical Position on Orbit
+    const phaseAngle = ((totalDays % SYNODIC_MONTH) / SYNODIC_MONTH) * Math.PI * 2;
+    const localAngle = earthOrbitAngle + Math.PI + phaseAngle;
+    const moonDistUnits = getMoonOrbitRadius(localAngle);
+
+    const mx = Math.cos(localAngle) * moonDistUnits;
+    const mz = -Math.sin(localAngle) * moonDistUnits;
+    moonMesh.position.set(mx, 0, mz);
+    moonMesh.rotation.y = localAngle + Math.PI;
+
+    scene.updateMatrixWorld(true);
+
+    const moonWorldPos = new THREE.Vector3();
+    moonMesh.getWorldPosition(moonWorldPos);
+
+    // 5. Update Both Dotted Lines & Explicit 3D Labels (Sun-Earth & Sun-Moon)
+    const sunOrigin = new THREE.Vector3(0, 0, 0);
+    const sunToEarthDir = earthSystem.position.clone().normalize();
+    const extendedEarthPt = earthSystem.position.clone().add(sunToEarthDir.clone().multiplyScalar(EARTH_UMBRA_LENGTH + 8));
+    updateRobustDashedLine(syzygyLine, sunOrigin, extendedEarthPt);
+
+    const sunToMoonDir = moonWorldPos.clone().normalize();
+    const extendedMoonPt = moonWorldPos.clone().add(sunToMoonDir.clone().multiplyScalar(MOON_UMBRA_LENGTH + 4));
+    updateRobustDashedLine(sunMoonLine, sunOrigin, extendedMoonPt);
+
+    const realRadiusFrac = (1 - REAL_EARTH_ECCENTRICITY * REAL_EARTH_ECCENTRICITY) / (1 + REAL_EARTH_ECCENTRICITY * Math.cos(earthOrbitAngle));
+    const distMillionKm = 149.6 * realRadiusFrac;
+    const distYiKm = (distMillionKm / 100).toFixed(3);
+    const distAU = realRadiusFrac.toFixed(3);
+
+    const seBadgePos = earthSystem.position.clone().sub(sunToEarthDir.clone().multiplyScalar(23)).add(new THREE.Vector3(0, -3.6, 0));
+    sunEarthDistSprite.position.copy(seBadgePos);
+    const seBadgeText = currentLang === 'zh'
+        ? `🟡 日地連心線 (本影軸) · ${distYiKm}億km`
+        : `🟡 Sun–Earth Line · ${distMillionKm.toFixed(1)}M km`;
+    updateTextSprite(sunEarthDistSprite, seBadgeText, 'rgba(250, 204, 21, 0.95)');
+
+    const smBadgePos = moonWorldPos.clone().sub(sunToMoonDir.clone().multiplyScalar(15)).add(new THREE.Vector3(0, 2.8, 0));
+    sunMoonRaySprite.position.copy(smBadgePos);
+    const smBadgeText = currentLang === 'zh'
+        ? `🩷 日月陽光連線 (Sun–Moon Ray)`
+        : `🩷 Sun–Moon Direct Sunlight Ray`;
+    updateTextSprite(sunMoonRaySprite, smBadgeText, 'rgba(244, 114, 182, 0.95)');
+
+    // 6. Update Directional Sunlight, TRUE TANGENT UMBRA CONES & Gold Terminator Ring
+    sunLight.position.copy(moonWorldPos.clone().sub(sunToMoonDir.clone().multiplyScalar(100)));
+    sunLight.target.position.copy(moonWorldPos);
+    sunLight.target.updateMatrixWorld();
+
+    const earthUmbraTarget = earthSystem.position.clone().add(sunToEarthDir.clone().multiplyScalar(100));
+    earthUmbraGroup.lookAt(earthUmbraTarget);
+    earthTerminatorRing.lookAt(earthUmbraTarget);
+
+    moonUmbraGroup.position.copy(moonWorldPos);
+    moonUmbraGroup.lookAt(moonWorldPos.clone().add(sunToMoonDir.clone().multiplyScalar(100)));
+
+    // 7. Update N/S Hemisphere Sunlight Rays & Day/Night Length Labels
+    const rayLen = 8.2;
+    const yOffset = 1.65;
+    const xSurfaceOffset = Math.sqrt(EARTH_RADIUS * EARTH_RADIUS - yOffset * yOffset);
+
+    const nhSurfacePt = earthSystem.position.clone()
+        .add(new THREE.Vector3(0, yOffset, 0))
+        .sub(sunToEarthDir.clone().multiplyScalar(xSurfaceOffset));
+    const eqSurfacePt = earthSystem.position.clone()
+        .sub(sunToEarthDir.clone().multiplyScalar(EARTH_RADIUS));
+    const shSurfacePt = earthSystem.position.clone()
+        .add(new THREE.Vector3(0, -yOffset, 0))
+        .sub(sunToEarthDir.clone().multiplyScalar(xSurfaceOffset));
+
+    northHitDot.position.copy(nhSurfacePt);
+    equatorHitDot.position.copy(eqSurfacePt);
+    southHitDot.position.copy(shSurfacePt);
+
+    earthNorthRay.position.copy(nhSurfacePt.clone().sub(sunToEarthDir.clone().multiplyScalar(rayLen)));
+    earthNorthRay.setDirection(sunToEarthDir);
+    earthNorthRay.setLength(rayLen - 0.3, 1.35, 0.9);
+
+    earthEquatorRay.position.copy(eqSurfacePt.clone().sub(sunToEarthDir.clone().multiplyScalar(rayLen)));
+    earthEquatorRay.setDirection(sunToEarthDir);
+    earthEquatorRay.setLength(rayLen - 0.3, 1.35, 0.9);
+
+    earthSouthRay.position.copy(shSurfacePt.clone().sub(sunToEarthDir.clone().multiplyScalar(rayLen)));
+    earthSouthRay.setDirection(sunToEarthDir);
+    earthSouthRay.setLength(rayLen - 0.3, 1.35, 0.9);
+
+    nhRayLabel.position.copy(nhSurfacePt.clone().sub(sunToEarthDir.clone().multiplyScalar(rayLen * 0.55)).add(new THREE.Vector3(0, 2.0, 0)));
+    shRayLabel.position.copy(shSurfacePt.clone().sub(sunToEarthDir.clone().multiplyScalar(rayLen * 0.55)).add(new THREE.Vector3(0, -2.0, 0)));
+
+    const declDeg = getSolarDeclinationDeg(earthOrbitAngle);
+    const dayHrs45N = computeDaylightHours(45, declDeg);
+    const dayHrs45S = computeDaylightHours(-45, declDeg);
+
+    if (declDeg > 3.0) {
+        updateTextSprite(nhRayLabel, `${dict.nhDirect} (${dayHrs45N.toFixed(1)}h)`, 'rgba(250, 204, 21, 0.95)');
+        updateTextSprite(shRayLabel, `${dict.shSlanted} (${dayHrs45S.toFixed(1)}h)`, 'rgba(56, 189, 248, 0.95)');
+    } else if (declDeg < -3.0) {
+        updateTextSprite(nhRayLabel, `${dict.nhSlanted} (${dayHrs45N.toFixed(1)}h)`, 'rgba(56, 189, 248, 0.95)');
+        updateTextSprite(shRayLabel, `${dict.shDirect} (${dayHrs45S.toFixed(1)}h)`, 'rgba(250, 204, 21, 0.95)');
+    } else {
+        updateTextSprite(nhRayLabel, dict.nhEqual, 'rgba(167, 243, 208, 0.95)');
+        updateTextSprite(shRayLabel, dict.shEqual, 'rgba(167, 243, 208, 0.95)');
+    }
+
+    // 8. Update Moon Teaching Guides
+    const arrowLength = 5.8;
+    const arrowStartPos = moonWorldPos.clone().sub(sunToMoonDir.clone().multiplyScalar(arrowLength + MOON_RADIUS + 0.3));
+    moonSunArrow.position.copy(arrowStartPos);
+    moonSunArrow.setDirection(sunToMoonDir);
+    moonSunArrow.setLength(arrowLength, 1.4, 1.0);
+
+    const earthToMoonVec = moonWorldPos.clone().sub(earthSystem.position);
+    const earthToMoonDist = earthToMoonVec.length();
+    const earthToMoonDir = earthToMoonVec.clone().normalize();
+    const viewLineStart = earthSystem.position.clone().add(earthToMoonDir.clone().multiplyScalar(EARTH_RADIUS + 0.3));
+    const viewLineLength = Math.max(1, earthToMoonDist - EARTH_RADIUS - MOON_RADIUS - 0.7);
+    earthToMoonArrow.position.copy(viewLineStart);
+    earthToMoonArrow.setDirection(earthToMoonDir);
+    earthToMoonArrow.setLength(viewLineLength, 1.2, 0.8);
+
+    moonVisibilityRing.position.copy(moonWorldPos);
+    moonVisibilityRing.lookAt(earthSystem.position);
+
+    // 9. Position Telescope PIP Camera
+    const pipCamPos = moonWorldPos.clone().sub(earthToMoonDir.clone().multiplyScalar(5.2));
+    pipCamera.position.copy(pipCamPos);
+    pipCamera.up.set(0, 1, 0);
+    pipCamera.lookAt(moonWorldPos);
+
+    // 10. Synchronized Lunar Eclipse Check
+    const distAlongShadow = earthToMoonVec.dot(sunToEarthDir);
+    let isLunarEclipse = false;
+    let eclipseDepth = 0;
+
+    if (distAlongShadow > 0 && distAlongShadow < EARTH_UMBRA_LENGTH) {
+        const perpVec = earthToMoonVec.clone().sub(sunToEarthDir.clone().multiplyScalar(distAlongShadow));
+        const perpDist = perpVec.length();
+        const umbraRadiusAtMoon = EARTH_RADIUS * (1 - distAlongShadow / EARTH_UMBRA_LENGTH);
+        if (perpDist < umbraRadiusAtMoon + MOON_RADIUS * 0.35) {
+            isLunarEclipse = true;
+            eclipseDepth = Math.max(0.15, 1 - (perpDist / (umbraRadiusAtMoon + MOON_RADIUS * 0.35)));
+        }
+    }
+
+    currentIsLunarEclipse = isLunarEclipse;
+
+    if (isLunarEclipse) {
+        const bloodRed = new THREE.Color(0xdc2626);
+        const normalWhite = new THREE.Color(0xffffff);
+        const blendFactor = Math.min(1, 0.45 + eclipseDepth * 0.55);
+
+        moonMat.color.copy(normalWhite).lerp(bloodRed, blendFactor);
+        moonMat.emissive.setHex(0x991b1b);
+        moonMat.emissiveIntensity = Math.min(1.15, 0.45 + eclipseDepth * 0.85);
+        sunLight.intensity = Math.max(0.55, 2.65 * (1 - eclipseDepth * 0.75));
+    } else {
+        moonMat.color.setHex(0xffffff);
+        moonMat.emissive.setHex(0x000000);
+        moonMat.emissiveIntensity = 0;
+        sunLight.intensity = 2.65;
+    }
+
+    updateUI(phaseAngle, earthOrbitAngle, isLunarEclipse, moonWorldPos.y, distMillionKm, distYiKm, distAU, declDeg, dayHrs45N, dayHrs45S);
+}
+
+function getPhaseIndex(deg) {
+    if (deg < 12 || deg >= 348) return 0;
+    if (deg < 78) return 1;
+    if (deg < 102) return 2;
+    if (deg < 168) return 3;
+    if (deg < 192) return 4;
+    if (deg < 258) return 5;
+    if (deg < 282) return 6;
+    return 7;
+}
+
+function updateUI(phaseRad, earthOrbitRad, isLunarEclipse, moonY, distMillionKm, distYiKm, distAU, declDeg, dayHrs45N, dayHrs45S) {
+    const dict = i18n[currentLang];
+    const deg = THREE.MathUtils.radToDeg(phaseRad) % 360;
+    document.getElementById('angle-val').innerText = Math.round(deg) + '°';
+    
+    const moonSlider = document.getElementById('moon-slider');
+    if (document.activeElement !== moonSlider) {
+        moonSlider.value = deg;
+    }
+
+    const dayInYear = ((totalDays % SIDEREAL_YEAR) + SIDEREAL_YEAR) % SIDEREAL_YEAR;
+    const earthSlider = document.getElementById('earth-slider');
+    if (document.activeElement !== earthSlider) {
+        earthSlider.value = dayInYear;
+    }
+
+    const solarLon = orbitAngleRadToSolarLon(earthOrbitRad);
+    const currentTerm = getCurrentSolarTerm(solarLon);
+    const termName = currentLang === 'zh' ? currentTerm.zh : currentTerm.en;
+
+    const monthIndex = Math.floor((dayInYear / SIDEREAL_YEAR) * 12) % 12;
+    document.getElementById('earth-month-val').innerText = `${dict.shortMonths[monthIndex]} · ${termName}`;
+
+    document.getElementById('stat-solar-term').innerText = termName;
+    document.getElementById('stat-solar-lon').innerText = currentLang === 'zh'
+        ? `太陽黃經 λ☉: ${Math.round(solarLon)}°`
+        : `Solar Lon λ☉: ${Math.round(solarLon)}°`;
+
+    const absDecl = Math.abs(declDeg).toFixed(1);
+    const nsChar = declDeg >= 0 ? 'N' : 'S';
+    document.getElementById('stat-subsolar-lat').innerText = currentLang === 'zh'
+        ? `直射點 δ: ${absDecl}°${nsChar}`
+        : `Subsolar δ: ${absDecl}°${nsChar}`;
+
+    const seasons = getHemisphereSeasons(solarLon, declDeg, currentLang);
+    document.getElementById('stat-nh-season').innerText = seasons.nhAstro;
+    document.getElementById('stat-sh-season').innerText = seasons.shAstro;
+    document.getElementById('stat-nh-sub').innerText = seasons.nhDayTag;
+    document.getElementById('stat-sh-sub').innerText = seasons.shDayTag;
+
+    const nightHrs45N = 24.0 - dayHrs45N;
+    const nightHrs45S = 24.0 - dayHrs45S;
+    const dayPct45N = (dayHrs45N / 24.0) * 100;
+    const dayPct45S = (dayHrs45S / 24.0) * 100;
+
+    if (currentLang === 'zh') {
+        document.getElementById('val-dl-45n').innerText = `☀️晝 ${dayHrs45N.toFixed(1)}h | 🌙夜 ${nightHrs45N.toFixed(1)}h`;
+        document.getElementById('val-dl-eq').innerText = `☀️晝 12.0h | 🌙夜 12.0h`;
+        document.getElementById('val-dl-45s').innerText = `☀️晝 ${dayHrs45S.toFixed(1)}h | 🌙夜 ${nightHrs45S.toFixed(1)}h`;
+    } else {
+        document.getElementById('val-dl-45n').innerText = `☀️ ${dayHrs45N.toFixed(1)}h | 🌙 ${nightHrs45N.toFixed(1)}h`;
+        document.getElementById('val-dl-eq').innerText = `☀️ 12.0h | 🌙 12.0h`;
+        document.getElementById('val-dl-45s').innerText = `☀️ ${dayHrs45S.toFixed(1)}h | 🌙 ${nightHrs45S.toFixed(1)}h`;
+    }
+    document.getElementById('bar-dl-45n').style.width = `${dayPct45N.toFixed(1)}%`;
+    document.getElementById('bar-dl-45s').style.width = `${dayPct45S.toFixed(1)}%`;
+
+    document.getElementById('stat-dist').innerText = currentLang === 'zh'
+        ? `${distYiKm}億 km (${distAU} AU)`
+        : `${distMillionKm.toFixed(1)}M km (${distAU} AU)`;
+    const distPct = Math.max(0, Math.min(100, ((distMillionKm - 147.09) / (152.10 - 147.09)) * 100));
+    document.getElementById('dist-bar-fill').style.width = `${distPct}%`;
+
+    document.getElementById('stat-days').innerText = totalDays.toFixed(1);
+    document.getElementById('stat-months').innerText = (totalDays / SYNODIC_MONTH).toFixed(2);
+    document.getElementById('stat-years').innerText = (totalDays / SIDEREAL_YEAR).toFixed(2);
+
+    const phaseIdx = getPhaseIndex(deg);
+    document.getElementById('phase-label').innerText = dict.phases[phaseIdx];
+
+    const lunarDayNum = Math.floor((deg / 360) * SYNODIC_MONTH) + 1;
+    if (currentLang === 'zh') {
+        document.getElementById('lunar-day-readout').innerText = dict.lunarDayPrefix + getChineseLunarDayName(lunarDayNum) + ` (第 ${lunarDayNum} 日)`;
+    } else {
+        document.getElementById('lunar-day-readout').innerText = dict.lunarDayPrefix + lunarDayNum;
+    }
+
+    const monitorBox = document.getElementById('syzygy-monitor-box');
+    const monitorStatus = document.getElementById('syzygy-monitor-status');
+    monitorBox.classList.remove('state-eclipse', 'state-syzygy-miss');
+
+    if (isLunarEclipse) {
+        monitorBox.classList.add('state-eclipse');
+        monitorStatus.innerText = dict.monEclipse;
+    } else if (phaseIdx === 4) {
+        monitorBox.classList.add('state-syzygy-miss');
+        monitorStatus.innerText = moonY >= 0 ? dict.monAbove : dict.monBelow;
+    } else if (phaseIdx === 0) {
+        monitorStatus.innerText = dict.monNewMoon;
+    } else {
+        const illumPct = Math.round(((1 - Math.cos(phaseRad)) / 2) * 100);
+        monitorStatus.innerText = `${dict.monNormalPrefix}${illumPct}${dict.monNormalSuffix}`;
+    }
+}
+
+// ==========================================
+// 8. UI CONTROLS, COLLAPSIBLE DRAWERS & TUTORIAL
+// ==========================================
+const uiPanel = document.getElementById('ui-panel');
+const openPanelBtn = document.getElementById('open-panel-btn');
+const closePanelBtn = document.getElementById('close-panel-btn');
+const guideCard = document.getElementById('guide-card');
+const guideToggleBtn = document.getElementById('guide-toggle-btn');
+const tutorialModalOverlay = document.getElementById('tutorial-modal-overlay');
+const learningSupportBtn = document.getElementById('learning-support-btn');
+const learningSupportContent = document.getElementById('learning-support-content');
+const supportChevron = document.getElementById('support-chevron');
+
+const metricsToggleBtn = document.getElementById('metrics-toggle-btn');
+const metricsCard = document.getElementById('metrics-card');
+const metricsChevron = document.getElementById('metrics-chevron');
+
+metricsToggleBtn.addEventListener('click', () => {
+    const isOpen = metricsCard.classList.toggle('open');
+    metricsChevron.innerText = isOpen ? '▲' : '▼';
+});
+
+function openMetricsDrawer() {
+    metricsCard.classList.add('open');
+    metricsChevron.innerText = '▲';
+}
+
+function syncEarthTerminatorVisibility() {
+    const seasonChecked = document.getElementById('season-lab-toggle').checked;
+    const shadowChecked = document.getElementById('shadow-toggle').checked;
+    earthTerminatorRing.visible = seasonChecked || shadowChecked;
+}
+
+learningSupportBtn.addEventListener('click', () => {
+    const isOpen = learningSupportContent.classList.toggle('open');
+    supportChevron.innerText = isOpen ? '▲' : '▼';
+});
+
+function openLearningSupportDrawer() {
+    learningSupportContent.classList.add('open');
+    supportChevron.innerText = '▲';
+}
+
+function setCheckboxAndTrigger(id, checked) {
+    const el = document.getElementById(id);
+    if (el && el.checked !== checked) {
+        el.checked = checked;
+        el.dispatchEvent(new Event('change'));
+    }
+}
+
+closePanelBtn.addEventListener('click', () => {
+    uiPanel.classList.add('hidden');
+    openPanelBtn.style.display = 'block';
+});
+
+openPanelBtn.addEventListener('click', () => {
+    uiPanel.classList.remove('hidden');
+    openPanelBtn.style.display = 'none';
+});
+
+guideToggleBtn.addEventListener('click', () => {
+    guideCard.classList.toggle('visible');
+    guideToggleBtn.classList.toggle('active', guideCard.classList.contains('visible'));
+});
+
+document.getElementById('tutorial-btn').addEventListener('click', () => {
+    tutorialModalOverlay.classList.add('open');
+});
+document.getElementById('close-tutorial-btn').addEventListener('click', () => {
+    tutorialModalOverlay.classList.remove('open');
+});
+document.getElementById('tut-got-it-btn').addEventListener('click', () => {
+    tutorialModalOverlay.classList.remove('open');
+});
+tutorialModalOverlay.addEventListener('click', (e) => {
+    if (e.target === tutorialModalOverlay) tutorialModalOverlay.classList.remove('open');
+});
+
+document.getElementById('tut-btn-phases').addEventListener('click', () => {
+    tutorialModalOverlay.classList.remove('open');
+    pauseForInspection();
+    openLearningSupportDrawer();
+    setCheckboxAndTrigger('shadow-toggle', true);
+    setCheckboxAndTrigger('guides-toggle', true);
+    camEarthBtn.click();
+    totalDays = 0.25 * SYNODIC_MONTH;
+    updateAstronomy();
+});
+
+document.getElementById('tut-btn-eclipse').addEventListener('click', () => {
+    tutorialModalOverlay.classList.remove('open');
+    pauseForInspection();
+    openLearningSupportDrawer();
+    setCheckboxAndTrigger('tilt-toggle', false);
+    setCheckboxAndTrigger('shadow-toggle', true);
+    setCheckboxAndTrigger('syzygy-toggle', true);
+    camEarthBtn.click();
+    totalDays = 3.5 * SYNODIC_MONTH;
+    updateAstronomy();
+});
+
+document.getElementById('tut-btn-seasons').addEventListener('click', () => {
+    tutorialModalOverlay.classList.remove('open');
+    openLearningSupportDrawer();
+    openMetricsDrawer();
+    setCheckboxAndTrigger('season-lab-toggle', true);
+    setCheckboxAndTrigger('syzygy-toggle', true);
+    camEarthBtn.click();
+    document.getElementById('spd-day').click();
+    if (!isPlaying) playBtn.click();
+    const summerSolsticeRad = solarLonToOrbitAngleRad(90);
+    totalDays = (summerSolsticeRad / (Math.PI * 2)) * SIDEREAL_YEAR;
+    updateAstronomy();
+});
+
+document.getElementById('tut-btn-solarsys').addEventListener('click', () => {
+    tutorialModalOverlay.classList.remove('open');
+    openLearningSupportDrawer();
+    openMetricsDrawer();
+    setCheckboxAndTrigger('solar-terms-toggle', true);
+    setCheckboxAndTrigger('day-labels-toggle', true);
+    camSunBtn.click();
+});
+
+function applyLanguage() {
+    const dict = i18n[currentLang];
+    document.getElementById('lang-btn').innerText = dict.langBtn;
+    guideToggleBtn.innerText = dict.guideBtn;
+    document.getElementById('tutorial-btn').innerText = dict.tutorialBtn;
+    openPanelBtn.innerText = dict.openBtn;
+    document.getElementById('ui-title').innerText = dict.title;
+    document.getElementById('play-btn').innerText = isPlaying ? dict.pause : dict.play;
+    document.getElementById('sec-speed').innerText = dict.secSpeed;
+    document.getElementById('spd-day').innerText = dict.spdDay;
+    document.getElementById('spd-month').innerText = dict.spdMonth;
+    document.getElementById('spd-year').innerText = dict.spdYear;
+    document.getElementById('sec-interactive').innerText = dict.secInteractive;
+    document.getElementById('lbl-move-moon').innerText = dict.moveMoon;
+    document.getElementById('lbl-move-earth').innerText = dict.moveEarth;
+    document.getElementById('jump-jan-btn').innerText = dict.jumpJan;
+    document.getElementById('jump-mar-btn').innerText = dict.jumpMar;
+    document.getElementById('jump-jul-btn').innerText = dict.jumpJul;
+    document.getElementById('jump-sep-btn').innerText = dict.jumpSep;
+    document.getElementById('jump-sum-sol-btn').innerText = dict.jumpSumSol;
+    document.getElementById('jump-win-sol-btn').innerText = dict.jumpWinSol;
+    document.getElementById('lbl-metrics-toggle-btn').innerText = dict.metricsToggleBtn;
+    document.getElementById('lbl-solar-term-title').innerText = dict.solarTermTitle;
+    document.getElementById('lbl-nh-season-title').innerText = dict.nhSeasonTitle;
+    document.getElementById('lbl-sh-season-title').innerText = dict.shSeasonTitle;
+    document.getElementById('lbl-dl-box-title').innerText = dict.dlBoxTitle;
+    document.getElementById('lbl-dl-45n').innerText = dict.dl45n;
+    document.getElementById('lbl-dl-eq').innerText = dict.dlEq;
+    document.getElementById('lbl-dl-45s').innerText = dict.dl45s;
+    document.getElementById('lbl-stat-days').innerText = dict.statDays;
+    document.getElementById('lbl-stat-months').innerText = dict.statMonths;
+    document.getElementById('lbl-stat-years').innerText = dict.statYears;
+    document.getElementById('lbl-stat-dist').innerText = dict.statDist;
+    document.getElementById('lbl-peri-end').innerText = dict.periEnd;
+    document.getElementById('lbl-aph-end').innerText = dict.aphEnd;
+    document.getElementById('lbl-learning-support-btn').innerText = dict.learningSupportBtn;
+    document.getElementById('lbl-mouse-guide').innerHTML = dict.mouseGuide;
+    document.getElementById('cam-earth-btn').innerText = dict.camEarth;
+    document.getElementById('cam-sun-btn').innerText = dict.camSun;
+    document.getElementById('lbl-solar-terms-toggle').innerText = dict.solarTermsToggle;
+    document.getElementById('lbl-exaggerate-toggle').innerText = dict.exaggerateToggle;
+    document.getElementById('lbl-season-toggle').innerText = dict.seasonToggle;
+    document.getElementById('lbl-shadow-toggle').innerText = dict.shadowToggle;
+    document.getElementById('lbl-guides-toggle').innerText = dict.guidesToggle;
+    document.getElementById('lbl-syzygy-toggle').innerText = dict.syzygyToggle;
+    document.getElementById('lbl-day-toggle').innerText = dict.dayToggle;
+    document.getElementById('lbl-tilt-toggle').innerText = dict.tiltToggle;
+    document.getElementById('leg-syzygy').innerHTML = dict.legSyzygy;
+    document.getElementById('leg-sun-moon').innerHTML = dict.legSunMoon;
+    document.getElementById('leg-umbra').innerHTML = dict.legUmbra;
+    document.getElementById('leg-terminator').innerHTML = dict.legTerminator;
+    document.getElementById('leg-view').innerHTML = dict.legView;
+    document.getElementById('ui-hint').innerHTML = dict.hint;
+    document.getElementById('pip-title').innerText = dict.pipTitle;
+    document.getElementById('lbl-monitor-title').innerText = dict.monitorTitle;
+
+    document.getElementById('tut-modal-title').innerText = dict.tutModalTitle;
+    document.getElementById('tut-intro-title').innerText = dict.tutIntroTitle;
+    document.getElementById('tut-intro-body').innerHTML = dict.tutIntroBody;
+    document.getElementById('tut-ped-title').innerText = dict.tutPedTitle;
+    document.getElementById('tut-ped-body').innerHTML = dict.tutPedBody;
+    document.getElementById('tut-missions-header').innerText = dict.tutMissionsHeader;
+    document.getElementById('tut-c1-title').innerText = dict.tutC1Title;
+    document.getElementById('tut-c1-desc').innerHTML = dict.tutC1Desc;
+    document.getElementById('tut-btn-phases').innerText = dict.tutBtnPhases;
+    document.getElementById('tut-c2-title').innerText = dict.tutC2Title;
+    document.getElementById('tut-c2-desc').innerHTML = dict.tutC2Desc;
+    document.getElementById('tut-btn-eclipse').innerText = dict.tutBtnEclipse;
+    document.getElementById('tut-c3-title').innerText = dict.tutC3Title;
+    document.getElementById('tut-c3-desc').innerHTML = dict.tutC3Desc;
+    document.getElementById('tut-btn-seasons').innerText = dict.tutBtnSeasons;
+    document.getElementById('tut-c4-title').innerText = dict.tutC4Title;
+    document.getElementById('tut-c4-desc').innerHTML = dict.tutC4Desc;
+    document.getElementById('tut-btn-solarsys').innerText = dict.tutBtnSolarsys;
+    document.getElementById('tut-glossary-title').innerText = dict.tutGlossaryTitle;
+    document.getElementById('tut-glossary-grid').innerHTML = dict.tutGlossaryGrid;
+    document.getElementById('tut-footer-tip').innerText = dict.tutFooterTip;
+    document.getElementById('tut-got-it-btn').innerText = dict.tutGotIt;
+
+    buildLunarDayMarkers();
+    buildCalendarMonthMarkers();
+    buildSolarTermsMarkers();
+    updateAstronomy();
+}
+
+document.getElementById('lang-btn').addEventListener('click', () => {
+    currentLang = currentLang === 'en' ? 'zh' : 'en';
+    applyLanguage();
+});
+
+const playBtn = document.getElementById('play-btn');
+playBtn.addEventListener('click', () => {
+    isPlaying = !isPlaying;
+    const dict = i18n[currentLang];
+    playBtn.innerText = isPlaying ? dict.pause : dict.play;
+    playBtn.classList.toggle('paused', !isPlaying);
+});
+
+function pauseForInspection() {
+    if (isPlaying) {
+        isPlaying = false;
+        const dict = i18n[currentLang];
+        playBtn.innerText = dict.play;
+        playBtn.classList.add('paused');
+    }
+}
+
+document.querySelectorAll('.speed-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        simSpeed = parseFloat(e.target.dataset.speed);
+    });
+});
+
+const moonSlider = document.getElementById('moon-slider');
+moonSlider.addEventListener('input', (e) => {
+    const targetDeg = parseFloat(e.target.value);
+    const currentWholeMonths = Math.floor(totalDays / SYNODIC_MONTH);
+    totalDays = (currentWholeMonths + (targetDeg / 360)) * SYNODIC_MONTH;
+    updateAstronomy();
+});
+
+const earthSlider = document.getElementById('earth-slider');
+earthSlider.addEventListener('input', (e) => {
+    const targetDayInYear = parseFloat(e.target.value);
+    const currentWholeYears = Math.floor(totalDays / SIDEREAL_YEAR);
+    totalDays = currentWholeYears * SIDEREAL_YEAR + targetDayInYear;
+    updateAstronomy();
+});
+
+function enableEclipseComparisonScaffolds() {
+    setCheckboxAndTrigger('tilt-toggle', false);
+    setCheckboxAndTrigger('shadow-toggle', true);
+}
+
+document.getElementById('jump-jan-btn').addEventListener('click', () => {
+    pauseForInspection();
+    enableEclipseComparisonScaffolds();
+    totalDays = 0.5 * SYNODIC_MONTH;
+    updateAstronomy();
+});
+
+document.getElementById('jump-mar-btn').addEventListener('click', () => {
+    pauseForInspection();
+    enableEclipseComparisonScaffolds();
+    totalDays = 3.5 * SYNODIC_MONTH;
+    updateAstronomy();
+});
+
+document.getElementById('jump-jul-btn').addEventListener('click', () => {
+    pauseForInspection();
+    enableEclipseComparisonScaffolds();
+    totalDays = 6.5 * SYNODIC_MONTH;
+    updateAstronomy();
+});
+
+document.getElementById('jump-sep-btn').addEventListener('click', () => {
+    pauseForInspection();
+    enableEclipseComparisonScaffolds();
+    totalDays = 9.5 * SYNODIC_MONTH;
+    updateAstronomy();
+});
+
+document.getElementById('jump-sum-sol-btn').addEventListener('click', () => {
+    openMetricsDrawer();
+    setCheckboxAndTrigger('season-lab-toggle', true);
+    camEarthBtn.click();
+    document.getElementById('spd-day').click();
+    const summerSolsticeRad = solarLonToOrbitAngleRad(90);
+    totalDays = (summerSolsticeRad / (Math.PI * 2)) * SIDEREAL_YEAR;
+    updateAstronomy();
+});
+
+document.getElementById('jump-win-sol-btn').addEventListener('click', () => {
+    openMetricsDrawer();
+    setCheckboxAndTrigger('season-lab-toggle', true);
+    camEarthBtn.click();
+    document.getElementById('spd-day').click();
+    const winterSolsticeRad = solarLonToOrbitAngleRad(270);
+    totalDays = (winterSolsticeRad / (Math.PI * 2)) * SIDEREAL_YEAR;
+    updateAstronomy();
+});
+
+const camEarthBtn = document.getElementById('cam-earth-btn');
+const camSunBtn = document.getElementById('cam-sun-btn');
+
+camEarthBtn.addEventListener('click', () => {
+    cameraFocus = 'earth';
+    camEarthBtn.classList.add('active');
+    camSunBtn.classList.remove('active');
+    mainCamera.position.copy(earthSystem.position).add(new THREE.Vector3(0, 32, 48));
+    controls.target.copy(earthSystem.position);
+});
+
+camSunBtn.addEventListener('click', () => {
+    cameraFocus = 'sun';
+    camSunBtn.classList.add('active');
+    camEarthBtn.classList.remove('active');
+    mainCamera.position.set(0, 150, 200);
+    controls.target.set(0, 0, 0);
+});
+
+// Hidden Reset Button 1 (on Earth): Resets camera onto the Horizontal Plane focused on Earth & Moon (Y = 0)
+function resetEarthCameraToHorizontalPlane() {
+    cameraFocus = 'earth';
+    camEarthBtn.classList.add('active');
+    camSunBtn.classList.remove('active');
+    mainCamera.up.set(0, 1, 0);
+    mainCamera.position.copy(earthSystem.position).add(new THREE.Vector3(0, 0, 48));
+    controls.target.copy(earthSystem.position);
+    controls.update();
+}
+
+// Hidden Reset Button 2 (on Sun): Resets camera onto the Horizontal Plane focused on the Solar System (Y = 0)
+function resetSunCameraToHorizontalPlane() {
+    cameraFocus = 'sun';
+    camSunBtn.classList.add('active');
+    camEarthBtn.classList.remove('active');
+    mainCamera.up.set(0, 1, 0);
+    mainCamera.position.set(0, 0, 250);
+    controls.target.set(0, 0, 0);
+    controls.update();
+}
+
+document.getElementById('solar-terms-toggle').addEventListener('change', (e) => {
+    solarTermsGroup.visible = e.target.checked;
+});
+
+document.getElementById('exaggerate-ellipse-toggle').addEventListener('change', (e) => {
+    isEllipseExaggerated = e.target.checked;
+    earthOrbitLineMat.color.setHex(isEllipseExaggerated ? 0xf59e0b : 0x3b82f6);
+    updateEarthOrbitGeometry();
+    updateMoonOrbitGeometry();
+    buildLunarDayMarkers();
+    buildCalendarMonthMarkers();
+    buildSolarTermsMarkers();
+    updateAstronomy();
+});
+
+document.getElementById('season-lab-toggle').addEventListener('change', (e) => {
+    seasonLabGroup.visible = e.target.checked;
+    latitudeCirclesGroup.visible = e.target.checked;
+    observerCityMarker.visible = e.target.checked;
+    syncEarthTerminatorVisibility();
+});
+
+document.getElementById('shadow-toggle').addEventListener('change', (e) => {
+    earthUmbraGroup.visible = e.target.checked;
+    moonUmbraGroup.visible = e.target.checked;
+    syncEarthTerminatorVisibility();
+});
+
+document.getElementById('guides-toggle').addEventListener('change', (e) => {
+    teachingGuidesGroup.visible = e.target.checked;
+});
+
+document.getElementById('syzygy-toggle').addEventListener('change', (e) => {
+    syzygyLinesGroup.visible = e.target.checked;
+});
+
+document.getElementById('day-labels-toggle').addEventListener('change', (e) => {
+    synodicMarkersGroup.visible = e.target.checked;
+    calendarMonthsGroup.visible = e.target.checked;
+});
+
+document.getElementById('tilt-toggle').addEventListener('change', (e) => {
+    isOrbitTilted = !e.target.checked;
+    updateAstronomy();
+});
+
+// Direct 3D Raycast: Dragging the Moon & Clicking the Earth or Sun to Reset View to Horizontal Plane
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+let isDraggingMoon = false;
+let pointerDownPos = { x: 0, y: 0 };
+let pointerHitEarthOnDown = false;
+let pointerHitSunOnDown = false;
+
+window.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0 || e.target !== renderer.domElement) return;
+    pointerDownPos.x = e.clientX;
+    pointerDownPos.y = e.clientY;
+    pointerHitEarthOnDown = false;
+    pointerHitSunOnDown = false;
+
+    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, mainCamera);
+
+    const moonHits = raycaster.intersectObject(moonMesh);
+    if (moonHits.length > 0) {
+        isDraggingMoon = true;
+        controls.enabled = false;
+        document.body.style.cursor = 'grabbing';
+        return;
+    }
+
+    const earthHits = raycaster.intersectObjects([earthMesh, earthCloudMesh]);
+    if (earthHits.length > 0) {
+        pointerHitEarthOnDown = true;
+        return;
+    }
+
+    const sunHits = raycaster.intersectObjects([sunMesh, sunGlowInner, sunGlowOuter]);
+    if (sunHits.length > 0) {
+        pointerHitSunOnDown = true;
+    }
+});
+
+window.addEventListener('pointermove', (e) => {
+    if (isDraggingMoon) {
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, mainCamera);
+
+        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        const intersectPt = new THREE.Vector3();
+        if (raycaster.ray.intersectPlane(plane, intersectPt)) {
+            const rel = intersectPt.sub(earthSystem.position);
+            let dragAngle = Math.atan2(-rel.z, rel.x);
+            if (dragAngle < 0) dragAngle += Math.PI * 2;
+
+            const earthOrbitAngle = (totalDays / SIDEREAL_YEAR) * Math.PI * 2;
+            let phaseAngle = (dragAngle - earthOrbitAngle - Math.PI) % (Math.PI * 2);
+            if (phaseAngle < 0) phaseAngle += Math.PI * 2;
+
+            const currentWholeMonths = Math.floor(totalDays / SYNODIC_MONTH);
+            totalDays = (currentWholeMonths + (phaseAngle / (Math.PI * 2))) * SYNODIC_MONTH;
+            updateAstronomy();
+        }
+        return;
+    }
+
+    // Subtle pointer cursor feedback when hovering over Moon, Earth, or Sun
+    if (e.target === renderer.domElement && e.buttons === 0) {
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, mainCamera);
+        const hoverHits = raycaster.intersectObjects([moonMesh, earthMesh, earthCloudMesh, sunMesh, sunGlowInner]);
+        document.body.style.cursor = hoverHits.length > 0 ? 'pointer' : 'default';
+    }
+});
+
+window.addEventListener('pointerup', (e) => {
+    if (isDraggingMoon) {
+        isDraggingMoon = false;
+        controls.enabled = true;
+        document.body.style.cursor = 'default';
+        return;
+    }
+
+    const moveDist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
+
+    // Clicking Earth -> Reset to Horizontal Plane focused on Earth & Moon
+    if (pointerHitEarthOnDown) {
+        if (moveDist < 6) {
+            resetEarthCameraToHorizontalPlane();
+        }
+        pointerHitEarthOnDown = false;
+    }
+
+    // Clicking Sun -> Reset to Horizontal Plane focused on Solar System
+    if (pointerHitSunOnDown) {
+        if (moveDist < 6) {
+            resetSunCameraToHorizontalPlane();
+        }
+        pointerHitSunOnDown = false;
+    }
+});
+
+window.addEventListener('resize', () => {
+    mainCamera.aspect = window.innerWidth / window.innerHeight;
+    mainCamera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ==========================================
+// 9. MAIN ANIMATION & HIGH-CONTRAST PIP RENDER LOOP
+// ==========================================
+const clock = new THREE.Clock();
+
+function renderTelescopePIP() {
+    const prevEarthUmbra = earthUmbraGroup.visible;
+    const prevEarthTerm = earthTerminatorRing.visible;
+    const prevMoonUmbra = moonUmbraGroup.visible;
+    const prevGuides = teachingGuidesGroup.visible;
+    const prevSyzygy = syzygyLinesGroup.visible;
+    const prevMarkers = synodicMarkersGroup.visible;
+    const prevMoonOrbit = moonOrbitLine.visible;
+    const prevEarthOrbit = earthOrbitLine.visible;
+    const prevCalMonths = calendarMonthsGroup.visible;
+    const prevSolarTerms = solarTermsGroup.visible;
+    const prevSeasonLab = seasonLabGroup.visible;
+    const prevStars = starPoints.visible;
+
+    const prevAmbientInt = ambientLight.intensity;
+    const prevSunInt = sunLight.intensity;
+    const prevBumpScale = moonMat.bumpScale;
+
+    earthUmbraGroup.visible = false;
+    earthTerminatorRing.visible = false;
+    moonUmbraGroup.visible = false;
+    teachingGuidesGroup.visible = false;
+    syzygyLinesGroup.visible = false;
+    synodicMarkersGroup.visible = false;
+    moonOrbitLine.visible = false;
+    earthOrbitLine.visible = false;
+    calendarMonthsGroup.visible = false;
+    solarTermsGroup.visible = false;
+    seasonLabGroup.visible = false;
+    starPoints.visible = false;
+
+    ambientLight.intensity = 0.008;
+    if (!currentIsLunarEclipse) {
+        sunLight.intensity = 3.65;
+    }
+    moonMat.bumpScale = 0.05;
+
+    pipRenderer.render(scene, pipCamera);
+
+    ambientLight.intensity = prevAmbientInt;
+    sunLight.intensity = prevSunInt;
+    moonMat.bumpScale = prevBumpScale;
+
+    earthUmbraGroup.visible = prevEarthUmbra;
+    earthTerminatorRing.visible = prevEarthTerm;
+    moonUmbraGroup.visible = prevMoonUmbra;
+    teachingGuidesGroup.visible = prevGuides;
+    syzygyLinesGroup.visible = prevSyzygy;
+    synodicMarkersGroup.visible = prevMarkers;
+    moonOrbitLine.visible = prevMoonOrbit;
+    earthOrbitLine.visible = prevEarthOrbit;
+    calendarMonthsGroup.visible = prevCalMonths;
+    solarTermsGroup.visible = prevSolarTerms;
+    seasonLabGroup.visible = prevSeasonLab;
+    starPoints.visible = prevStars;
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+
+    const delta = clock.getDelta();
+    if (isPlaying && !isDraggingMoon) {
+        totalDays += delta * simSpeed;
+    }
+
+    updateAstronomy();
+    controls.update();
+
+    renderer.render(scene, mainCamera);
+    renderTelescopePIP();
+}
+
+animate();
+</script>
+</body>
+</html>
