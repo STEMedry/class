@@ -1,0 +1,3382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Force, Motion & d–t Graphs - Interactive Physics Lab</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #f1f5f9;
+            color: #0f172a;
+            font-family: 'Segoe UI', 'Microsoft JhengHei', system-ui, -apple-system, sans-serif;
+            user-select: none;
+        }
+        canvas {
+            border-radius: 0.75rem;
+            background-color: #ffffff;
+        }
+        .control-btn {
+            transition: all 0.15s ease;
+        }
+        .control-btn:active:not(:disabled) {
+            transform: scale(0.97);
+        }
+        input[type=range] {
+            accent-color: #2563eb;
+        }
+        .zone-card {
+            transition: all 0.2s ease;
+        }
+        .zone-card-active {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.1);
+        }
+        .modal-backdrop {
+            background-color: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(4px);
+        }
+        .arial-black-bold {
+            font-family: 'Arial Black', Impact, 'Segoe UI Black', sans-serif;
+            font-weight: 900;
+        }
+        .arial-black-regular {
+            font-family: 'Arial Black', Impact, 'Segoe UI Black', sans-serif;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-3 md:p-5 flex flex-col gap-4 max-w-[1560px] mx-auto">
+
+    <!-- 1. TOP HEADER BAR -->
+    <header class="bg-white border border-slate-300 rounded-2xl px-5 py-3.5 shadow-sm flex flex-col justify-between min-h-[120px]">
+        <!-- Top Row: Title & Utility Buttons -->
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex flex-wrap items-center gap-3">
+                <span id="ui-badge" class="bg-blue-600 text-white text-sm font-extrabold uppercase tracking-wider px-3 py-1 rounded-lg shrink-0">
+                    SI Physics Lab
+                </span>
+                <h1 id="ui-title" class="text-xl md:text-2xl font-extrabold tracking-tight text-slate-900">
+                    Force vs. Motion &amp; Distance–Time (<i>d</i>–<i>t</i>) Graphs
+                </h1>
+            </div>
+
+            <div class="flex items-center gap-2.5 shrink-0">
+                <button id="btn-tutorial" onclick="openTutorialModal()" class="control-btn bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2 rounded-xl text-sm md:text-base shadow-sm flex items-center gap-2">
+                    <span>📘</span> <span id="tutorial-btn-label">Tutorial &amp; Guide</span>
+                </button>
+                <button id="btn-lang" onclick="toggleLanguage()" class="control-btn bg-slate-800 hover:bg-slate-700 text-white font-bold px-4 py-2 rounded-xl text-sm md:text-base shadow-sm flex items-center justify-center gap-2 min-w-[130px]">
+                    <span>🌐</span> <span id="lang-label">繁體中文</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Bottom Row: Misconception Subtitle & Experiment Switcher Tabs (A, B, C, D) -->
+        <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-3 pt-2 mt-2 border-t border-slate-100">
+            <p id="ui-subtitle" class="text-slate-700 text-sm md:text-base leading-snug">
+                Clarifying Misconceptions: <span class="text-amber-700 font-bold">"Motion requires a continued forward force"</span> &amp; <span class="text-rose-700 font-bold">"Higher speed means a larger force"</span>
+            </p>
+
+            <div class="flex flex-wrap gap-1.5 bg-slate-100 p-1.5 rounded-xl border border-slate-300 shrink-0 self-start xl:self-auto">
+                <button id="tab-expA" onclick="switchExperiment('A')" class="px-3 py-1.5 rounded-lg text-sm font-bold transition-all bg-blue-600 text-white shadow-sm">
+                    Exp A: Horizontal Push
+                </button>
+                <button id="tab-expB" onclick="switchExperiment('B')" class="px-3 py-1.5 rounded-lg text-sm font-bold transition-all text-slate-700 hover:text-slate-900 hover:bg-slate-200/70">
+                    Exp B: Slope Only
+                </button>
+                <button id="tab-expC" onclick="switchExperiment('C')" class="px-3 py-1.5 rounded-lg text-sm font-bold transition-all text-slate-700 hover:text-slate-900 hover:bg-slate-200/70">
+                    Exp C: Slope &rarr; Flat
+                </button>
+                <button id="tab-expD" onclick="switchExperiment('D')" class="px-3 py-1.5 rounded-lg text-sm font-bold transition-all text-slate-700 hover:text-slate-900 hover:bg-slate-200/70">
+                    Exp D: Flat &rarr; Slope &rarr; Flat (A–B–A)
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 2. MULTI-PAGE POP-UP TUTORIAL MODAL (6 PAGES: TEACHER + STUDENT PERSPECTIVES) -->
+    <div id="tutorial-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop" onclick="handleBackdropClick(event)">
+        <div class="bg-white border-2 border-indigo-200 rounded-2xl shadow-2xl max-w-4xl w-full overflow-hidden flex flex-col max-h-[90vh]" onclick="event.stopPropagation()">
+            <!-- Modal Header -->
+            <div class="bg-indigo-950 text-white px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl">🎓</span>
+                    <div>
+                        <h2 id="tut-modal-title" class="text-lg md:text-xl font-extrabold tracking-tight">
+                            Teacher's Pedagogical Guide &amp; Student Self-Learning Tutorial
+                        </h2>
+                        <p id="tut-modal-subtitle" class="text-xs md:text-sm text-indigo-200">
+                            Dual-perspective guide for classroom facilitation and independent inquiry
+                        </p>
+                    </div>
+                </div>
+                <button onclick="closeTutorialModal()" class="text-indigo-200 hover:text-white bg-indigo-900 hover:bg-indigo-800 px-3 py-1.5 rounded-xl font-bold text-sm transition">
+                    ✕ <span id="tut-close-text">Close</span>
+                </button>
+            </div>
+
+            <!-- Modal Page Tabs -->
+            <div id="tut-page-tabs" class="bg-slate-100 px-6 py-2.5 border-b border-slate-200 flex flex-wrap gap-1.5">
+                <!-- Populated dynamically -->
+            </div>
+
+            <!-- Modal Body (Dynamic Page Content) -->
+            <div id="tut-page-content" class="p-6 overflow-y-auto flex-1 text-slate-800 space-y-4 min-h-[340px]">
+                <!-- Populated dynamically -->
+            </div>
+
+            <!-- Modal Footer Navigation -->
+            <div class="bg-slate-50 px-6 py-3.5 border-t border-slate-200 flex items-center justify-between">
+                <button id="tut-prev-btn" onclick="changeTutorialPage(-1)" class="control-btn bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 font-bold px-4 py-2 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed">
+                    &larr; Previous
+                </button>
+                <div id="tut-dots" class="flex items-center gap-2"></div>
+                <button id="tut-next-btn" onclick="changeTutorialPage(1)" class="control-btn bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-5 py-2 rounded-xl text-sm shadow-sm">
+                    Next &rarr;
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. MAIN CONTROL BAR -->
+    <section class="bg-white border border-slate-300 rounded-2xl px-4 py-3 flex flex-wrap items-center justify-between gap-3 shadow-sm">
+        <!-- Left: Action Buttons -->
+        <div class="flex flex-wrap items-center gap-2.5">
+            <button id="btn-launch" onclick="startRun()" class="control-btn bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-5 py-2.5 rounded-xl text-base shadow-sm flex items-center gap-2">
+                <span>&#9654;</span> <span id="launch-label">Push Car</span>
+            </button>
+            <button id="btn-pause" onclick="togglePause()" disabled class="control-btn bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-white font-bold px-4 py-2.5 rounded-xl text-base">
+                Pause
+            </button>
+            <button id="btn-reset-car" onclick="resetCarOnly()" class="control-btn bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold px-4 py-2.5 rounded-xl text-base">
+                Reset Car
+            </button>
+            <button id="btn-clear-all" onclick="clearAllRuns()" class="control-btn bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 font-bold px-4 py-2.5 rounded-xl text-base">
+                Clear All Graphs
+            </button>
+        </div>
+
+        <!-- Middle: Parameter Controls (Push Strength AND/OR Unrestricted Ramp Angle 10°–45°) -->
+        <div class="flex flex-wrap items-center gap-4 bg-slate-50 px-4 py-2 rounded-xl border border-slate-200">
+            <!-- Exp A & Exp D Push Strength -->
+            <div id="ctrl-push" class="flex flex-wrap items-center gap-2">
+                <label id="lbl-initial-push" class="text-sm font-bold text-slate-800 uppercase tracking-wider">Initial Push:</label>
+                <div class="flex flex-wrap gap-1.5">
+                    <button onclick="setPushPreset('gentle')" id="push-gentle" class="px-2.5 py-1.5 rounded-lg text-xs md:text-sm font-bold bg-white text-slate-700 border border-slate-300">Gentle (1.6 m/s)</button>
+                    <button onclick="setPushPreset('medium')" id="push-medium" class="px-2.5 py-1.5 rounded-lg text-xs md:text-sm font-bold bg-blue-600 text-white border border-blue-600">Medium (2.4 m/s)</button>
+                    <button onclick="setPushPreset('strong')" id="push-strong" class="px-2.5 py-1.5 rounded-lg text-xs md:text-sm font-bold bg-white text-slate-700 border border-slate-300">Strong (3.2 m/s)</button>
+                </div>
+            </div>
+
+            <!-- Exp B, C & D Slope Angle (10 deg to 45 deg) -->
+            <div id="ctrl-angle" class="hidden flex flex-wrap items-center gap-2.5">
+                <label id="lbl-ramp-angle" class="text-sm font-bold text-slate-800 uppercase tracking-wider">Ramp Angle (&theta;):</label>
+                <input id="angle-slider" type="range" min="10" max="45" step="5" value="15" oninput="updateAngle(this.value)" class="w-36 cursor-pointer">
+                <span id="angle-display" class="text-base font-extrabold text-blue-700 min-w-[2.6rem]">15&deg;</span>
+            </div>
+        </div>
+
+        <!-- Right: Force Vector Toggle -->
+        <div class="flex items-center gap-4 text-sm md:text-base bg-slate-50 px-4 py-2 rounded-xl border border-slate-200">
+            <label class="flex items-center gap-2 cursor-pointer text-slate-900 font-bold">
+                <input type="checkbox" id="chk-forces" checked onchange="drawScene()" class="rounded accent-rose-600 w-4 h-4">
+                <span id="lbl-chk-forces">Show Force Vector (<i>F</i>) on Car</span>
+            </label>
+        </div>
+    </section>
+
+    <!-- 4. MAIN WORKSPACE: Left (6 Cols) = Square Track Canvas & Zone Cards | Right (6 Cols) = Interactive d-t Graph + EdUHK Attribution -->
+    <main class="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 items-start">
+
+        <!-- LEFT COLUMN (6 Cols): Live Status Banner + Square Track Canvas + Full-Display Zone Cards -->
+        <div class="lg:col-span-6 flex flex-col gap-3">
+
+            <!-- Dedicated Live Pedagogical Status & Telemetry Card -->
+            <div class="bg-white border border-slate-300 rounded-2xl p-4 shadow-sm flex flex-col gap-2">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <span id="hud-phase-badge" class="bg-blue-600 text-white text-xs md:text-sm font-extrabold uppercase tracking-wider px-3 py-1 rounded-md">
+                        EXP A: PREDICT &amp; OBSERVE
+                    </span>
+                    <div class="flex flex-wrap items-center gap-3 font-mono text-sm md:text-base font-extrabold bg-slate-100 px-3.5 py-1 rounded-lg border border-slate-300 text-slate-900">
+                        <span id="hud-t">t = 0.00 s</span>
+                        <span class="text-slate-400">|</span>
+                        <span id="hud-d">d = 0.00 m</span>
+                        <span class="text-slate-400">|</span>
+                        <span id="hud-v" class="text-blue-700">v = 0.00 m/s</span>
+                    </div>
+                </div>
+                <h2 id="hud-headline" class="text-base md:text-lg font-extrabold text-slate-900 leading-snug">
+                    Does a moving car need a continued forward force to keep moving?
+                </h2>
+                <p id="hud-subtext" class="text-slate-700 text-sm md:text-base leading-normal">
+                    Press "Push Car" to observe how the car moves across the Hand Push Zone, Frictionless Green Zone, and Frictional Red Zone.
+                </p>
+            </div>
+
+            <!-- Square Physical Track Canvas (640 x 640, Centered Setup for Expt A, B, C, D up to 45 deg) -->
+            <div class="relative w-full bg-white border border-slate-300 rounded-2xl p-2 shadow-sm flex justify-center">
+                <canvas id="simCanvas" width="640" height="640" class="w-full max-w-[560px] aspect-square h-auto block"></canvas>
+            </div>
+
+            <!-- Full-Display Zone Description Cards -->
+            <div id="zone-cards-container" class="grid grid-cols-1 md:grid-cols-3 gap-3 items-stretch">
+                <!-- Populated dynamically per Experiment A, B, C, or D -->
+            </div>
+
+            <!-- Legend Bar Under Zone Cards -->
+            <div class="bg-white border border-slate-300 rounded-xl px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-sm md:text-base text-slate-800 shadow-sm">
+                <div class="flex flex-wrap items-center gap-5">
+                    <span class="flex items-center gap-2">
+                        <span class="inline-block w-3.5 h-3.5 rounded-full bg-emerald-500 border border-slate-800"></span>
+                        <span id="leg-com"><strong>Green Dot:</strong> Center of Mass</span>
+                    </span>
+                    <span class="flex items-center gap-2">
+                        <span class="inline-block w-6 h-1.5 bg-rose-600 rounded"></span>
+                        <span id="leg-force"><strong class="text-rose-700">Solid Arrow:</strong> Force (<i>F</i> or Frictional Force)</span>
+                    </span>
+                </div>
+                <div id="leg-drag-tip" class="text-indigo-900 font-bold bg-indigo-50 px-3.5 py-1.5 rounded-lg border border-indigo-200 text-sm w-full text-center">
+                    💡 Once the car stops, drag the car directly along the track to inspect any position!
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN (6 Cols): Interactive d-t Graph + Multi-Point Tangent Box + EdUHK Attribution Box -->
+        <div class="lg:col-span-6 flex flex-col gap-3">
+            <!-- Graph Controls Card -->
+            <div class="bg-white border border-slate-300 rounded-2xl p-4 flex flex-col gap-2.5 shadow-sm">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <span id="ui-graph-title" class="text-base md:text-lg font-extrabold uppercase tracking-wider text-blue-700">Interactive <i>d</i>–<i>t</i> Graph</span>
+                        <span id="ui-graph-subtitle" class="text-xs md:text-sm bg-slate-100 text-slate-800 px-2.5 py-1 rounded-md border border-slate-300 font-bold">
+                            Slope = Instantaneous Speed <i>v</i>
+                        </span>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button id="btn-add-tangent" onclick="addTangentPoint()" class="control-btn bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-3 py-1.5 rounded-lg transition shadow-sm">
+                            + Add Tangent
+                        </button>
+                        <button id="btn-clear-tangent" onclick="clearTangents()" class="control-btn bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-sm font-bold px-3 py-1.5 rounded-lg transition">
+                            Clear Tangents
+                        </button>
+                        <button id="btn-export-jpeg" onclick="exportGraphJPEG()" class="control-btn bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold px-3 py-1.5 rounded-lg transition shadow-sm flex items-center gap-1.5">
+                            <span>📷</span> <span id="lbl-export-jpeg">Export JPEG</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Color Segment Legend for Curve -->
+                <div id="curve-segment-legend" class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs md:text-sm font-bold pt-1 border-t border-slate-100"></div>
+
+                <!-- Run History Pills -->
+                <div id="run-pills" class="flex flex-wrap items-center gap-2 min-h-[32px]"></div>
+
+                <!-- Post-Run Time Scrubber Slider (Synced with Car Dragging) -->
+                <div id="scrub-bar" class="hidden items-center gap-3 bg-indigo-50 border border-indigo-200 rounded-xl px-3.5 py-2 text-sm">
+                    <span id="lbl-scrub" class="font-bold text-indigo-950 whitespace-nowrap">🔍 Drag Car / Scrub:</span>
+                    <input id="scrub-slider" type="range" min="0" max="100" step="0.01" value="0" oninput="scrubToTime(parseFloat(this.value))" class="flex-1 cursor-pointer">
+                    <span id="scrub-readout" class="font-mono font-bold text-indigo-900 min-w-[145px] text-right">t=0.00s, d=0.00m</span>
+                </div>
+            </div>
+
+            <!-- Graph Canvas -->
+            <div class="relative w-full bg-white border border-slate-300 rounded-2xl p-2 shadow-sm">
+                <canvas id="graphCanvas" width="680" height="520" class="w-full h-auto block cursor-crosshair"></canvas>
+            </div>
+
+            <!-- Multi-Point Tangent Readout Table -->
+            <div class="bg-white border border-slate-300 rounded-2xl p-4 text-sm shadow-sm">
+                <div class="flex flex-wrap items-center justify-between gap-1 mb-2.5">
+                    <span id="ui-tangent-header" class="font-extrabold text-slate-900 uppercase tracking-wider text-sm md:text-base">Multi-Point Tangent Slope Comparison</span>
+                    <span id="ui-tangent-hint" class="text-slate-600 text-xs md:text-sm">Drag <strong class="text-slate-900">P1, P2, P3</strong> on graph or drag the <strong class="text-indigo-700">Car</strong>!</span>
+                </div>
+                <div id="tangent-readouts" class="grid grid-cols-1 sm:grid-cols-3 gap-2.5"></div>
+            </div>
+
+            <!-- SECOND LINE UNDER MULTI-POINT TANGENT SLOPE COMPARISON BOX: EdUHK Logo, Name & Affiliation -->
+            <div class="w-full flex justify-end">
+                <div class="bg-white border border-slate-300 rounded-2xl px-4 py-2.5 shadow-sm flex items-center gap-3">
+                    <img src="EdUHK.png" alt="EdUHK Logo" class="h-11 w-auto object-contain shrink-0" />
+                    <div class="flex flex-col justify-between h-11 leading-tight">
+                        <a href="https://repository.eduhk.hk/en/persons/chung-yiu-richard楊仲堯-yeung/"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           class="arial-black-bold text-sm md:text-base text-slate-900 hover:text-blue-700 hover:underline transition-colors">
+                            Richard C. Y. Yeung, EdUHK
+                        </a>
+                        <div class="arial-black-regular text-[11px] md:text-xs text-slate-700">
+                            Academy for Educational Development and Innovation
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // ============================================================================
+        // BILINGUAL DICTIONARY & 6-PAGE DUAL-PERSPECTIVE TUTORIAL (INCL. EXPT D: A-B-A)
+        // ============================================================================
+        let lang = 'en';
+        let currentTutorialPage = 0;
+
+        const TUTORIAL_PAGES = {
+            en: [
+                {
+                    tab: '1. Objectives & Misconceptions',
+                    title: '🎯 Core Misconceptions: Teacher & Self-Learner Perspectives',
+                    html: `
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-amber-50 border-2 border-amber-200 rounded-xl p-4 space-y-2.5">
+                                <div class="flex items-center gap-2 text-amber-900 font-extrabold text-base">
+                                    <span>👩‍🏫</span> <span>Teacher's Facilitation Perspective</span>
+                                </div>
+                                <p class="text-slate-800 text-sm leading-relaxed">
+                                    <strong>Diagnostic Focus:</strong> Students frequently hold two Aristotelian misconceptions:
+                                </p>
+                                <ol class="list-decimal list-inside text-xs md:text-sm text-slate-700 space-y-1.5">
+                                    <li><em>"Motion requires a continued forward force"</em> (ignoring inertia when <i>F</i> = 0 N).</li>
+                                    <li><em>"Higher speed means a larger forward force is acting"</em> (confusing speed <i>v</i> with acceleration/force <i>F</i>).</li>
+                                </ol>
+                                <p class="text-xs md:text-sm text-amber-950 bg-amber-100/80 p-2.5 rounded-lg">
+                                    <strong>Classroom Strategy:</strong> Progress from <strong>Exp A, B, C</strong> to the capstone <strong>Exp D (A &rarr; B &rarr; A)</strong> using a <em>Predict–Observe–Explain (POE)</em> cycle.
+                                </p>
+                            </div>
+
+                            <div class="bg-indigo-50 border-2 border-indigo-200 rounded-xl p-4 space-y-2.5">
+                                <div class="flex items-center gap-2 text-indigo-900 font-extrabold text-base">
+                                    <span>🧑‍🎓</span> <span>Student's Self-Learning Guide</span>
+                                </div>
+                                <p class="text-slate-800 text-sm leading-relaxed">
+                                    <strong>What You Will Master:</strong>
+                                </p>
+                                <ul class="list-disc list-inside text-xs md:text-sm text-slate-700 space-y-1.5">
+                                    <li>When <strong><i>F</i> = 0 N</strong> on a moving car, it keeps coasting at <strong>constant speed</strong> (a straight line on the <i>d</i>–<i>t</i> graph).</li>
+                                    <li>In <strong>Exp D (A &rarr; B &rarr; A)</strong>, you will see <strong>two different constant-speed straight lines</strong> (before and after the ramp)—both with <strong><i>F</i> = 0 N</strong>!</li>
+                                </ul>
+                                <p class="text-xs md:text-sm text-indigo-950 bg-indigo-100/80 p-2.5 rounded-lg">
+                                    <strong>Self-Check Rule:</strong> Always connect the <em>Force arrow on the car</em> with the <em>bending or straightness of the d–t curve</em>!
+                                </p>
+                            </div>
+                        </div>
+                    `
+                },
+                {
+                    tab: '2. Pedagogical Tools',
+                    title: '🧠 How to Use the Interactive Tools (Teacher & Student Guide)',
+                    html: `
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-amber-50 border-2 border-amber-200 rounded-xl p-4 space-y-2">
+                                <div class="flex items-center gap-2 text-amber-900 font-extrabold text-base">
+                                    <span>👩‍🏫</span> <span>For Teachers: Visual Scaffolding</span>
+                                </div>
+                                <ul class="list-disc list-inside text-xs md:text-sm text-slate-800 space-y-2">
+                                    <li><strong>Color-Synchronized Zones:</strong> Track surface colors (<span class="text-amber-600 font-bold">Amber</span>, <span class="text-blue-600 font-bold">Blue</span>, <span class="text-green-600 font-bold">Green</span>, <span class="text-red-600 font-bold">Red</span>) map 1-to-1 onto the <i>d</i>–<i>t</i> curve segments.</li>
+                                    <li><strong>Post-Run Direct Car Dragging:</strong> After a run finishes, drag the car directly back and forth across zone boundaries during class discussion to freeze-frame the exact transition on the graph.</li>
+                                    <li><strong>Export JPEG for Worksheets:</strong> Click <strong>"📷 Export JPEG"</strong> to save multi-run graphs for quizzes or lab worksheets.</li>
+                                </ul>
+                            </div>
+
+                            <div class="bg-indigo-50 border-2 border-indigo-200 rounded-xl p-4 space-y-2">
+                                <div class="flex items-center gap-2 text-indigo-900 font-extrabold text-base">
+                                    <span>🧑‍🎓</span> <span>For Self-Learners: Interactive Controls</span>
+                                </div>
+                                <ul class="list-disc list-inside text-xs md:text-sm text-slate-800 space-y-2">
+                                    <li><strong>Drag the Car:</strong> Once the car stops, grab the car on the canvas and slide it along the track to inspect its time, distance, speed, and force at any point!</li>
+                                    <li><strong>Compare Tangent Slopes (P1, P2, P3):</strong> Drag the colored dots on the graph to measure the tangent slope (= instantaneous speed <i>v</i>) at different moments.</li>
+                                    <li><strong>Overlay Multiple Runs:</strong> Change the push strength or ramp angle (10&deg;–45&deg;) without clearing the graph to compare curves side by side.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    `
+                },
+                {
+                    tab: '3. Exp A Guide',
+                    title: '🔬 Experiment A: Horizontal Push & Coasting',
+                    html: `
+                        <div class="space-y-3 text-sm text-slate-800">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                                <div class="bg-amber-50 border border-amber-300 rounded-xl p-3">
+                                    <div class="font-extrabold text-amber-900">1. Hand Push (Amber)</div>
+                                    <p class="text-xs mt-1">Forward push force <i>F</i> &gt; 0 accelerates the car. Curve bends upward.</p>
+                                </div>
+                                <div class="bg-green-50 border border-green-300 rounded-xl p-3">
+                                    <div class="font-extrabold text-green-900">2. Frictionless (Green)</div>
+                                    <p class="text-xs mt-1">Hand releases car! <strong><i>F</i> = 0 N</strong>, yet car coasts at constant speed (straight line).</p>
+                                </div>
+                                <div class="bg-red-50 border border-red-300 rounded-xl p-3">
+                                    <div class="font-extrabold text-red-900">3. Frictional (Red)</div>
+                                    <p class="text-xs mt-1">Backward <strong>Frictional Force</strong> slows car to rest (curve bends downward to flat).</p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                                <div class="bg-amber-50/90 border border-amber-300 rounded-xl p-3">
+                                    <div class="font-extrabold text-amber-950 text-xs md:text-sm">👩‍🏫 Teacher Discussion Prompt:</div>
+                                    <p class="text-xs md:text-sm mt-1">Pause the car inside the <strong>Green Frictionless Zone</strong>. Ask: <em>"Is the hand still pushing the car? What is the force F now? Why doesn't the car slow down?"</em></p>
+                                </div>
+                                <div class="bg-indigo-50/90 border border-indigo-300 rounded-xl p-3">
+                                    <div class="font-extrabold text-indigo-950 text-xs md:text-sm">🧑‍🎓 Self-Learning Task:</div>
+                                    <p class="text-xs md:text-sm mt-1">Run <strong>Gentle</strong>, <strong>Medium</strong>, and <strong>Strong</strong> pushes one after another. Compare the green straight-line segments: how does a stronger initial push change the slope in the Green zone?</p>
+                                </div>
+                            </div>
+                        </div>
+                    `
+                },
+                {
+                    tab: '4. Exp B Guide',
+                    title: '📐 Experiment B: Inclined Slope Only (10° to 45°)',
+                    html: `
+                        <div class="space-y-3 text-sm text-slate-800">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div class="bg-amber-50 border border-amber-300 rounded-xl p-3.5 space-y-2">
+                                    <div class="font-extrabold text-amber-950">👩‍🏫 Teacher's Guide: Overcoming "Faster = Bigger Force"</div>
+                                    <p class="text-xs md:text-sm leading-relaxed">
+                                        Students often claim that because the car moves much faster near the bottom of the ramp, the down-slope force <i>F</i> must be growing.
+                                    </p>
+                                    <p class="text-xs md:text-sm bg-white p-2.5 rounded-lg border border-amber-200">
+                                        <strong>Key Demonstration:</strong> Point to the red Force arrow <i>F</i> on the car during descent—its length remains <strong>strictly constant</strong> while the tangent slopes at P1, P2, P3 grow steeper!
+                                    </p>
+                                </div>
+
+                                <div class="bg-indigo-50 border border-indigo-300 rounded-xl p-3.5 space-y-2">
+                                    <div class="font-extrabold text-indigo-950">🧑‍🎓 Student Self-Learning Inquiry (10°–45°):</div>
+                                    <ol class="list-decimal list-inside text-xs md:text-sm space-y-1.5">
+                                        <li>Release the car at <strong>15&deg;</strong> and observe P1 and P2 tangent slopes.</li>
+                                        <li>Without clearing the graph, tilt the ramp to <strong>30&deg;</strong> and <strong>45&deg;</strong> and release again.</li>
+                                        <li><strong>Self-Check:</strong> At a fixed angle, does <i>F</i> change as the car rolls down? What changes when you increase the angle from 15&deg; to 45&deg;?</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+                    `
+                },
+                {
+                    tab: '5. Exp C Guide',
+                    title: '🎢 Experiment C: Slope → Flat Synthesis (10° to 45°)',
+                    html: `
+                        <div class="space-y-3 text-sm text-slate-800">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                                <div class="bg-blue-50 border border-blue-300 rounded-xl p-3">
+                                    <div class="font-extrabold text-blue-900">1. Blue Slope</div>
+                                    <p class="text-xs mt-1">Constant forward force <i>F</i> &gt; 0 speeds the car up (curve bends upward).</p>
+                                </div>
+                                <div class="bg-green-50 border border-green-300 rounded-xl p-3">
+                                    <div class="font-extrabold text-green-900">2. Green Smooth Flat</div>
+                                    <p class="text-xs mt-1">At bottom of ramp, <strong><i>F</i> becomes 0 N</strong>! Car coasts at peak speed (straight line).</p>
+                                </div>
+                                <div class="bg-red-50 border border-red-300 rounded-xl p-3">
+                                    <div class="font-extrabold text-red-900">3. Red Rough Ground</div>
+                                    <p class="text-xs mt-1">Backward <strong>Frictional Force</strong> decelerates car to rest (curve bends downward).</p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                                <div class="bg-amber-50 border border-amber-300 rounded-xl p-3">
+                                    <div class="font-extrabold text-amber-950 text-xs md:text-sm">👩‍🏫 Teacher Synthesis Prompt:</div>
+                                    <p class="text-xs md:text-sm mt-1">Ask students to identify the inflection point where the curve changes from <em>concave up</em> (Blue) to <em>linear</em> (Green) to <em>concave down</em> (Red), and relate each to Newton's Laws.</p>
+                                </div>
+                                <div class="bg-indigo-50 border border-indigo-300 rounded-xl p-3">
+                                    <div class="font-extrabold text-indigo-950 text-xs md:text-sm">🧑‍🎓 Self-Learning Task:</div>
+                                    <p class="text-xs md:text-sm mt-1">Run Exp C at <strong>20&deg;</strong> and <strong>40&deg;</strong>, then compare how ramp angle affects the Green straight-line slope!</p>
+                                </div>
+                            </div>
+                        </div>
+                    `
+                },
+                {
+                    tab: '6. Exp D (A→B→A) Guide',
+                    title: '🌟 Experiment D: Flat → Slope → Flat (A–B–A Capstone)',
+                    html: `
+                        <div class="space-y-3 text-sm text-slate-800">
+                            <div class="bg-indigo-950 text-white rounded-xl p-3.5 text-xs md:text-sm leading-relaxed">
+                                <strong>Why Exp D (A &rarr; B &rarr; A) is the Ultimate Conceptual Test:</strong>
+                                The car experiences <strong>5 distinct stages</strong> in one continuous run:
+                                <span class="text-amber-300 font-bold">(1) Hand Push</span> &rarr;
+                                <span class="text-emerald-300 font-bold">(2) Upper Smooth Flat (<i>v</i><sub>1</sub>, <i>F</i>=0)</span> &rarr;
+                                <span class="text-sky-300 font-bold">(3) Inclined Slope (<i>F</i>&gt;0)</span> &rarr;
+                                <span class="text-emerald-300 font-bold">(4) Lower Smooth Flat (<i>v</i><sub>2</sub> &gt; <i>v</i><sub>1</sub>, <i>F</i>=0)</span> &rarr;
+                                <span class="text-rose-300 font-bold">(5) Rough Ground (Friction slows to 0)</span>.
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div class="bg-amber-50 border-2 border-amber-300 rounded-xl p-3.5 space-y-2">
+                                    <div class="font-extrabold text-amber-950 text-xs md:text-sm">👩‍🏫 Teacher's Master Prompt: Comparing the Two Green Zones</div>
+                                    <p class="text-xs md:text-sm leading-relaxed">
+                                        After running Exp D, tangent points <strong>P1</strong> and <strong>P3</strong> automatically land on the <strong>Upper Green Flat</strong> and <strong>Lower Green Flat</strong>, with <strong>P2</strong> on the <strong>Blue Slope</strong>.
+                                    </p>
+                                    <p class="text-xs md:text-sm bg-white p-2.5 rounded-lg border border-amber-200">
+                                        Ask the class: <em>"At P1 (upper green flat) and P3 (lower green flat), the car moves much faster at P3 than at P1. Is there a larger forward force acting at P3 than at P1?"</em><br>
+                                        <strong>Answer:</strong> Both have <strong><i>F</i> = 0 N</strong>! A steeper straight line on a <i>d</i>–<i>t</i> graph means higher constant speed, NOT a larger force!
+                                    </p>
+                                </div>
+
+                                <div class="bg-indigo-50 border-2 border-indigo-300 rounded-xl p-3.5 space-y-2">
+                                    <div class="font-extrabold text-indigo-950 text-xs md:text-sm">🧑‍🎓 Student Self-Learning Inquiry (Dual Controls!):</div>
+                                    <ol class="list-decimal list-inside text-xs md:text-sm space-y-1.5">
+                                        <li>Notice how in Exp D you can adjust <strong>both Initial Push</strong> and <strong>Ramp Angle (10&deg;–45&deg;)</strong>!</li>
+                                        <li>Compare <strong>P1</strong> (Upper Green) and <strong>P3</strong> (Lower Green): verify that both segments are <strong>straight lines</strong> even though P3 has a steeper slope.</li>
+                                        <li>Keep Initial Push at <em>Gentle</em>, and run at <strong>15&deg;</strong> vs <strong>40&deg;</strong>: observe how P1's slope stays identical while P3's slope increases!</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+                    `
+                }
+            ],
+            zh: [
+                {
+                    tab: '1. 目標與迷思',
+                    title: '🎯 核心迷思概念：教師引導與學生自學雙視角',
+                    html: `
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-amber-50 border-2 border-amber-200 rounded-xl p-4 space-y-2.5">
+                                <div class="flex items-center gap-2 text-amber-900 font-extrabold text-base">
+                                    <span>👩‍🏫</span> <span>教師教學引導視角 (Teacher's Guide)</span>
+                                </div>
+                                <p class="text-slate-800 text-sm leading-relaxed">
+                                    <strong>常見迷思診斷：</strong>學生常有以下兩種直覺迷思：
+                                </p>
+                                <ol class="list-decimal list-inside text-xs md:text-sm text-slate-700 space-y-1.5">
+                                    <li><em>「運動中的物體需要持續向前的力才能維持運動」</em>（忽略當 <i>F</i> = 0 N 時的慣性等速運動）。</li>
+                                    <li><em>「小車速率愈快，代表所受的向前作用力愈大」</em>（混淆速率 <i>v</i> 與加速度／作用力 <i>F</i>）。</li>
+                                </ol>
+                                <p class="text-xs md:text-sm text-amber-950 bg-amber-100/80 p-2.5 rounded-lg">
+                                    <strong>課堂教學策略：</strong>建議由 <strong>實驗 A、B、C</strong> 循序漸進至綜合進階 <strong>實驗 D (A &rarr; B &rarr; A)</strong>，搭配 <em>預測–觀察–解釋 (POE)</em> 教學法。
+                                </p>
+                            </div>
+
+                            <div class="bg-indigo-50 border-2 border-indigo-200 rounded-xl p-4 space-y-2.5">
+                                <div class="flex items-center gap-2 text-indigo-900 font-extrabold text-base">
+                                    <span>🧑‍🎓</span> <span>學生自主學習指引 (Self-Learning Guide)</span>
+                                </div>
+                                <p class="text-slate-800 text-sm leading-relaxed">
+                                    <strong>你將掌握的核心物理觀念：</strong>
+                                </p>
+                                <ul class="list-disc list-inside text-xs md:text-sm text-slate-700 space-y-1.5">
+                                    <li>當運動中的小車<strong>不受向前作用力 (<i>F</i> = 0 N)</strong> 時，小車會維持<strong>等速率直線運動</strong>（<i>d</i>–<i>t</i> 圖呈斜直線）。</li>
+                                    <li>在<strong>實驗 D (A &rarr; B &rarr; A)</strong> 中，你將在同一條曲線上看到<strong>兩段不同斜率的綠色斜直線</strong>（進入斜面前與離開斜面後）——兩者的作用力皆為 <strong><i>F</i> = 0 N</strong>！</li>
+                                </ul>
+                                <p class="text-xs md:text-sm text-indigo-950 bg-indigo-100/80 p-2.5 rounded-lg">
+                                    <strong>自學檢核重點：</strong>隨時對照「車身作用力箭頭」與「<i>d</i>–<i>t</i> 曲線向上彎、斜直線或向下彎」的關係！
+                                </p>
+                            </div>
+                        </div>
+                    `
+                },
+                {
+                    tab: '2. 互動工具說明',
+                    title: '🧠 互動工具運用指南（教師教學 & 學生自學）',
+                    html: `
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-amber-50 border-2 border-amber-200 rounded-xl p-4 space-y-2">
+                                <div class="flex items-center gap-2 text-amber-900 font-extrabold text-base">
+                                    <span>👩‍🏫</span> <span>教師課堂展示技巧</span>
+                                </div>
+                                <ul class="list-disc list-inside text-xs md:text-sm text-slate-800 space-y-2">
+                                    <li><strong>軌道與圖線顏色完全對應：</strong>軌道表面顏色（<span class="text-amber-600 font-bold">橘色</span>、<span class="text-blue-600 font-bold">藍色</span>、<span class="text-green-600 font-bold">綠色</span>、<span class="text-red-600 font-bold">紅色</span>）與 <i>d</i>–<i>t</i> 圖各階段曲線顏色完全一致。</li>
+                                    <li><strong>停止後直接拖曳小車：</strong>小車停下後，可直接拖曳軌道上的小車來回通過交界處，向全班即時展示受力變化與曲線轉折。</li>
+                                    <li><strong>匯出 JPEG 圖檔：</strong>點擊 <strong>「📷 匯出 JPEG」</strong> 即可下載高畫質 <i>d</i>–<i>t</i> 圖，方便製作學習單或試題。</li>
+                                </ul>
+                            </div>
+
+                            <div class="bg-indigo-50 border-2 border-indigo-200 rounded-xl p-4 space-y-2">
+                                <div class="flex items-center gap-2 text-indigo-900 font-extrabold text-base">
+                                    <span>🧑‍🎓</span> <span>學生自學操作步驟</span>
+                                </div>
+                                <ul class="list-disc list-inside text-xs md:text-sm text-slate-800 space-y-2">
+                                    <li><strong>直接拖曳小車檢視：</strong>實驗結束後，直接在畫布上左右拖曳小車，觀察任意位置的時間、距離、速率與受力。</li>
+                                    <li><strong>多點切線斜率比較 (P1, P2, P3)：</strong>拖曳圖上的彩色切線點，比較不同時刻的切線斜率（即瞬時速率 <i>v</i>）。</li>
+                                    <li><strong>疊加多次實驗圖線：</strong>無須按清除，可直接改變推力大小或斜面傾角（10&deg;–45&deg;）進行疊圖比較。</li>
+                                </ul>
+                            </div>
+                        </div>
+                    `
+                },
+                {
+                    tab: '3. 實驗 A 指引',
+                    title: '🔬 實驗 A：水平推動與滑行（教師與自學指引）',
+                    html: `
+                        <div class="space-y-3 text-sm text-slate-800">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                                <div class="bg-amber-50 border border-amber-300 rounded-xl p-3">
+                                    <div class="font-extrabold text-amber-900">1. 手推加速區（橘色）</div>
+                                    <p class="text-xs mt-1">向前推力 <i>F</i> &gt; 0 使小車加速，<i>d</i>–<i>t</i> 圖線向上彎曲。</p>
+                                </div>
+                                <div class="bg-green-50 border border-green-300 rounded-xl p-3">
+                                    <div class="font-extrabold text-green-900">2. 無摩擦光滑面（綠色）</div>
+                                    <p class="text-xs mt-1">手放開後 <strong><i>F</i> = 0 N</strong>，小車依然維持等速滑行（斜直線）。</p>
+                                </div>
+                                <div class="bg-red-50 border border-red-300 rounded-xl p-3">
+                                    <div class="font-extrabold text-red-900">3. 粗糙摩擦地面（紅色）</div>
+                                    <p class="text-xs mt-1">向後的<strong>摩擦力</strong>阻礙運動，使小車減速至停止（向下彎曲）。</p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                                <div class="bg-amber-50/90 border border-amber-300 rounded-xl p-3">
+                                    <div class="font-extrabold text-amber-950 text-xs md:text-sm">👩‍🏫 教師課堂提問設計：</div>
+                                    <p class="text-xs md:text-sm mt-1">當小車進入<strong>綠色無摩擦區</strong>時按「暫停」，提問：<em>「此時手還有推車嗎？車子所受的向前力 F 是多少？為什麼車子不會慢下來？」</em></p>
+                                </div>
+                                <div class="bg-indigo-50/90 border border-indigo-300 rounded-xl p-3">
+                                    <div class="font-extrabold text-indigo-950 text-xs md:text-sm">🧑‍🎓 學生自學探究任務：</div>
+                                    <p class="text-xs md:text-sm mt-1">依序執行<strong>輕推</strong>、<strong>中推</strong>與<strong>重推</strong>，觀察同一張圖上的三條曲線：初始推力愈大時，綠色區段的斜直線斜率有何變化？</p>
+                                </div>
+                            </div>
+                        </div>
+                    `
+                },
+                {
+                    tab: '4. 實驗 B 指引',
+                    title: '📐 實驗 B：純斜面加速下滑（傾角 10° 至 45°）',
+                    html: `
+                        <div class="space-y-3 text-sm text-slate-800">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div class="bg-amber-50 border border-amber-300 rounded-xl p-3.5 space-y-2">
+                                    <div class="font-extrabold text-amber-950">👩‍🏫 教師教學重點：破除「速率愈快＝力愈大」</div>
+                                    <p class="text-xs md:text-sm leading-relaxed">
+                                        學生看到小車滑至斜面底部時速率很快，常誤以為下滑力 <i>F</i> 隨距離愈來愈大。
+                                    </p>
+                                    <p class="text-xs md:text-sm bg-white p-2.5 rounded-lg border border-amber-200">
+                                        <strong>關鍵引導：</strong>請學生緊盯車身上的紅色作用力箭頭 <i>F</i>——下滑過程中箭頭長度<strong>完全固定不變</strong>，但 P1、P2 的切線斜率卻持續變陡！
+                                    </p>
+                                </div>
+
+                                <div class="bg-indigo-50 border border-indigo-300 rounded-xl p-3.5 space-y-2">
+                                    <div class="font-extrabold text-indigo-950">🧑‍🎓 學生自學探究任務（10°–45°）：</div>
+                                    <ol class="list-decimal list-inside text-xs md:text-sm space-y-1.5">
+                                        <li>先在 <strong>15&deg;</strong> 釋放小車，觀察 P1 與 P2 的切線斜率變化。</li>
+                                        <li>不必清除圖線，直接將斜面傾角調至 <strong>30&deg;</strong> 與 <strong>45&deg;</strong> 再次釋放。</li>
+                                        <li><strong>自我檢核：</strong>同一傾角下滑時，<i>F</i> 有改變嗎？當傾角從 15&deg; 增加到 45&deg; 時，下滑力 <i>F</i> 與曲線彎曲程度如何改變？</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+                    `
+                },
+                {
+                    tab: '5. 實驗 C 指引',
+                    title: '🎢 實驗 C：斜面轉水平綜合探究（10° 至 45°）',
+                    html: `
+                        <div class="space-y-3 text-sm text-slate-800">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                                <div class="bg-blue-50 border border-blue-300 rounded-xl p-3">
+                                    <div class="font-extrabold text-blue-900">1. 藍色光滑斜面</div>
+                                    <p class="text-xs mt-1">固定向前的下滑力 <i>F</i> &gt; 0 使小車加速下滑（圖線向上彎曲）。</p>
+                                </div>
+                                <div class="bg-green-50 border border-green-300 rounded-xl p-3">
+                                    <div class="font-extrabold text-green-900">2. 綠色無摩擦水平面</div>
+                                    <p class="text-xs mt-1">進入水平面瞬間 <strong><i>F</i> 變為 0 N</strong>！小車以最高速率等速前進（斜直線）。</p>
+                                </div>
+                                <div class="bg-red-50 border border-red-300 rounded-xl p-3">
+                                    <div class="font-extrabold text-red-900">3. 紅色粗糙地面</div>
+                                    <p class="text-xs mt-1">向後的<strong>摩擦力</strong>使小車減速至靜止（圖線向下彎曲至水平）。</p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                                <div class="bg-amber-50 border border-amber-300 rounded-xl p-3">
+                                    <div class="font-extrabold text-amber-950 text-xs md:text-sm">👩‍🏫 教師總結討論引導：</div>
+                                    <p class="text-xs md:text-sm mt-1">引導學生對照曲線從<em>向上彎曲（藍）</em>、<em>斜直線（綠）</em>到<em>向下彎曲（紅）</em>的轉折點，統整牛頓第一與第二運動定律。</p>
+                                </div>
+                                <div class="bg-indigo-50 border border-indigo-300 rounded-xl p-3">
+                                    <div class="font-extrabold text-indigo-950 text-xs md:text-sm">🧑‍🎓 學生自學任務：</div>
+                                    <p class="text-xs md:text-sm mt-1">分別在 <strong>20&deg;</strong> 與 <strong>40&deg;</strong> 執行實驗 C，觀察斜面傾角如何影響綠色水平段的等速直線斜率！</p>
+                                </div>
+                            </div>
+                        </div>
+                    `
+                },
+                {
+                    tab: '6. 實驗 D (A→B→A) 指引',
+                    title: '🌟 實驗 D：水平 → 斜面 → 水平（A–B–A 雙等速段終極對照）',
+                    html: `
+                        <div class="space-y-3 text-sm text-slate-800">
+                            <div class="bg-indigo-950 text-white rounded-xl p-3.5 text-xs md:text-sm leading-relaxed">
+                                <strong>為什麼實驗 D (A &rarr; B &rarr; A) 最具教學深度？</strong>
+                                小車在單次連續運動中依序經歷<strong>五個階段</strong>：
+                                <span class="text-amber-300 font-bold">(1) 手推加速</span> &rarr;
+                                <span class="text-emerald-300 font-bold">(2) 上段光滑水平面（等速 <i>v</i><sub>1</sub>，<i>F</i>=0）</span> &rarr;
+                                <span class="text-sky-300 font-bold">(3) 光滑斜面加速（<i>F</i>&gt;0）</span> &rarr;
+                                <span class="text-emerald-300 font-bold">(4) 下段光滑水平面（更高之等速 <i>v</i><sub>2</sub> &gt; <i>v</i><sub>1</sub>，<i>F</i>=0）</span> &rarr;
+                                <span class="text-rose-300 font-bold">(5) 粗糙地面減速至靜止</span>。
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div class="bg-amber-50 border-2 border-amber-300 rounded-xl p-3.5 space-y-2">
+                                    <div class="font-extrabold text-amber-950 text-xs md:text-sm">👩‍🏫 教師核心提問：比較兩段綠色光滑水平面 (P1 vs P3)</div>
+                                    <p class="text-xs md:text-sm leading-relaxed">
+                                        實驗 D 完成後，切線點 <strong>P1</strong> 與 <strong>P3</strong> 會自動分別落在<strong>上段綠色水平面</strong>與<strong>下段綠色水平面</strong>，而 <strong>P2</strong> 則落在<strong>藍色斜面</strong>上。
+                                    </p>
+                                    <p class="text-xs md:text-sm bg-white p-2.5 rounded-lg border border-amber-200">
+                                        向全班提問：<em>「比較 P1（上段綠色區）與 P3（下段綠色區），小車在 P3 的速率明顯比 P1 快很多。請問小車在 P3 所受的向前作用力比 P1 大嗎？」</em><br>
+                                        <strong>核心結論：</strong>兩段綠色區的<strong>作用力皆為 <i>F</i> = 0 N</strong>！<i>d</i>–<i>t</i> 圖斜直線愈陡代表等速運動的速率愈快，完全不需要更大的力來維持！
+                                    </p>
+                                </div>
+
+                                <div class="bg-indigo-50 border-2 border-indigo-300 rounded-xl p-3.5 space-y-2">
+                                    <div class="font-extrabold text-indigo-950 text-xs md:text-sm">🧑‍🎓 學生自學探究任務（雙變因同時調控！）：</div>
+                                    <ol class="list-decimal list-inside text-xs md:text-sm space-y-1.5">
+                                        <li>在實驗 D 中，你可以同時調整<strong>「初始推力」</strong>與<strong>「斜面傾角 (10&deg;–45&deg;)」</strong>！</li>
+                                        <li>對照圖上的 <strong>P1</strong>（上段綠線）與 <strong>P3</strong>（下段綠線）：確認兩段皆為<strong>斜直線 (<i>F</i> = 0 N)</strong>，但 P3 的斜率明顯較大 (<i>v</i><sub>2</sub> &gt; <i>v</i><sub>1</sub>)。</li>
+                                        <li>固定初始推力為「輕推」，分別以 <strong>15&deg;</strong> 與 <strong>40&deg;</strong> 執行實驗：觀察為什麼 P1 斜率完全相同，但 P3 斜率卻大幅增加！</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+                    `
+                }
+            ]
+        };
+
+        const I18N = {
+            en: {
+                langBtn: '繁體中文',
+                tutorialBtn: 'Tutorial & Guide',
+                tutModalTitle: "Teacher's Pedagogical Guide & Student Self-Learning Tutorial",
+                tutModalSubtitle: 'Dual-perspective guide for classroom facilitation and independent inquiry',
+                tutCloseText: 'Close',
+                tutPrev: '← Previous',
+                tutNext: 'Next →',
+                tutDone: 'Start Exploring!',
+                badge: 'SI Physics Lab',
+                title: 'Force vs. Motion &amp; Distance–Time (<i>d</i>–<i>t</i>) Graphs',
+                subtitle: 'Clarifying Misconceptions: <span class="text-amber-700 font-bold">"Motion requires a continued forward force"</span> &amp; <span class="text-rose-700 font-bold">"Higher speed means a larger force"</span>',
+                tabA: 'Exp A: Horizontal Push',
+                tabB: 'Exp B: Slope Only',
+                tabC: 'Exp C: Slope &rarr; Flat',
+                tabD: 'Exp D: Flat &rarr; Slope &rarr; Flat (A–B–A)',
+                pushCar: 'Push Car',
+                releaseCar: 'Release Car on Slope',
+                pause: 'Pause',
+                resume: 'Resume',
+                resetCar: 'Reset Car',
+                clearAll: 'Clear All Graphs',
+                initialPush: 'Initial Push:',
+                gentle: 'Gentle (1.6 m/s)',
+                medium: 'Medium (2.4 m/s)',
+                strong: 'Strong (3.2 m/s)',
+                rampAngle: 'Ramp Angle (&theta;):',
+                chkForces: 'Show Force Vector (<i>F</i>) on Car',
+                legCom: '<strong>Green Dot:</strong> Center of Mass',
+                legForce: '<strong class="text-rose-700">Solid Arrow:</strong> Force (<i>F</i> or Frictional Force)',
+                legDragTip: '💡 Once the car stops, drag the car directly along the track to inspect any position!',
+                graphTitle: 'Interactive <i>d</i>–<i>t</i> Graph',
+                graphSubtitle: 'Slope = Instantaneous Speed <i>v</i>',
+                addTangent: '+ Add Tangent',
+                clearTangent: 'Clear Tangents',
+                exportJpeg: 'Export JPEG',
+                noRuns: 'Run an experiment to record a d–t curve...',
+                scrubLabel: '🔍 Drag Car / Scrub:',
+                tangentHeader: 'Multi-Point Tangent Slope Comparison',
+                tangentHint: 'Drag <strong class="text-slate-900">P1, P2, P3</strong> on graph or drag the <strong class="text-indigo-700">Car</strong>!',
+                tangentEmpty: 'Run an experiment (or click "+ Add Tangent") to compare instantaneous speeds (slopes) at multiple points.',
+                axisTime: 'Time t (s)',
+                axisDist: 'Distance d (m)',
+                runWord: 'Run',
+                presetGentle: 'Gentle Push',
+                presetMedium: 'Medium Push',
+                presetStrong: 'Strong Push',
+                slopeWord: 'Slope',
+                slopeToFlat: 'Slope → Flat',
+                abaWord: 'A–B–A',
+                // Curve Color Legend
+                segExpA: '<span class="text-amber-600">● Amber: Hand Push</span> <span class="text-green-600">● Green: Frictionless Track</span> <span class="text-red-600">● Red: Frictional Ground</span> <span class="text-slate-500">● Gray: Stopped</span>',
+                segExpB: '<span class="text-blue-600">● Blue: Accelerating on Slope</span> <span class="text-slate-500">● Gray: Stopped</span>',
+                segExpC: '<span class="text-blue-600">● Blue: Inclined Slope</span> <span class="text-green-600">● Green: Frictionless Flat</span> <span class="text-red-600">● Red: Frictional Ground</span> <span class="text-slate-500">● Gray: Stopped</span>',
+                segExpD: '<span class="text-amber-600">● Amber: Push</span> <span class="text-green-600">● Green 1: Smooth Flat (v₁)</span> <span class="text-blue-600">● Blue: Slope</span> <span class="text-green-600">● Green 2: Smooth Flat (v₂ &gt; v₁)</span> <span class="text-red-600">● Red: Rough Ground</span> <span class="text-slate-500">● Gray: Stopped</span>',
+                // Track Boundary Callouts
+                releasePtA: 'Push Ends',
+                roughStartsA: 'Rough Ground Starts',
+                transitionPtC: 'Flat Track Starts',
+                roughStartsC: 'Rough Ground Starts',
+                slopeStartsD: 'Slope Starts',
+                flat2StartsD: 'Lower Flat Starts',
+                roughStartsD: 'Rough Ground',
+                // Simplified Force Vector Labels
+                vecPush: 'Forward Push Force F',
+                vecZeroNet: 'F = 0 N (No Forward Force!)',
+                vecFriction: 'Frictional Force (Opposes Motion)',
+                vecGravity: 'Down-Slope Force F (Constant!)',
+                vecAtRest: 'At Rest: v = 0, F = 0 N',
+                dragMeHint: '↔ Drag Car Along Track!'
+            },
+            zh: {
+                langBtn: 'English',
+                tutorialBtn: '教學與自學指引',
+                tutModalTitle: '教師教學引導與學生自主學習雙視角指引',
+                tutModalSubtitle: '結合課堂提問策略與自學探究步驟的互動指南',
+                tutCloseText: '關閉',
+                tutPrev: '← 上一頁',
+                tutNext: '下一頁 →',
+                tutDone: '開始進行實驗！',
+                badge: '科學探究物理實驗室',
+                title: '力與運動關係 及 距離–時間 (<i>d</i>–<i>t</i>) 關係圖',
+                subtitle: '釐清迷思：<span class="text-amber-700 font-bold">「維持運動需要持續向前的力」</span> 與 <span class="text-rose-700 font-bold">「速度愈快代表所受的力愈大」</span>',
+                tabA: '實驗 A：水平推動與滑行',
+                tabB: '實驗 B：純斜面加速',
+                tabC: '實驗 C：斜面轉水平',
+                tabD: '實驗 D：水平 &rarr; 斜面 &rarr; 水平 (A–B–A)',
+                pushCar: '推動小車',
+                releaseCar: '在斜面上釋放小車',
+                pause: '暫停',
+                resume: '繼續',
+                resetCar: '重設小車',
+                clearAll: '清除所有圖線',
+                initialPush: '初始推力：',
+                gentle: '輕推 (1.6 m/s)',
+                medium: '中推 (2.4 m/s)',
+                strong: '重推 (3.2 m/s)',
+                rampAngle: '斜面傾角 (&theta;)：',
+                chkForces: '顯示車身作用力向量 (<i>F</i>)',
+                legCom: '<strong>綠點：</strong>質心位置',
+                legForce: '<strong class="text-rose-700">實線箭頭：</strong>作用力 (<i>F</i> 或 摩擦力)',
+                legDragTip: '💡 小車停止後，可直接在軌道上左右拖曳小車以對照曲線！',
+                graphTitle: '互動式 <i>d</i>–<i>t</i> 距離–時間圖',
+                graphSubtitle: '切線斜率 = 瞬時速率 <i>v</i>',
+                addTangent: '+ 新增切線點',
+                clearTangent: '清除切線',
+                exportJpeg: '匯出 JPEG',
+                noRuns: '請執行一次實驗以記錄 d–t 曲線...',
+                scrubLabel: '🔍 拖曳小車 / 時間軸：',
+                tangentHeader: '多點切線斜率 (瞬時速率) 比較',
+                tangentHint: '可拖曳圖上 <strong class="text-slate-900">P1, P2, P3</strong> 或直接拖曳軌道上的<strong class="text-indigo-700">小車</strong>！',
+                tangentEmpty: '請先執行實驗（或點擊「+ 新增切線點」）以比較曲線上不同位置的瞬時速率（斜率）。',
+                axisTime: '時間 t (s)',
+                axisDist: '距離 d (m)',
+                runWord: '實驗',
+                presetGentle: '輕推',
+                presetMedium: '中推',
+                presetStrong: '重推',
+                slopeWord: '斜面',
+                slopeToFlat: '斜面 → 水平',
+                abaWord: 'A–B–A',
+                // Curve Color Legend
+                segExpA: '<span class="text-amber-600">● 橘色：手推加速區</span> <span class="text-green-600">● 綠色：無摩擦光滑面</span> <span class="text-red-600">● 紅色：粗糙摩擦地面</span> <span class="text-slate-500">● 灰色：靜止</span>',
+                segExpB: '<span class="text-blue-600">● 藍色：斜面加速下滑</span> <span class="text-slate-500">● 灰色：靜止</span>',
+                segExpC: '<span class="text-blue-600">● 藍色：光滑斜面</span> <span class="text-green-600">● 綠色：無摩擦水平面</span> <span class="text-red-600">● 紅色：粗糙水平地面</span> <span class="text-slate-500">● 灰色：靜止</span>',
+                segExpD: '<span class="text-amber-600">● 橘色：手推</span> <span class="text-green-600">● 綠色1：上段光滑面 (v₁)</span> <span class="text-blue-600">● 藍色：斜面加速</span> <span class="text-green-600">● 綠色2：下段光滑面 (v₂ &gt; v₁)</span> <span class="text-red-600">● 紅色：粗糙地面</span> <span class="text-slate-500">● 灰色：靜止</span>',
+                // Track Boundary Callouts
+                releasePtA: '推力結束',
+                roughStartsA: '粗糙地面開始',
+                transitionPtC: '進入水平面',
+                roughStartsC: '粗糙地面開始',
+                slopeStartsD: '進入斜面',
+                flat2StartsD: '進入下段水平面',
+                roughStartsD: '粗糙地面',
+                // Simplified Force Vector Labels
+                vecPush: '向前推力 F',
+                vecZeroNet: 'F = 0 N (無向前作用力！)',
+                vecFriction: '摩擦力 (阻礙運動)',
+                vecGravity: '沿斜面下滑力 F (固定不變！)',
+                vecAtRest: '靜止狀態：v = 0, F = 0 N',
+                dragMeHint: '↔ 可直接沿軌道拖曳小車！'
+            }
+        };
+
+        function tStr(key) {
+            return I18N[lang][key] || key;
+        }
+
+        // ============================================================================
+        // MULTI-PAGE TUTORIAL POP-UP MODAL LOGIC
+        // ============================================================================
+        function openTutorialModal(pageIndex = 0) {
+            currentTutorialPage = pageIndex;
+            const modal = document.getElementById('tutorial-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            renderTutorialModal();
+        }
+
+        function closeTutorialModal() {
+            const modal = document.getElementById('tutorial-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function handleBackdropClick(evt) {
+            if (evt.target.id === 'tutorial-modal') {
+                closeTutorialModal();
+            }
+        }
+
+        function changeTutorialPage(delta) {
+            const pages = TUTORIAL_PAGES[lang];
+            if (currentTutorialPage + delta >= pages.length) {
+                closeTutorialModal();
+                return;
+            }
+            currentTutorialPage = Math.max(0, Math.min(pages.length - 1, currentTutorialPage + delta));
+            renderTutorialModal();
+        }
+
+        function goToTutorialPage(idx) {
+            currentTutorialPage = idx;
+            renderTutorialModal();
+        }
+
+        function renderTutorialModal() {
+            const pages = TUTORIAL_PAGES[lang];
+            const page = pages[currentTutorialPage];
+
+            document.getElementById('tut-modal-title').innerHTML = tStr('tutModalTitle');
+            document.getElementById('tut-modal-subtitle').innerHTML = tStr('tutModalSubtitle');
+            document.getElementById('tut-close-text').innerHTML = tStr('tutCloseText');
+
+            // Render Top Page Tabs
+            const tabsEl = document.getElementById('tut-page-tabs');
+            tabsEl.innerHTML = pages.map((p, idx) => `
+                <button onclick="goToTutorialPage(${idx})" class="px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold transition ${idx === currentTutorialPage ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-300'}">
+                    ${p.tab}
+                </button>
+            `).join('');
+
+            // Render Page Content
+            const contentEl = document.getElementById('tut-page-content');
+            contentEl.innerHTML = `
+                <h3 class="text-lg md:text-xl font-extrabold text-indigo-950 border-b border-slate-200 pb-2.5">${page.title}</h3>
+                <div class="pt-1">${page.html}</div>
+            `;
+
+            // Render Footer Dots & Buttons
+            const dotsEl = document.getElementById('tut-dots');
+            dotsEl.innerHTML = pages.map((_, idx) => `
+                <button onclick="goToTutorialPage(${idx})" class="w-2.5 h-2.5 rounded-full transition-all ${idx === currentTutorialPage ? 'bg-indigo-600 w-6' : 'bg-slate-300 hover:bg-slate-400'}"></button>
+            `).join('');
+
+            const prevBtn = document.getElementById('tut-prev-btn');
+            const nextBtn = document.getElementById('tut-next-btn');
+            prevBtn.disabled = (currentTutorialPage === 0);
+            prevBtn.innerHTML = tStr('tutPrev');
+
+            if (currentTutorialPage === pages.length - 1) {
+                nextBtn.innerHTML = tStr('tutDone');
+                nextBtn.className = 'control-btn bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-5 py-2 rounded-xl text-sm shadow-sm';
+            } else {
+                nextBtn.innerHTML = tStr('tutNext');
+                nextBtn.className = 'control-btn bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-5 py-2 rounded-xl text-sm shadow-sm';
+            }
+        }
+
+        function toggleLanguage() {
+            lang = (lang === 'en') ? 'zh' : 'en';
+            applyLanguageUI();
+            renderTutorialModal();
+            updateRunPills();
+            renderZoneCards();
+            updateLiveHUD();
+            drawScene();
+            drawGraph();
+            updateTangentReadouts();
+        }
+
+        function applyLanguageUI() {
+            document.getElementById('lang-label').innerHTML = tStr('langBtn');
+            document.getElementById('tutorial-btn-label').innerHTML = tStr('tutorialBtn');
+
+            document.getElementById('ui-badge').innerHTML = tStr('badge');
+            document.getElementById('ui-title').innerHTML = tStr('title');
+            document.getElementById('ui-subtitle').innerHTML = tStr('subtitle');
+            document.getElementById('tab-expA').innerHTML = tStr('tabA');
+            document.getElementById('tab-expB').innerHTML = tStr('tabB');
+            document.getElementById('tab-expC').innerHTML = tStr('tabC');
+            document.getElementById('tab-expD').innerHTML = tStr('tabD');
+
+            document.getElementById('launch-label').innerHTML = (currentExp === 'A' || currentExp === 'D') ? tStr('pushCar') : tStr('releaseCar');
+            const pauseBtn = document.getElementById('btn-pause');
+            pauseBtn.innerHTML = isPaused ? tStr('resume') : tStr('pause');
+            document.getElementById('btn-reset-car').innerHTML = tStr('resetCar');
+            document.getElementById('btn-clear-all').innerHTML = tStr('clearAll');
+
+            document.getElementById('lbl-initial-push').innerHTML = tStr('initialPush');
+            document.getElementById('push-gentle').innerHTML = tStr('gentle');
+            document.getElementById('push-medium').innerHTML = tStr('medium');
+            document.getElementById('push-strong').innerHTML = tStr('strong');
+            document.getElementById('lbl-ramp-angle').innerHTML = tStr('rampAngle');
+
+            document.getElementById('lbl-chk-forces').innerHTML = tStr('chkForces');
+
+            document.getElementById('leg-com').innerHTML = tStr('legCom');
+            document.getElementById('leg-force').innerHTML = tStr('legForce');
+            document.getElementById('leg-drag-tip').innerHTML = tStr('legDragTip');
+
+            document.getElementById('ui-graph-title').innerHTML = tStr('graphTitle');
+            document.getElementById('ui-graph-subtitle').innerHTML = tStr('graphSubtitle');
+            document.getElementById('btn-add-tangent').innerHTML = tStr('addTangent');
+            document.getElementById('btn-clear-tangent').innerHTML = tStr('clearTangent');
+            document.getElementById('lbl-export-jpeg').innerHTML = tStr('exportJpeg');
+            document.getElementById('lbl-scrub').innerHTML = tStr('scrubLabel');
+            document.getElementById('ui-tangent-header').innerHTML = tStr('tangentHeader');
+            document.getElementById('ui-tangent-hint').innerHTML = tStr('tangentHint');
+
+            const segKey = currentExp === 'A' ? 'segExpA' : (currentExp === 'B' ? 'segExpB' : (currentExp === 'C' ? 'segExpC' : 'segExpD'));
+            document.getElementById('curve-segment-legend').innerHTML = tStr(segKey);
+        }
+
+        // ============================================================================
+        // EXPORT d-t GRAPH AS JPEG
+        // ============================================================================
+        function exportGraphJPEG() {
+            const headerH = 54;
+            const exportCanvas = document.createElement('canvas');
+            exportCanvas.width = graphCanvas.width;
+            exportCanvas.height = graphCanvas.height + headerH;
+            const eCtx = exportCanvas.getContext('2d');
+
+            eCtx.fillStyle = '#ffffff';
+            eCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+
+            eCtx.fillStyle = '#0f172a';
+            eCtx.font = 'bold 17px "Segoe UI", "Microsoft JhengHei", sans-serif';
+            let expTitle = '';
+            if (currentExp === 'A') {
+                expTitle = lang === 'en' ? 'Exp A: Horizontal Push — d–t Graph' : '實驗 A：水平推動與滑行 — d–t 關係圖';
+            } else if (currentExp === 'B') {
+                expTitle = lang === 'en' ? `Exp B: Slope Only (θ = ${rampAngleDeg}°) — d–t Graph` : `實驗 B：純斜面加速 (θ = ${rampAngleDeg}°) — d–t 關係圖`;
+            } else if (currentExp === 'C') {
+                expTitle = lang === 'en' ? `Exp C: Slope → Flat (θ = ${rampAngleDeg}°) — d–t Graph` : `實驗 C：斜面轉水平 (θ = ${rampAngleDeg}°) — d–t 關係圖`;
+            } else {
+                expTitle = lang === 'en' ? `Exp D: Flat → Slope → Flat (A–B–A, θ = ${rampAngleDeg}°) — d–t Graph` : `實驗 D：水平 → 斜面 → 水平 (A–B–A, θ = ${rampAngleDeg}°) — d–t 關係圖`;
+            }
+            eCtx.fillText(expTitle, 24, 32);
+
+            eCtx.strokeStyle = '#cbd5e1';
+            eCtx.lineWidth = 1;
+            eCtx.beginPath();
+            eCtx.moveTo(20, headerH - 8);
+            eCtx.lineTo(exportCanvas.width - 20, headerH - 8);
+            eCtx.stroke();
+
+            eCtx.drawImage(graphCanvas, 0, headerH);
+
+            const dataUrl = exportCanvas.toDataURL('image/jpeg', 0.95);
+            const link = document.createElement('a');
+            link.download = `dt-graph-Exp${currentExp}.jpg`;
+            link.href = dataUrl;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // ============================================================================
+        // GLOBAL STATE & TRACK CONSTANTS (A, B, C, D)
+        // ============================================================================
+        const simCanvas = document.getElementById('simCanvas');
+        const simCtx = simCanvas.getContext('2d');
+        const graphCanvas = document.getElementById('graphCanvas');
+        const graphCtx = graphCanvas.getContext('2d');
+
+        let currentExp = 'A'; // 'A', 'B', 'C', or 'D'
+        let animId = null;
+        let isPaused = false;
+        let isDraggingCar = false;
+
+        const G_ACCEL = 4.5;
+        const POST_STOP_DURATION = 2.0;
+
+        // Track Distances (Internal Physics Constants)
+        const EXP_A_PUSH_DIST = 0.5;
+        const EXP_A_SMOOTH_END = 3.5;
+        const EXP_A_MAX_DIST = 6.5;
+
+        const EXP_B_MAX_DIST = 6.0;
+
+        const EXP_C_SLOPE_LEN = 5.0;
+        const EXP_C_SMOOTH_END = 10.0;
+        const EXP_C_MAX_DIST = 15.0;
+
+        // Expt D (A -> B -> A) Track Distances:
+        // Zone 1: Hand Push (0 to 0.5m)
+        // Zone 2: Upper Smooth Flat (0.5m to 3.5m) -> v1 constant!
+        // Zone 3: Inclined Slope (3.5m to 7.5m, length 4.0m) -> accelerates down ramp!
+        // Zone 4: Lower Smooth Flat (7.5m to 11.5m, length 4.0m) -> v2 > v1 constant!
+        // Zone 5: Frictional Ground (11.5m to 16.0m, length 4.5m) -> decelerates to stop!
+        const EXP_D_PUSH_END = 0.5;
+        const EXP_D_FLAT1_END = 3.5;
+        const EXP_D_SLOPE_END = 7.5;
+        const EXP_D_FLAT2_END = 11.5;
+        const EXP_D_MAX_DIST = 16.0;
+
+        const ZONE_COLORS = {
+            PUSH: '#d97706',       // Amber
+            SLOPE: '#2563eb',      // Blue
+            SMOOTH_FLAT: '#16a34a',// Green
+            ROUGH_FLAT: '#dc2626', // Red
+            REST: '#64748b'        // Slate Gray
+        };
+
+        let pushPreset = 'medium';
+        const PUSH_PRESETS = {
+            gentle: { key: 'presetGentle', targetV: 1.6, decel: 1.05, color: '#0284c7' },
+            medium: { key: 'presetMedium', targetV: 2.4, decel: 1.45, color: '#d97706' },
+            strong: { key: 'presetStrong', targetV: 3.2, decel: 1.95, color: '#e11d48' }
+        };
+        let rampAngleDeg = 15;
+
+        let car = {
+            phase: 'READY',
+            t: 0,
+            d: 0,
+            v: 0,
+            a: 0,
+            F_forward: 0,
+            F_friction: 0,
+            restElapsed: 0
+        };
+
+        const RUN_COLORS = ['#2563eb', '#d97706', '#e11d48', '#7c3aed', '#059669'];
+        let runs = [];
+        let activeRunIndex = -1;
+
+        const TANGENT_COLORS = ['#0284c7', '#d97706', '#9333ea'];
+        let tangentPoints = [];
+        let draggingTangentIdx = -1;
+
+        // ============================================================================
+        // EXPERIMENT INITIALIZATION & CONTROLS
+        // ============================================================================
+        function switchExperiment(exp) {
+            stopAnimation();
+            currentExp = exp;
+
+            ['A', 'B', 'C', 'D'].forEach(id => {
+                const btn = document.getElementById('tab-exp' + id);
+                if (id === exp) {
+                    btn.className = 'px-3 py-1.5 rounded-lg text-sm font-bold transition-all bg-blue-600 text-white shadow-sm';
+                } else {
+                    btn.className = 'px-3 py-1.5 rounded-lg text-sm font-bold transition-all text-slate-700 hover:text-slate-900 hover:bg-slate-200/70';
+                }
+            });
+
+            // In Exp D, BOTH Push Strength AND Ramp Angle controls are visible!
+            document.getElementById('ctrl-push').classList.toggle('hidden', !(exp === 'A' || exp === 'D'));
+            document.getElementById('ctrl-angle').classList.toggle('hidden', exp === 'A');
+            document.getElementById('launch-label').innerHTML = (exp === 'A' || exp === 'D') ? tStr('pushCar') : tStr('releaseCar');
+
+            const segKey = currentExp === 'A' ? 'segExpA' : (currentExp === 'B' ? 'segExpB' : (currentExp === 'C' ? 'segExpC' : 'segExpD'));
+            document.getElementById('curve-segment-legend').innerHTML = tStr(segKey);
+
+            runs = [];
+            activeRunIndex = -1;
+            tangentPoints = [];
+            updateRunPills();
+            resetCarState();
+            updateScrubBarUI();
+            renderZoneCards();
+            updateLiveHUD();
+            drawScene();
+            drawGraph();
+            updateTangentReadouts();
+        }
+
+        function setPushPreset(preset) {
+            pushPreset = preset;
+            ['gentle', 'medium', 'strong'].forEach(p => {
+                const btn = document.getElementById('push-' + p);
+                if (p === preset) {
+                    btn.className = 'px-2.5 py-1.5 rounded-lg text-xs md:text-sm font-bold bg-blue-600 text-white border border-blue-600';
+                } else {
+                    btn.className = 'px-2.5 py-1.5 rounded-lg text-xs md:text-sm font-bold bg-white text-slate-700 border border-slate-300';
+                }
+            });
+            if (car.phase === 'READY') drawScene();
+        }
+
+        function updateAngle(val) {
+            rampAngleDeg = parseInt(val, 10);
+            document.getElementById('angle-display').innerHTML = rampAngleDeg + '&deg;';
+            drawScene();
+        }
+
+        function resetCarState() {
+            car = {
+                phase: 'READY',
+                t: 0,
+                d: 0,
+                v: 0,
+                a: 0,
+                F_forward: 0,
+                F_friction: 0,
+                restElapsed: 0
+            };
+            isPaused = false;
+            const pauseBtn = document.getElementById('btn-pause');
+            pauseBtn.disabled = true;
+            pauseBtn.innerHTML = tStr('pause');
+        }
+
+        function resetCarOnly() {
+            stopAnimation();
+            resetCarState();
+            updateScrubBarUI();
+            renderZoneCards();
+            updateLiveHUD();
+            drawScene();
+            drawGraph();
+        }
+
+        function clearAllRuns() {
+            stopAnimation();
+            runs = [];
+            activeRunIndex = -1;
+            tangentPoints = [];
+            resetCarState();
+            updateRunPills();
+            updateScrubBarUI();
+            renderZoneCards();
+            updateLiveHUD();
+            drawScene();
+            drawGraph();
+            updateTangentReadouts();
+        }
+
+        function stopAnimation() {
+            if (animId) {
+                cancelAnimationFrame(animId);
+                animId = null;
+            }
+        }
+
+        function togglePause() {
+            if (car.phase === 'READY' || car.phase === 'STOPPED') return;
+            isPaused = !isPaused;
+            document.getElementById('btn-pause').innerHTML = isPaused ? tStr('resume') : tStr('pause');
+        }
+
+        // ============================================================================
+        // FULL-DISPLAY HTML ZONE CARDS (EXPT A, B, C, D)
+        // ============================================================================
+        function renderZoneCards() {
+            const container = document.getElementById('zone-cards-container');
+            let cards = [];
+
+            if (currentExp === 'A') {
+                const isZ1 = car.d <= EXP_A_PUSH_DIST && car.phase !== 'READY';
+                const isZ2 = car.d > EXP_A_PUSH_DIST && car.d <= EXP_A_SMOOTH_END;
+                const isZ3 = car.d > EXP_A_SMOOTH_END;
+
+                cards = lang === 'en' ? [
+                    {
+                        active: isZ1,
+                        border: 'border-amber-400', bg: 'bg-amber-50/90', badgeBg: 'bg-amber-600',
+                        badge: 'Zone 1',
+                        title: 'Hand Push (Amber)',
+                        desc: 'Forward Force <strong><i>F</i> &gt; 0</strong> acts on the car &rarr; Speed <i>v</i> increases (curve bends upward).'
+                    },
+                    {
+                        active: isZ2,
+                        border: 'border-green-500', bg: 'bg-green-50/90', badgeBg: 'bg-green-600',
+                        badge: 'Zone 2',
+                        title: 'Frictionless Track (Green)',
+                        desc: '<strong><i>F</i> = 0 N (No Force!)</strong> &rarr; Car coasts at <strong>constant speed <i>v</i></strong> (straight line).'
+                    },
+                    {
+                        active: isZ3,
+                        border: 'border-red-500', bg: 'bg-red-50/90', badgeBg: 'bg-red-600',
+                        badge: 'Zone 3',
+                        title: 'Frictional Ground (Red)',
+                        desc: 'Backward <strong>Frictional Force</strong> opposes motion &rarr; Car slows down to a stop (curve bends downward).'
+                    }
+                ] : [
+                    {
+                        active: isZ1,
+                        border: 'border-amber-400', bg: 'bg-amber-50/90', badgeBg: 'bg-amber-600',
+                        badge: '第一區',
+                        title: '手推加速區（橘色）',
+                        desc: '向前推力 <strong><i>F</i> &gt; 0</strong> 作用於小車 &rarr; 速率 <i>v</i> 增加（圖線向上彎曲）。'
+                    },
+                    {
+                        active: isZ2,
+                        border: 'border-green-500', bg: 'bg-green-50/90', badgeBg: 'bg-green-600',
+                        badge: '第二區',
+                        title: '無摩擦光滑面（綠色）',
+                        desc: '<strong><i>F</i> = 0 N（無向前作用力！）</strong> &rarr; 小車維持<strong>等速前進</strong>（斜率固定之斜直線）。'
+                    },
+                    {
+                        active: isZ3,
+                        border: 'border-red-500', bg: 'bg-red-50/90', badgeBg: 'bg-red-600',
+                        badge: '第三區',
+                        title: '粗糙摩擦地面（紅色）',
+                        desc: '向後的<strong>摩擦力 (Frictional Force)</strong> 阻礙運動 &rarr; 減速至靜止（圖線向下彎曲）。'
+                    }
+                ];
+            } else if (currentExp === 'B') {
+                const isMoving = car.phase === 'MOVING_SLOPE';
+                const isStopped = car.phase === 'REST_RECORDING' || car.phase === 'STOPPED';
+
+                cards = lang === 'en' ? [
+                    {
+                        active: isMoving,
+                        border: 'border-blue-500', bg: 'bg-blue-50/90', badgeBg: 'bg-blue-600',
+                        badge: 'Inclined Slope',
+                        title: 'Frictionless Ramp (Blue)',
+                        desc: 'Down-slope Force <strong><i>F</i> is CONSTANT</strong> throughout the descent &rarr; Speed <i>v</i> increases steadily (curve bends upward).'
+                    },
+                    {
+                        active: isMoving,
+                        border: 'border-indigo-400', bg: 'bg-indigo-50/90', badgeBg: 'bg-indigo-600',
+                        badge: 'Key Concept',
+                        title: 'Force vs. Speed on Slope',
+                        desc: 'Higher speed near the bottom does <strong>NOT</strong> mean a larger force <i>F</i>! Notice that the red Force arrow length never changes.'
+                    },
+                    {
+                        active: isStopped,
+                        border: 'border-slate-400', bg: 'bg-slate-100', badgeBg: 'bg-slate-600',
+                        badge: 'At Bottom',
+                        title: 'Stopped State (Gray)',
+                        desc: 'Once stopped at the bottom, <i>v</i> = 0 m/s and the graph records a flat horizontal line (slope = 0).'
+                    }
+                ] : [
+                    {
+                        active: isMoving,
+                        border: 'border-blue-500', bg: 'bg-blue-50/90', badgeBg: 'bg-blue-600',
+                        badge: '斜面區域',
+                        title: '無摩擦斜面（藍色）',
+                        desc: '沿斜面下滑力 <strong><i>F</i> 保持固定大小</strong> &rarr; 速率 <i>v</i> 隨時間穩定增加（圖線向上彎曲）。'
+                    },
+                    {
+                        active: isMoving,
+                        border: 'border-indigo-400', bg: 'bg-indigo-50/90', badgeBg: 'bg-indigo-600',
+                        badge: '核心觀念',
+                        title: '力與速率的關係',
+                        desc: '滑到底部時速率變快，<strong>不代表</strong>下滑力 <i>F</i> 變大！請注意車身紅色作用力箭頭的長度始終不變。'
+                    },
+                    {
+                        active: isStopped,
+                        border: 'border-slate-400', bg: 'bg-slate-100', badgeBg: 'bg-slate-600',
+                        badge: '抵達底端',
+                        title: '靜止狀態（灰色）',
+                        desc: '抵達斜面底端停止後，速率 <i>v</i> = 0 m/s，圖線呈現水平直線（切線斜率 = 0）。'
+                    }
+                ];
+            } else if (currentExp === 'C') {
+                const isZ1 = car.d <= EXP_C_SLOPE_LEN && car.phase !== 'READY';
+                const isZ2 = car.d > EXP_C_SLOPE_LEN && car.d <= EXP_C_SMOOTH_END;
+                const isZ3 = car.d > EXP_C_SMOOTH_END;
+
+                cards = lang === 'en' ? [
+                    {
+                        active: isZ1,
+                        border: 'border-blue-500', bg: 'bg-blue-50/90', badgeBg: 'bg-blue-600',
+                        badge: 'Zone 1',
+                        title: 'Inclined Slope (Blue)',
+                        desc: 'Constant forward force <strong><i>F</i> &gt; 0</strong> &rarr; Car accelerates down the ramp (blue curve bends upward).'
+                    },
+                    {
+                        active: isZ2,
+                        border: 'border-green-500', bg: 'bg-green-50/90', badgeBg: 'bg-green-600',
+                        badge: 'Zone 2',
+                        title: 'Frictionless Flat (Green)',
+                        desc: '<strong><i>F</i> = 0 N</strong> &rarr; Car coasts across the smooth flat track at constant peak speed (green straight line).'
+                    },
+                    {
+                        active: isZ3,
+                        border: 'border-red-500', bg: 'bg-red-50/90', badgeBg: 'bg-red-600',
+                        badge: 'Zone 3',
+                        title: 'Frictional Ground (Red)',
+                        desc: 'Backward <strong>Frictional Force</strong> slows the car to a stop on the rough ground (red curve bends downward).'
+                    }
+                ] : [
+                    {
+                        active: isZ1,
+                        border: 'border-blue-500', bg: 'bg-blue-50/90', badgeBg: 'bg-blue-600',
+                        badge: '第一區',
+                        title: '光滑斜面（藍色）',
+                        desc: '固定下滑力 <strong><i>F</i> &gt; 0</strong> &rarr; 小車沿斜面加速下滑（藍色曲線向上彎曲）。'
+                    },
+                    {
+                        active: isZ2,
+                        border: 'border-green-500', bg: 'bg-green-50/90', badgeBg: 'bg-green-600',
+                        badge: '第二區',
+                        title: '無摩擦水平面（綠色）',
+                        desc: '<strong><i>F</i> = 0 N</strong> &rarr; 小車在光滑水平面上以最高速率等速滑行（綠色斜直線）。'
+                    },
+                    {
+                        active: isZ3,
+                        border: 'border-red-500', bg: 'bg-red-50/90', badgeBg: 'bg-red-600',
+                        badge: '第三區',
+                        title: '粗糙摩擦地面（紅色）',
+                        desc: '向後的<strong>摩擦力</strong>使小車在粗糙地面減速至停止（紅色曲線向下彎曲）。'
+                    }
+                ];
+            } else {
+                // Experiment D (A -> B -> A)
+                const isPart1 = car.d <= EXP_D_FLAT1_END && car.phase !== 'READY';
+                const isPart2 = car.d > EXP_D_FLAT1_END && car.d <= EXP_D_SLOPE_END;
+                const isPart3 = car.d > EXP_D_SLOPE_END;
+
+                cards = lang === 'en' ? [
+                    {
+                        active: isPart1,
+                        border: 'border-emerald-500', bg: 'bg-emerald-50/90', badgeBg: 'bg-emerald-600',
+                        badge: 'Stage A1 (Upper Flat)',
+                        title: 'Push (Amber) → Smooth Flat 1 (Green)',
+                        desc: 'After the push, <strong><i>F</i> = 0 N</strong> &rarr; Car coasts at constant speed <strong><i>v</i><sub>1</sub></strong> (first green straight line).'
+                    },
+                    {
+                        active: isPart2,
+                        border: 'border-blue-500', bg: 'bg-blue-50/90', badgeBg: 'bg-blue-600',
+                        badge: 'Stage B (Slope)',
+                        title: 'Inclined Slope (Blue)',
+                        desc: 'Constant down-slope force <strong><i>F</i> &gt; 0</strong> accelerates the car from <i>v</i><sub>1</sub> to <i>v</i><sub>2</sub> (blue curve bends upward).'
+                    },
+                    {
+                        active: isPart3,
+                        border: 'border-rose-500', bg: 'bg-rose-50/90', badgeBg: 'bg-rose-600',
+                        badge: 'Stage A2 (Lower Flat)',
+                        title: 'Smooth Flat 2 (Green) → Rough (Red)',
+                        desc: 'On Smooth Flat 2, <strong><i>F</i> = 0 N again</strong> at higher speed <strong><i>v</i><sub>2</sub> &gt; <i>v</i><sub>1</sub></strong> (steeper green line), then friction slows car to rest!'
+                    }
+                ] : [
+                    {
+                        active: isPart1,
+                        border: 'border-emerald-500', bg: 'bg-emerald-50/90', badgeBg: 'bg-emerald-600',
+                        badge: '階段 A1（上段水平面）',
+                        title: '手推（橘）→ 上段光滑面（綠）',
+                        desc: '手放開後 <strong><i>F</i> = 0 N</strong> &rarr; 小車以固定速率 <strong><i>v</i><sub>1</sub></strong> 等速滑行（第一段綠色斜直線）。'
+                    },
+                    {
+                        active: isPart2,
+                        border: 'border-blue-500', bg: 'bg-blue-50/90', badgeBg: 'bg-blue-600',
+                        badge: '階段 B（中間斜面）',
+                        title: '光滑斜面加速（藍色）',
+                        desc: '固定向前的下滑力 <strong><i>F</i> &gt; 0</strong> 使小車由 <i>v</i><sub>1</sub> 加速至 <i>v</i><sub>2</sub>（藍色曲線向上彎曲）。'
+                    },
+                    {
+                        active: isPart3,
+                        border: 'border-rose-500', bg: 'bg-rose-50/90', badgeBg: 'bg-rose-600',
+                        badge: '階段 A2（下段水平面）',
+                        title: '下段光滑面（綠）→ 粗糙面（紅）',
+                        desc: '下段光滑面<strong>再次 <i>F</i> = 0 N</strong>，但以更高速率 <strong><i>v</i><sub>2</sub> &gt; <i>v</i><sub>1</sub></strong> 等速前進（更陡的綠色斜直線），最後受摩擦力減速停止！'
+                    }
+                ];
+            }
+
+            container.innerHTML = cards.map(c => `
+                <div class="zone-card rounded-xl border-2 p-4 flex flex-col justify-between gap-2 h-full ${c.bg} ${c.border} ${c.active ? 'zone-card-active ring-2 ring-offset-1 ring-indigo-500' : 'opacity-95'}">
+                    <div class="flex flex-col gap-1.5">
+                        <div class="flex items-center justify-between gap-1">
+                            <span class="${c.badgeBg} text-white text-xs font-extrabold px-2.5 py-0.5 rounded uppercase tracking-wider">${c.badge}</span>
+                            ${c.active ? `<span class="text-xs font-extrabold text-indigo-800 bg-indigo-100 px-2 py-0.5 rounded shrink-0">🚗 Active</span>` : ''}
+                        </div>
+                        <div class="font-extrabold text-slate-900 text-sm md:text-base leading-snug">${c.title}</div>
+                    </div>
+                    <div class="text-slate-800 text-xs md:text-sm leading-relaxed">${c.desc}</div>
+                </div>
+            `).join('');
+        }
+
+        function updateLiveHUD() {
+            document.getElementById('hud-t').textContent = `t = ${car.t.toFixed(2)} s`;
+            document.getElementById('hud-d').textContent = `d = ${car.d.toFixed(2)} m`;
+            document.getElementById('hud-v').textContent = `v = ${car.v.toFixed(2)} m/s`;
+
+            const badgeEl = document.getElementById('hud-phase-badge');
+            const headEl = document.getElementById('hud-headline');
+            const subEl = document.getElementById('hud-subtext');
+
+            let badgeText = '';
+            let badgeColor = '#2563eb';
+            let headline = '';
+            let subtext = '';
+
+            if (lang === 'en') {
+                if (currentExp === 'A') {
+                    if (car.phase === 'READY') {
+                        badgeText = 'EXP A: PREDICT & OBSERVE';
+                        badgeColor = '#2563eb';
+                        headline = 'Does a moving car need a continued forward force to keep moving?';
+                        subtext = 'Zones: Hand Push (Amber) → Frictionless Track (Green) → Frictional Ground (Red).';
+                    } else if (car.phase === 'PUSHING') {
+                        badgeText = 'ZONE 1: HAND PUSH';
+                        badgeColor = ZONE_COLORS.PUSH;
+                        headline = 'Forward Force F > 0 acts on the car → Speed v increases!';
+                        subtext = 'The amber curve bends upward because a forward force F is accelerating the car.';
+                    } else if (car.phase === 'COASTING_SMOOTH') {
+                        badgeText = 'ZONE 2: FRICTIONLESS TRACK';
+                        badgeColor = ZONE_COLORS.SMOOTH_FLAT;
+                        headline = 'F = 0 N (No Forward Force!) — Yet the car coasts at constant speed!';
+                        subtext = 'Motion at constant speed requires ZERO force! The green d–t segment is a straight line.';
+                    } else if (car.phase === 'BRAKING_ROUGH') {
+                        badgeText = 'ZONE 3: FRICTIONAL GROUND';
+                        badgeColor = ZONE_COLORS.ROUGH_FLAT;
+                        headline = 'Backward Frictional Force opposes motion → Speed v decreases to 0!';
+                        subtext = 'The red curve bends downward until its slope reaches zero (horizontal).';
+                    } else {
+                        badgeText = 'AT REST (v = 0 m/s, F = 0 N)';
+                        badgeColor = ZONE_COLORS.REST;
+                        headline = 'Car is stopped! Drag the car directly along the track to inspect any position!';
+                        subtext = 'Notice the gray horizontal line (slope = 0) recorded after stopping.';
+                    }
+                } else if (currentExp === 'B') {
+                    if (car.phase === 'READY') {
+                        badgeText = 'EXP B: INCLINED SLOPE (10°–45°)';
+                        badgeColor = ZONE_COLORS.SLOPE;
+                        headline = 'As the car rolls faster down the ramp, does the down-slope force F increase?';
+                        subtext = 'Release the car and watch the length of the red Force arrow F on the car.';
+                    } else if (car.phase === 'MOVING_SLOPE') {
+                        badgeText = 'ACCELERATING DOWN SLOPE';
+                        badgeColor = ZONE_COLORS.SLOPE;
+                        headline = 'Down-slope Force F stays CONSTANT, while Speed v increases steadily!';
+                        subtext = 'A steeper d–t tangent (higher speed) is caused by a CONSTANT force F acting over time.';
+                    } else {
+                        badgeText = 'STOPPED AT BOTTOM';
+                        badgeColor = ZONE_COLORS.REST;
+                        headline = 'Drag the car directly along the slope or change Ramp Angle (10°–45°) to compare curves!';
+                        subtext = 'You can adjust the Ramp Angle slider anytime to overlay another run on the graph.';
+                    }
+                } else if (currentExp === 'C') {
+                    if (car.phase === 'READY') {
+                        badgeText = 'EXP C: SLOPE → FLAT (10°–45°)';
+                        badgeColor = ZONE_COLORS.SLOPE;
+                        headline = 'Compare the motion across Blue Slope → Green Frictionless Flat → Red Frictional Ground!';
+                        subtext = 'Observe how the force vector and d–t curve shape change across each surface.';
+                    } else if (car.phase === 'MOVING_SLOPE') {
+                        badgeText = 'BLUE ZONE: INCLINED SLOPE';
+                        badgeColor = ZONE_COLORS.SLOPE;
+                        headline = 'Constant down-slope Force F > 0 → Speed v increases (blue curve bends UP).';
+                        subtext = 'Watch what happens to the Force arrow F when the car reaches the flat track!';
+                    } else if (car.phase === 'FLAT_SMOOTH') {
+                        badgeText = 'GREEN ZONE: FRICTIONLESS FLAT';
+                        badgeColor = ZONE_COLORS.SMOOTH_FLAT;
+                        headline = 'Force vanishes (F = 0 N)! Car coasts at constant peak speed (green straight line).';
+                        subtext = 'No forward force is needed to maintain constant speed on the smooth horizontal track!';
+                    } else if (car.phase === 'FLAT_ROUGH') {
+                        badgeText = 'RED ZONE: FRICTIONAL GROUND';
+                        badgeColor = ZONE_COLORS.ROUGH_FLAT;
+                        headline = 'Backward Frictional Force slows the car to a stop (red curve bends DOWN).';
+                        subtext = 'Once stopped, a gray horizontal line is recorded on the graph.';
+                    } else {
+                        badgeText = 'AT REST — DRAG CAR ANYWHERE ON TRACK';
+                        badgeColor = ZONE_COLORS.REST;
+                        headline = 'Drag the car directly across the Blue Slope, Green Smooth Flat, and Red Rough Ground!';
+                        subtext = 'Blue = Bending Up (F > 0) | Green = Straight (F = 0 N) | Red = Bending Down (Frictional Force).';
+                    }
+                } else {
+                    // EXP D (A -> B -> A)
+                    if (car.phase === 'READY') {
+                        badgeText = 'EXP D (A→B→A): TWO CONSTANT-SPEED ZONES';
+                        badgeColor = '#4f46e5';
+                        headline = 'Compare two Green Smooth Flats (before & after the ramp): does higher constant speed require a larger force?';
+                        subtext = 'Adjust both Initial Push and Ramp Angle (10°–45°), then press "Push Car"!';
+                    } else if (car.phase === 'PUSHING') {
+                        badgeText = 'ZONE 1: HAND PUSH (AMBER)';
+                        badgeColor = ZONE_COLORS.PUSH;
+                        headline = 'Forward Push Force F > 0 accelerates the car to speed v₁!';
+                        subtext = 'Amber curve bends upward while the hand pushes the car.';
+                    } else if (car.phase === 'COASTING_SMOOTH') {
+                        badgeText = 'ZONE 2: UPPER SMOOTH FLAT (GREEN 1)';
+                        badgeColor = ZONE_COLORS.SMOOTH_FLAT;
+                        headline = 'F = 0 N! Car coasts at constant speed v₁ (First Green Straight Line).';
+                        subtext = 'Watch what happens when the car reaches the Blue Slope!';
+                    } else if (car.phase === 'MOVING_SLOPE') {
+                        badgeText = 'ZONE 3: INCLINED SLOPE (BLUE)';
+                        badgeColor = ZONE_COLORS.SLOPE;
+                        headline = 'Constant down-slope Force F > 0 accelerates the car from v₁ to v₂!';
+                        subtext = 'Blue curve bends upward as speed increases down the slope.';
+                    } else if (car.phase === 'FLAT_SMOOTH') {
+                        badgeText = 'ZONE 4: LOWER SMOOTH FLAT (GREEN 2)';
+                        badgeColor = ZONE_COLORS.SMOOTH_FLAT;
+                        headline = 'F = 0 N AGAIN! Car coasts at a HIGHER constant speed v₂ > v₁ (Steeper Green Straight Line)!';
+                        subtext = 'Both Green Zones have F = 0 N, proving a higher constant speed does NOT require a larger force!';
+                    } else if (car.phase === 'FLAT_ROUGH') {
+                        badgeText = 'ZONE 5: FRICTIONAL GROUND (RED)';
+                        badgeColor = ZONE_COLORS.ROUGH_FLAT;
+                        headline = 'Backward Frictional Force slows the car from v₂ to rest (Red Curve bends DOWN).';
+                        subtext = 'After stopping, compare P1 (Upper Green) and P3 (Lower Green) on the d–t graph!';
+                    } else {
+                        badgeText = 'AT REST — COMPARE P1 (v₁) & P3 (v₂) ON GRAPH!';
+                        badgeColor = ZONE_COLORS.REST;
+                        headline = 'Both Green segments (P1 & P3) have F = 0 N, yet P3 has a steeper slope (v₂ > v₁)!';
+                        subtext = 'Drag the car across all 5 zones to verify the force vector and tangent slope at every point.';
+                    }
+                }
+            } else {
+                // Traditional Chinese HUD
+                if (currentExp === 'A') {
+                    if (car.phase === 'READY') {
+                        badgeText = '實驗 A：預測與觀察';
+                        badgeColor = '#2563eb';
+                        headline = '運動中的小車，需要持續向前的力才能維持運動嗎？';
+                        subtext = '分區：橘色手推加速區 → 綠色無摩擦光滑面 → 紅色粗糙摩擦地面。';
+                    } else if (car.phase === 'PUSHING') {
+                        badgeText = '第一區：手推加速區';
+                        badgeColor = ZONE_COLORS.PUSH;
+                        headline = '向前推力 F > 0 作用於小車 → 小車加速（速率 v 增加）！';
+                        subtext = '因為有向前的推力 F，橘色區段的 d–t 曲線向上彎曲（斜率變大）。';
+                    } else if (car.phase === 'COASTING_SMOOTH') {
+                        badgeText = '第二區：無摩擦光滑面';
+                        badgeColor = ZONE_COLORS.SMOOTH_FLAT;
+                        headline = 'F = 0 N（沒有任何向前作用力！）— 但小車依然維持等速前進！';
+                        subtext = '等速運動不需要向前的力！綠色區段 d–t 圖呈現斜率固定的斜直線。';
+                    } else if (car.phase === 'BRAKING_ROUGH') {
+                        badgeText = '第三區：粗糙摩擦地面';
+                        badgeColor = ZONE_COLORS.ROUGH_FLAT;
+                        headline = '向後的摩擦力 (Frictional Force) 阻礙運動 → 速率 v 逐漸減小至零！';
+                        subtext = '紅色區段 d–t 曲線向下彎曲，直到斜率變為零（水平線）。';
+                    } else {
+                        badgeText = '靜止狀態 (v = 0 m/s, F = 0 N)';
+                        badgeColor = ZONE_COLORS.REST;
+                        headline = '小車已停止！現在可直接在軌道上左右拖曳小車，檢視任意位置的受力與斜率！';
+                        subtext = '請觀察停止後記錄的灰色水平線（切線斜率 = 0）。';
+                    }
+                } else if (currentExp === 'B') {
+                    if (car.phase === 'READY') {
+                        badgeText = '實驗 B：斜面加速下滑 (10°–45°)';
+                        badgeColor = ZONE_COLORS.SLOPE;
+                        headline = '當小車沿斜面愈滑愈快時，沿斜面的下滑力 F 有變大嗎？';
+                        subtext = '請釋放小車，並仔細觀察車身上紅色作用力箭頭 F 的長度變化。';
+                    } else if (car.phase === 'MOVING_SLOPE') {
+                        badgeText = '沿藍色斜面等加速下滑中';
+                        badgeColor = ZONE_COLORS.SLOPE;
+                        headline = '沿斜面的下滑力 F 保持固定不變，而速率 v 持續增加！';
+                        subtext = 'd–t 圖切線愈來愈陡（速率變快），是由「固定大小的作用力 F」持續作用所造成！';
+                    } else {
+                        badgeText = '抵達底端停止（可直接拖曳小車）';
+                        badgeColor = ZONE_COLORS.REST;
+                        headline = '現在可直接在斜面上拖曳小車，或直接調整「斜面傾角 (10°–45°)」疊加比較不同圖線！';
+                        subtext = '無須清除圖線即可隨時改變斜面角度並再次釋放小車。';
+                    }
+                } else if (currentExp === 'C') {
+                    if (car.phase === 'READY') {
+                        badgeText = '實驗 C：斜面轉水平 (10°–45°)';
+                        badgeColor = ZONE_COLORS.SLOPE;
+                        headline = '比較三個區域的運動：藍色光滑斜面 → 綠色無摩擦水平面 → 紅色粗糙地面！';
+                        subtext = '觀察小車通過不同表面時，車身受力與 d–t 圖線彎曲形狀的變化。';
+                    } else if (car.phase === 'MOVING_SLOPE') {
+                        badgeText = '藍色區：光滑斜面加速';
+                        badgeColor = ZONE_COLORS.SLOPE;
+                        headline = '固定向前的下滑力 F > 0 → 速率增加（藍色 d–t 曲線向上彎曲）。';
+                        subtext = '注意小車進入綠色無摩擦水平面瞬間，作用力箭頭 F 的變化！';
+                    } else if (car.phase === 'FLAT_SMOOTH') {
+                        badgeText = '綠色區：無摩擦水平面';
+                        badgeColor = ZONE_COLORS.SMOOTH_FLAT;
+                        headline = '向前作用力消失 (F = 0 N)！小車以最高速率等速滑行（綠色段為斜直線）。';
+                        subtext = '在光滑水平面上維持等速運動，完全不需要任何向前的作用力！';
+                    } else if (car.phase === 'FLAT_ROUGH') {
+                        badgeText = '紅色區：粗糙摩擦地面';
+                        badgeColor = ZONE_COLORS.ROUGH_FLAT;
+                        headline = '向後的摩擦力 (Frictional Force) 使小車減速至停止（紅色曲線向下彎曲）。';
+                        subtext = '小車停止後，圖線將記錄一段灰色水平直線（代表靜止）。';
+                    } else {
+                        badgeText = '靜止狀態 — 可直接左右拖曳小車！';
+                        badgeColor = ZONE_COLORS.REST;
+                        headline = '請直接在軌道上拖曳小車橫跨藍色斜面、綠色光滑水平面與紅色粗糙地面！';
+                        subtext = '藍色＝向上彎 (F > 0)｜綠色＝斜直線 (F = 0 N)｜紅色＝向下彎 (摩擦力)｜灰色＝水平線 (靜止)。';
+                    }
+                } else {
+                    // 實驗 D (A -> B -> A)
+                    if (car.phase === 'READY') {
+                        badgeText = '實驗 D (A→B→A)：兩段等速運動終極對照';
+                        badgeColor = '#4f46e5';
+                        headline = '比較斜面前後的兩段「綠色光滑水平面」：較快的等速運動需要較大的作用力嗎？';
+                        subtext = '可同時調整「初始推力」與「斜面傾角 (10°–45°)」，再按「推動小車」！';
+                    } else if (car.phase === 'PUSHING') {
+                        badgeText = '第一區：手推加速（橘色）';
+                        badgeColor = ZONE_COLORS.PUSH;
+                        headline = '向前推力 F > 0 使小車加速至速率 v₁！';
+                        subtext = '手推車期間，橘色區段 d–t 曲線向上彎曲。';
+                    } else if (car.phase === 'COASTING_SMOOTH') {
+                        badgeText = '第二區：上段光滑水平面（綠色 1）';
+                        badgeColor = ZONE_COLORS.SMOOTH_FLAT;
+                        headline = 'F = 0 N！小車以固定速率 v₁ 等速滑行（第一段綠色斜直線）。';
+                        subtext = '請注意小車進入藍色斜面時的受力與速率變化！';
+                    } else if (car.phase === 'MOVING_SLOPE') {
+                        badgeText = '第三區：光滑斜面加速（藍色）';
+                        badgeColor = ZONE_COLORS.SLOPE;
+                        headline = '固定下滑力 F > 0 使小車由速率 v₁ 加速至更高之 v₂！';
+                        subtext = '沿斜面加速下滑期間，藍色區段 d–t 曲線向上彎曲。';
+                    } else if (car.phase === 'FLAT_SMOOTH') {
+                        badgeText = '第四區：下段光滑水平面（綠色 2）';
+                        badgeColor = ZONE_COLORS.SMOOTH_FLAT;
+                        headline = '再次 F = 0 N！小車以更高速率 v₂ > v₁ 等速前進（更陡的第二段綠色斜直線）！';
+                        subtext = '兩段綠色區的受力皆為 F = 0 N，證明「更快的等速運動完全不需要更大的作用力」！';
+                    } else if (car.phase === 'FLAT_ROUGH') {
+                        badgeText = '第五區：粗糙摩擦地面（紅色）';
+                        badgeColor = ZONE_COLORS.ROUGH_FLAT;
+                        headline = '向後的摩擦力使小車由 v₂ 減速至靜止（紅色曲線向下彎曲）。';
+                        subtext = '停止後，請對照 d–t 圖上的 P1（上段綠線）與 P3（下段綠線）！';
+                    } else {
+                        badgeText = '靜止狀態 — 對照圖上 P1 (v₁) 與 P3 (v₂) 的斜率！';
+                        badgeColor = ZONE_COLORS.REST;
+                        headline = 'P1 與 P3 兩段綠色斜直線皆為 F = 0 N，但 P3 的斜率明顯較陡 (v₂ > v₁)！';
+                        subtext = '請在軌道上直接拖曳小車橫跨五個區域，檢視各位置的受力與切線斜率。';
+                    }
+                }
+            }
+
+            badgeEl.textContent = badgeText;
+            badgeEl.style.backgroundColor = badgeColor;
+            headEl.textContent = headline;
+            subEl.textContent = subtext;
+        }
+
+        // ============================================================================
+        // PHYSICS ENGINE & RUN EXECUTION (A, B, C, D)
+        // ============================================================================
+        function getPhaseColor(phase) {
+            if (phase === 'PUSHING') return ZONE_COLORS.PUSH;
+            if (phase === 'MOVING_SLOPE') return ZONE_COLORS.SLOPE;
+            if (phase === 'COASTING_SMOOTH' || phase === 'FLAT_SMOOTH') return ZONE_COLORS.SMOOTH_FLAT;
+            if (phase === 'BRAKING_ROUGH' || phase === 'FLAT_ROUGH') return ZONE_COLORS.ROUGH_FLAT;
+            return ZONE_COLORS.REST;
+        }
+
+        function startRun() {
+            stopAnimation();
+            resetCarState();
+
+            const color = RUN_COLORS[runs.length % RUN_COLORS.length];
+            const newRun = {
+                id: runs.length + 1,
+                exp: currentExp,
+                presetKey: pushPreset,
+                angleDeg: rampAngleDeg,
+                color: color,
+                visible: true,
+                data: [],
+                markers: []
+            };
+
+            if (currentExp === 'A' || currentExp === 'D') {
+                const targetV = PUSH_PRESETS[pushPreset].targetV;
+                const pushDist = (currentExp === 'A') ? EXP_A_PUSH_DIST : EXP_D_PUSH_END;
+                car.a = (targetV * targetV) / (2 * pushDist);
+                car.F_forward = car.a;
+                car.F_friction = 0;
+                car.phase = 'PUSHING';
+            } else {
+                const rad = rampAngleDeg * Math.PI / 180;
+                car.a = G_ACCEL * Math.sin(rad);
+                car.F_forward = car.a;
+                car.F_friction = 0;
+                car.phase = 'MOVING_SLOPE';
+            }
+
+            newRun.data.push({
+                t: 0, d: 0, v: 0, a: car.a,
+                F_forward: car.F_forward, F_friction: car.F_friction,
+                phase: car.phase
+            });
+
+            runs.push(newRun);
+            activeRunIndex = runs.length - 1;
+            updateRunPills();
+            updateScrubBarUI();
+            renderZoneCards();
+            updateLiveHUD();
+
+            document.getElementById('btn-pause').disabled = false;
+
+            let lastTimestamp = performance.now();
+            function step(now) {
+                const rawDt = (now - lastTimestamp) / 1000;
+                lastTimestamp = now;
+
+                if (!isPaused) {
+                    const dt = Math.min(rawDt, 0.025);
+                    updatePhysics(dt, newRun);
+                    renderZoneCards();
+                    updateLiveHUD();
+                    drawScene();
+                    drawGraph();
+                    updateTangentReadouts();
+                }
+
+                if (car.phase !== 'STOPPED') {
+                    animId = requestAnimationFrame(step);
+                } else {
+                    animId = null;
+                    document.getElementById('btn-pause').disabled = true;
+                    updateScrubBarUI();
+                    if (tangentPoints.length === 0 && newRun.data.length > 10) {
+                        autoPlacePedagogicalTangents(newRun);
+                    }
+                    renderZoneCards();
+                    updateLiveHUD();
+                    drawScene();
+                    drawGraph();
+                    updateTangentReadouts();
+                }
+            }
+            animId = requestAnimationFrame(step);
+        }
+
+        function updatePhysics(dt, runRecord) {
+            car.t += dt;
+
+            if (currentExp === 'A') {
+                const preset = PUSH_PRESETS[pushPreset];
+                if (car.phase === 'PUSHING') {
+                    car.v += car.a * dt;
+                    car.d += car.v * dt;
+                    if (car.d >= EXP_A_PUSH_DIST) {
+                        car.d = EXP_A_PUSH_DIST;
+                        car.v = preset.targetV;
+                        car.a = 0;
+                        car.F_forward = 0;
+                        car.F_friction = 0;
+                        car.phase = 'COASTING_SMOOTH';
+                        runRecord.markers.push({ t: car.t, d: car.d, color: ZONE_COLORS.SMOOTH_FLAT });
+                    }
+                } else if (car.phase === 'COASTING_SMOOTH') {
+                    car.a = 0;
+                    car.F_forward = 0;
+                    car.F_friction = 0;
+                    car.d += car.v * dt;
+                    if (car.d >= EXP_A_SMOOTH_END) {
+                        car.d = EXP_A_SMOOTH_END;
+                        car.phase = 'BRAKING_ROUGH';
+                        car.a = -preset.decel;
+                        car.F_forward = 0;
+                        car.F_friction = preset.decel;
+                        runRecord.markers.push({ t: car.t, d: car.d, color: ZONE_COLORS.ROUGH_FLAT });
+                    }
+                } else if (car.phase === 'BRAKING_ROUGH') {
+                    car.v += car.a * dt;
+                    if (car.v <= 0) {
+                        car.v = 0;
+                        car.a = 0;
+                        car.F_forward = 0;
+                        car.F_friction = 0;
+                        car.phase = 'REST_RECORDING';
+                        car.restElapsed = 0;
+                        runRecord.markers.push({ t: car.t, d: car.d, color: ZONE_COLORS.REST });
+                    } else {
+                        car.d += car.v * dt;
+                    }
+                } else if (car.phase === 'REST_RECORDING') {
+                    car.v = 0;
+                    car.a = 0;
+                    car.F_forward = 0;
+                    car.F_friction = 0;
+                    car.restElapsed += dt;
+                    if (car.restElapsed >= POST_STOP_DURATION) {
+                        car.phase = 'STOPPED';
+                    }
+                }
+            } else if (currentExp === 'B') {
+                if (car.phase === 'MOVING_SLOPE') {
+                    car.v += car.a * dt;
+                    car.d += car.v * dt;
+                    if (car.d >= EXP_B_MAX_DIST) {
+                        car.d = EXP_B_MAX_DIST;
+                        car.v = 0;
+                        car.a = 0;
+                        car.F_forward = 0;
+                        car.F_friction = 0;
+                        car.phase = 'REST_RECORDING';
+                        car.restElapsed = 0;
+                        runRecord.markers.push({ t: car.t, d: car.d, color: ZONE_COLORS.REST });
+                    }
+                } else if (car.phase === 'REST_RECORDING') {
+                    car.v = 0;
+                    car.a = 0;
+                    car.F_forward = 0;
+                    car.F_friction = 0;
+                    car.restElapsed += dt;
+                    if (car.restElapsed >= POST_STOP_DURATION) {
+                        car.phase = 'STOPPED';
+                    }
+                }
+            } else if (currentExp === 'C') {
+                if (car.phase === 'MOVING_SLOPE') {
+                    car.v += car.a * dt;
+                    car.d += car.v * dt;
+                    if (car.d >= EXP_C_SLOPE_LEN) {
+                        car.d = EXP_C_SLOPE_LEN;
+                        car.phase = 'FLAT_SMOOTH';
+                        car.a = 0;
+                        car.F_forward = 0;
+                        car.F_friction = 0;
+                        runRecord.markers.push({ t: car.t, d: car.d, color: ZONE_COLORS.SMOOTH_FLAT });
+                    }
+                } else if (car.phase === 'FLAT_SMOOTH') {
+                    car.a = 0;
+                    car.F_forward = 0;
+                    car.F_friction = 0;
+                    car.d += car.v * dt;
+                    if (car.d >= EXP_C_SMOOTH_END) {
+                        car.d = EXP_C_SMOOTH_END;
+                        car.phase = 'FLAT_ROUGH';
+                        const flatFrictionDecel = 3.3;
+                        car.a = -flatFrictionDecel;
+                        car.F_forward = 0;
+                        car.F_friction = flatFrictionDecel;
+                        runRecord.markers.push({ t: car.t, d: car.d, color: ZONE_COLORS.ROUGH_FLAT });
+                    }
+                } else if (car.phase === 'FLAT_ROUGH') {
+                    car.v += car.a * dt;
+                    if (car.v <= 0) {
+                        car.v = 0;
+                        car.a = 0;
+                        car.F_forward = 0;
+                        car.F_friction = 0;
+                        car.phase = 'REST_RECORDING';
+                        car.restElapsed = 0;
+                        runRecord.markers.push({ t: car.t, d: car.d, color: ZONE_COLORS.REST });
+                    } else {
+                        car.d += car.v * dt;
+                    }
+                } else if (car.phase === 'REST_RECORDING') {
+                    car.v = 0;
+                    car.a = 0;
+                    car.F_forward = 0;
+                    car.F_friction = 0;
+                    car.restElapsed += dt;
+                    if (car.restElapsed >= POST_STOP_DURATION) {
+                        car.phase = 'STOPPED';
+                    }
+                }
+            } else if (currentExp === 'D') {
+                // EXP D: Push (0-0.5m) -> Upper Smooth Flat (0.5-3.5m) -> Slope (3.5-7.5m) -> Lower Smooth Flat (7.5-11.5m) -> Rough Flat (11.5-16.0m)
+                const preset = PUSH_PRESETS[pushPreset];
+                if (car.phase === 'PUSHING') {
+                    car.v += car.a * dt;
+                    car.d += car.v * dt;
+                    if (car.d >= EXP_D_PUSH_END) {
+                        car.d = EXP_D_PUSH_END;
+                        car.v = preset.targetV;
+                        car.a = 0;
+                        car.F_forward = 0;
+                        car.F_friction = 0;
+                        car.phase = 'COASTING_SMOOTH';
+                        runRecord.markers.push({ t: car.t, d: car.d, color: ZONE_COLORS.SMOOTH_FLAT });
+                    }
+                } else if (car.phase === 'COASTING_SMOOTH') {
+                    car.a = 0;
+                    car.F_forward = 0;
+                    car.F_friction = 0;
+                    car.d += car.v * dt;
+                    if (car.d >= EXP_D_FLAT1_END) {
+                        car.d = EXP_D_FLAT1_END;
+                        const rad = rampAngleDeg * Math.PI / 180;
+                        car.a = G_ACCEL * Math.sin(rad);
+                        car.F_forward = car.a;
+                        car.F_friction = 0;
+                        car.phase = 'MOVING_SLOPE';
+                        runRecord.markers.push({ t: car.t, d: car.d, color: ZONE_COLORS.SLOPE });
+                    }
+                } else if (car.phase === 'MOVING_SLOPE') {
+                    car.v += car.a * dt;
+                    car.d += car.v * dt;
+                    if (car.d >= EXP_D_SLOPE_END) {
+                        car.d = EXP_D_SLOPE_END;
+                        // Exact energy conservation speed at bottom of 4.0m slope
+                        const rad = rampAngleDeg * Math.PI / 180;
+                        const aSlope = G_ACCEL * Math.sin(rad);
+                        const slopeLen = EXP_D_SLOPE_END - EXP_D_FLAT1_END;
+                        car.v = Math.sqrt(preset.targetV * preset.targetV + 2 * aSlope * slopeLen);
+                        car.a = 0;
+                        car.F_forward = 0;
+                        car.F_friction = 0;
+                        car.phase = 'FLAT_SMOOTH';
+                        runRecord.markers.push({ t: car.t, d: car.d, color: ZONE_COLORS.SMOOTH_FLAT });
+                    }
+                } else if (car.phase === 'FLAT_SMOOTH') {
+                    car.a = 0;
+                    car.F_forward = 0;
+                    car.F_friction = 0;
+                    car.d += car.v * dt;
+                    if (car.d >= EXP_D_FLAT2_END) {
+                        car.d = EXP_D_FLAT2_END;
+                        const roughDecel = 4.6; // Ensures clean stop inside 11.5m–16.0m even for Strong push + 45° slope
+                        car.a = -roughDecel;
+                        car.F_forward = 0;
+                        car.F_friction = roughDecel;
+                        car.phase = 'FLAT_ROUGH';
+                        runRecord.markers.push({ t: car.t, d: car.d, color: ZONE_COLORS.ROUGH_FLAT });
+                    }
+                } else if (car.phase === 'FLAT_ROUGH') {
+                    car.v += car.a * dt;
+                    if (car.v <= 0) {
+                        car.v = 0;
+                        car.a = 0;
+                        car.F_forward = 0;
+                        car.F_friction = 0;
+                        car.phase = 'REST_RECORDING';
+                        car.restElapsed = 0;
+                        runRecord.markers.push({ t: car.t, d: car.d, color: ZONE_COLORS.REST });
+                    } else {
+                        car.d += car.v * dt;
+                    }
+                } else if (car.phase === 'REST_RECORDING') {
+                    car.v = 0;
+                    car.a = 0;
+                    car.F_forward = 0;
+                    car.F_friction = 0;
+                    car.restElapsed += dt;
+                    if (car.restElapsed >= POST_STOP_DURATION) {
+                        car.phase = 'STOPPED';
+                    }
+                }
+            }
+
+            runRecord.data.push({
+                t: car.t,
+                d: car.d,
+                v: car.v,
+                a: car.a,
+                F_forward: car.F_forward,
+                F_friction: car.F_friction,
+                phase: car.phase === 'STOPPED' ? 'REST_RECORDING' : car.phase
+            });
+        }
+
+        // ============================================================================
+        // POST-RUN CAR SCRUBBING
+        // ============================================================================
+        function canUserDragCar() {
+            if (activeRunIndex < 0 || !runs[activeRunIndex]) return false;
+            return (animId === null || car.phase === 'REST_RECORDING' || car.phase === 'STOPPED');
+        }
+
+        function updateScrubBarUI() {
+            const bar = document.getElementById('scrub-bar');
+            const slider = document.getElementById('scrub-slider');
+            const readout = document.getElementById('scrub-readout');
+
+            if (canUserDragCar()) {
+                const run = runs[activeRunIndex];
+                if (run.data.length > 2) {
+                    bar.classList.remove('hidden');
+                    bar.classList.add('flex');
+                    const maxT = run.data[run.data.length - 1].t;
+                    slider.max = maxT.toFixed(2);
+                    slider.value = car.t.toFixed(2);
+                    readout.textContent = `t=${car.t.toFixed(2)}s, d=${car.d.toFixed(2)}m`;
+                    return;
+                }
+            }
+            bar.classList.add('hidden');
+            bar.classList.remove('flex');
+        }
+
+        function scrubToTime(targetT) {
+            if (activeRunIndex < 0 || !runs[activeRunIndex]) return;
+            stopAnimation();
+            document.getElementById('btn-pause').disabled = true;
+
+            const run = runs[activeRunIndex];
+            const sample = interpolateRunAtTime(run, targetT);
+            if (!sample) return;
+
+            car.t = sample.t;
+            car.d = sample.d;
+            car.v = sample.v;
+            car.a = sample.a;
+            car.F_forward = sample.F_forward;
+            car.F_friction = sample.F_friction;
+            car.phase = sample.phase;
+
+            const slider = document.getElementById('scrub-slider');
+            const readout = document.getElementById('scrub-readout');
+            if (slider) slider.value = car.t;
+            if (readout) readout.textContent = `t=${car.t.toFixed(2)}s, d=${car.d.toFixed(2)}m`;
+
+            renderZoneCards();
+            updateLiveHUD();
+            drawScene();
+            drawGraph();
+        }
+
+        function scrubToDistance(targetD) {
+            if (activeRunIndex < 0 || !runs[activeRunIndex]) return;
+            stopAnimation();
+            document.getElementById('btn-pause').disabled = true;
+            updateScrubBarUI();
+
+            const run = runs[activeRunIndex];
+            const data = run.data;
+            if (data.length < 2) return;
+
+            const maxRecordedD = data[data.length - 1].d;
+            if (targetD <= 0) {
+                scrubToTime(0);
+                return;
+            }
+
+            if (targetD <= maxRecordedD) {
+                for (let i = 0; i < data.length - 1; i++) {
+                    const p1 = data[i];
+                    const p2 = data[i + 1];
+                    if (targetD >= p1.d && targetD <= p2.d && p2.d > p1.d) {
+                        const ratio = (targetD - p1.d) / (p2.d - p1.d);
+                        const interpT = p1.t + ratio * (p2.t - p1.t);
+                        scrubToTime(interpT);
+                        return;
+                    }
+                }
+            }
+
+            const lastSample = data[data.length - 1];
+            car.t = lastSample.t;
+            car.d = targetD;
+            car.v = 0;
+            car.a = 0;
+            car.F_forward = 0;
+            car.F_friction = 0;
+            car.phase = 'REST_RECORDING';
+
+            const slider = document.getElementById('scrub-slider');
+            const readout = document.getElementById('scrub-readout');
+            if (slider) slider.value = car.t;
+            if (readout) readout.textContent = `t=${car.t.toFixed(2)}s, d=${car.d.toFixed(2)}m`;
+
+            renderZoneCards();
+            updateLiveHUD();
+            drawScene();
+            drawGraph();
+        }
+
+        // ============================================================================
+        // DYNAMIC CENTERED GEOMETRY FOR SQUARE CANVAS (640 x 640) UP TO 45 DEG
+        // ============================================================================
+        function getExpAGeometry(W, H) {
+            const startX = 52;
+            const endX = W - 52;
+            const trackY = H / 2 + 30;
+            const pxPerMeter = (endX - startX) / EXP_A_MAX_DIST;
+            const pushEndX = startX + EXP_A_PUSH_DIST * pxPerMeter;
+            const smoothEndX = startX + EXP_A_SMOOTH_END * pxPerMeter;
+            return { startX, endX, trackY, pxPerMeter, pushEndX, smoothEndX };
+        }
+
+        function getExpBGeometry(W, H) {
+            const slopeLenMeters = EXP_B_MAX_DIST;
+            const pxPerMeter = 76;
+            const rad = rampAngleDeg * Math.PI / 180;
+            const totalLenPx = slopeLenMeters * pxPerMeter;
+            const dx = totalLenPx * Math.cos(rad);
+            const dy = totalLenPx * Math.sin(rad);
+
+            const visualTopPad = 48;
+            const startX = (W - dx) / 2;
+            const startY = (H - dy) / 2 + visualTopPad / 2;
+            const endX = startX + dx;
+            const endY = startY + dy;
+
+            return { startX, startY, endX, endY, pxPerMeter, rad, slopeLenMeters };
+        }
+
+        function getExpCGeometry(W, H) {
+            const pxPerMeter = 36;
+            const rad = rampAngleDeg * Math.PI / 180;
+            const slopePx = EXP_C_SLOPE_LEN * pxPerMeter;
+            const flatPx = (EXP_C_MAX_DIST - EXP_C_SLOPE_LEN) * pxPerMeter;
+
+            const slopeDx = slopePx * Math.cos(rad);
+            const slopeDy = slopePx * Math.sin(rad);
+            const totalW = slopeDx + flatPx;
+
+            const visualTopPad = 52;
+            const startX = (W - totalW) / 2;
+            const startY = (H - slopeDy) / 2 + visualTopPad / 2;
+            const jointX = startX + slopeDx;
+            const jointY = startY + slopeDy;
+            const smoothFlatEndX = jointX + (EXP_C_SMOOTH_END - EXP_C_SLOPE_LEN) * pxPerMeter;
+            const flatEndX = jointX + flatPx;
+
+            return { startX, startY, jointX, jointY, smoothFlatEndX, flatEndX, pxPerMeter, rad };
+        }
+
+        function getExpDGeometry(W, H) {
+            const pxPerMeter = 33; // Fits 16m total length cleanly inside 640x640 canvas
+            const rad = rampAngleDeg * Math.PI / 180;
+
+            const flat1Px = EXP_D_FLAT1_END * pxPerMeter;
+            const pushPx = EXP_D_PUSH_END * pxPerMeter;
+            const slopeLenMeters = EXP_D_SLOPE_END - EXP_D_FLAT1_END; // 4.0m
+            const slopePx = slopeLenMeters * pxPerMeter;
+            const flat2SmoothPx = (EXP_D_FLAT2_END - EXP_D_SLOPE_END) * pxPerMeter; // 4.0m
+            const flat2RoughPx = (EXP_D_MAX_DIST - EXP_D_FLAT2_END) * pxPerMeter; // 4.5m
+
+            const slopeDx = slopePx * Math.cos(rad);
+            const slopeDy = slopePx * Math.sin(rad);
+            const totalW = flat1Px + slopeDx + flat2SmoothPx + flat2RoughPx;
+
+            const visualTopPad = 54;
+            const startX = (W - totalW) / 2;
+            const upperY = (H - slopeDy) / 2 + visualTopPad / 2;
+            const pushEndX = startX + pushPx;
+            const slopeStartX = startX + flat1Px;
+            const slopeStartY = upperY;
+            const slopeEndX = slopeStartX + slopeDx;
+            const lowerY = upperY + slopeDy;
+            const flat2SmoothEndX = slopeEndX + flat2SmoothPx;
+            const endX = flat2SmoothEndX + flat2RoughPx;
+
+            return {
+                startX, upperY, pushEndX,
+                slopeStartX, slopeStartY,
+                slopeEndX, lowerY,
+                flat2SmoothEndX, endX,
+                pxPerMeter, rad
+            };
+        }
+
+        // ============================================================================
+        // SCENE RENDERING ON SQUARE CANVAS (640 x 640)
+        // ============================================================================
+        function drawScene() {
+            const W = simCanvas.width;
+            const H = simCanvas.height;
+            simCtx.clearRect(0, 0, W, H);
+
+            // Subtle Square Grid
+            simCtx.strokeStyle = '#f1f5f9';
+            simCtx.lineWidth = 1;
+            for (let x = 0; x <= W; x += 40) {
+                simCtx.beginPath(); simCtx.moveTo(x, 0); simCtx.lineTo(x, H); simCtx.stroke();
+            }
+            for (let y = 0; y <= H; y += 40) {
+                simCtx.beginPath(); simCtx.moveTo(0, y); simCtx.lineTo(W, y); simCtx.stroke();
+            }
+
+            if (currentExp === 'A') {
+                drawExpATrackAndCar(W, H);
+            } else if (currentExp === 'B') {
+                drawExpBTrackAndCar(W, H);
+            } else if (currentExp === 'C') {
+                drawExpCTrackAndCar(W, H);
+            } else {
+                drawExpDTrackAndCar(W, H);
+            }
+        }
+
+        function drawExpATrackAndCar(W, H) {
+            const { startX, endX, trackY, pxPerMeter, pushEndX, smoothEndX } = getExpAGeometry(W, H);
+
+            simCtx.save();
+
+            // 1. Zone 1: Hand Push - Amber
+            simCtx.fillStyle = '#fef3c7';
+            simCtx.fillRect(startX, trackY, pushEndX - startX, 20);
+            simCtx.strokeStyle = ZONE_COLORS.PUSH;
+            simCtx.lineWidth = 4.5;
+            simCtx.beginPath(); simCtx.moveTo(startX, trackY); simCtx.lineTo(pushEndX, trackY); simCtx.stroke();
+
+            // 2. Zone 2: Frictionless Surface - Green
+            simCtx.fillStyle = '#dcfce7';
+            simCtx.fillRect(pushEndX, trackY, smoothEndX - pushEndX, 20);
+            simCtx.strokeStyle = ZONE_COLORS.SMOOTH_FLAT;
+            simCtx.lineWidth = 4.5;
+            simCtx.beginPath(); simCtx.moveTo(pushEndX, trackY); simCtx.lineTo(smoothEndX, trackY); simCtx.stroke();
+
+            // 3. Zone 3: Frictional Surface - Red
+            simCtx.fillStyle = '#fee2e2';
+            simCtx.fillRect(smoothEndX, trackY, endX - smoothEndX, 20);
+            simCtx.strokeStyle = ZONE_COLORS.ROUGH_FLAT;
+            simCtx.lineWidth = 4.5;
+            simCtx.beginPath(); simCtx.moveTo(smoothEndX, trackY); simCtx.lineTo(endX, trackY); simCtx.stroke();
+
+            // Rough Hatched Texture on Red Zone
+            simCtx.strokeStyle = '#f87171';
+            simCtx.lineWidth = 1.5;
+            for (let x = smoothEndX + 8; x < endX - 4; x += 10) {
+                simCtx.beginPath();
+                simCtx.moveTo(x, trackY + 2);
+                simCtx.lineTo(x - 6, trackY + 18);
+                simCtx.stroke();
+            }
+
+            // Distance Ticks
+            simCtx.fillStyle = '#0f172a';
+            simCtx.font = 'bold 13px monospace';
+            simCtx.textAlign = 'center';
+            for (let m = 0; m <= 6.5; m += 0.5) {
+                const tx = startX + m * pxPerMeter;
+                const isMajor = (m % 1 === 0) || m === 3.5 || m === 6.5;
+                simCtx.strokeStyle = '#64748b';
+                simCtx.lineWidth = isMajor ? 2 : 1;
+                simCtx.beginPath();
+                simCtx.moveTo(tx, trackY + 20);
+                simCtx.lineTo(tx, trackY + (isMajor ? 32 : 26));
+                simCtx.stroke();
+                if (m % 1 === 0 || m === 6.5) {
+                    simCtx.fillText(m.toFixed(0) + 'm', tx, trackY + 48);
+                }
+            }
+
+            // Boundary Dashed Lines & Callout Pills
+            simCtx.setLineDash([5, 4]);
+            simCtx.strokeStyle = ZONE_COLORS.PUSH;
+            simCtx.lineWidth = 1.5;
+            simCtx.beginPath(); simCtx.moveTo(pushEndX, trackY - 145); simCtx.lineTo(pushEndX, trackY + 20); simCtx.stroke();
+
+            simCtx.strokeStyle = ZONE_COLORS.ROUGH_FLAT;
+            simCtx.beginPath(); simCtx.moveTo(smoothEndX, trackY - 145); simCtx.lineTo(smoothEndX, trackY + 20); simCtx.stroke();
+            simCtx.setLineDash([]);
+
+            drawCalloutPill(pushEndX + 20, trackY - 160, tStr('releasePtA'), '#b45309', '#fffbeb');
+            drawCalloutPill(smoothEndX, trackY - 160, tStr('roughStartsA'), '#b91c1c', '#fef2f2');
+
+            // Draw Car
+            const carX = startX + car.d * pxPerMeter;
+            drawCarWithForceVector(carX, trackY, 0);
+
+            simCtx.restore();
+        }
+
+        function drawExpBTrackAndCar(W, H) {
+            const { startX, startY, endX, endY, pxPerMeter, rad, slopeLenMeters } = getExpBGeometry(W, H);
+
+            simCtx.save();
+
+            // Support Triangle under Ramp
+            simCtx.fillStyle = '#eff6ff';
+            simCtx.strokeStyle = '#93c5fd';
+            simCtx.lineWidth = 1.5;
+            simCtx.beginPath();
+            simCtx.moveTo(startX, startY);
+            simCtx.lineTo(endX, endY);
+            simCtx.lineTo(startX, endY);
+            simCtx.closePath();
+            simCtx.fill();
+            simCtx.stroke();
+
+            // Angle Arc & Label
+            simCtx.strokeStyle = ZONE_COLORS.SLOPE;
+            simCtx.lineWidth = 2.5;
+            simCtx.beginPath();
+            simCtx.arc(endX, endY, 64, Math.PI, Math.PI + rad);
+            simCtx.stroke();
+            simCtx.fillStyle = '#1d4ed8';
+            simCtx.font = 'bold 15px "Segoe UI", sans-serif';
+            simCtx.fillText(`θ = ${rampAngleDeg}°`, endX - 125, endY - 10);
+
+            // Smooth Blue Ramp Surface Line
+            simCtx.strokeStyle = ZONE_COLORS.SLOPE;
+            simCtx.lineWidth = 5.5;
+            simCtx.beginPath();
+            simCtx.moveTo(startX, startY);
+            simCtx.lineTo(endX, endY);
+            simCtx.stroke();
+
+            // Distance Ticks along slope
+            simCtx.fillStyle = '#0f172a';
+            simCtx.font = 'bold 13px monospace';
+            simCtx.textAlign = 'center';
+            for (let m = 0; m <= slopeLenMeters; m += 1) {
+                const tx = startX + m * pxPerMeter * Math.cos(rad);
+                const ty = startY + m * pxPerMeter * Math.sin(rad);
+                const nx = -Math.sin(rad);
+                const ny = Math.cos(rad);
+                simCtx.strokeStyle = '#64748b';
+                simCtx.lineWidth = 2;
+                simCtx.beginPath();
+                simCtx.moveTo(tx, ty);
+                simCtx.lineTo(tx + nx * 10, ty + ny * 10);
+                simCtx.stroke();
+                simCtx.fillText(m + 'm', tx + nx * 25, ty + ny * 25);
+            }
+
+            const carX = startX + car.d * pxPerMeter * Math.cos(rad);
+            const carY = startY + car.d * pxPerMeter * Math.sin(rad);
+            drawCarWithForceVector(carX, carY, rad);
+
+            simCtx.restore();
+        }
+
+        function drawExpCTrackAndCar(W, H) {
+            const { startX, startY, jointX, jointY, smoothFlatEndX, flatEndX, pxPerMeter, rad } = getExpCGeometry(W, H);
+
+            simCtx.save();
+
+            // Ramp Support Wedge
+            simCtx.fillStyle = '#eff6ff';
+            simCtx.strokeStyle = '#93c5fd';
+            simCtx.lineWidth = 1.5;
+            simCtx.beginPath();
+            simCtx.moveTo(startX, startY);
+            simCtx.lineTo(jointX, jointY);
+            simCtx.lineTo(startX, jointY);
+            simCtx.closePath();
+            simCtx.fill();
+            simCtx.stroke();
+
+            simCtx.fillStyle = '#1d4ed8';
+            simCtx.font = 'bold 13.5px "Segoe UI", sans-serif';
+            simCtx.fillText(`θ = ${rampAngleDeg}°`, Math.max(startX + 6, jointX - 82), jointY - 8);
+
+            // 1. BLUE Slope Surface
+            simCtx.strokeStyle = ZONE_COLORS.SLOPE;
+            simCtx.lineWidth = 5.5;
+            simCtx.beginPath();
+            simCtx.moveTo(startX, startY);
+            simCtx.lineTo(jointX, jointY);
+            simCtx.stroke();
+
+            // 2. GREEN Frictionless Horizontal Surface
+            simCtx.fillStyle = '#dcfce7';
+            simCtx.fillRect(jointX, jointY, smoothFlatEndX - jointX, 20);
+            simCtx.strokeStyle = ZONE_COLORS.SMOOTH_FLAT;
+            simCtx.lineWidth = 5;
+            simCtx.beginPath();
+            simCtx.moveTo(jointX, jointY);
+            simCtx.lineTo(smoothFlatEndX, jointY);
+            simCtx.stroke();
+
+            // 3. RED Frictional Horizontal Ground
+            simCtx.fillStyle = '#fee2e2';
+            simCtx.fillRect(smoothFlatEndX, jointY, flatEndX - smoothFlatEndX, 20);
+            simCtx.strokeStyle = ZONE_COLORS.ROUGH_FLAT;
+            simCtx.lineWidth = 5;
+            simCtx.beginPath();
+            simCtx.moveTo(smoothFlatEndX, jointY);
+            simCtx.lineTo(flatEndX, jointY);
+            simCtx.stroke();
+
+            simCtx.strokeStyle = '#f87171';
+            simCtx.lineWidth = 1.5;
+            for (let x = smoothFlatEndX + 8; x < flatEndX - 4; x += 10) {
+                simCtx.beginPath();
+                simCtx.moveTo(x, jointY + 2);
+                simCtx.lineTo(x - 6, jointY + 18);
+                simCtx.stroke();
+            }
+
+            // Transition Vertical Dashed Markers
+            simCtx.setLineDash([5, 4]);
+            simCtx.lineWidth = 1.5;
+            simCtx.strokeStyle = ZONE_COLORS.SMOOTH_FLAT;
+            simCtx.beginPath(); simCtx.moveTo(jointX, jointY - 120); simCtx.lineTo(jointX, jointY + 20); simCtx.stroke();
+
+            simCtx.strokeStyle = ZONE_COLORS.ROUGH_FLAT;
+            simCtx.beginPath(); simCtx.moveTo(smoothFlatEndX, jointY - 120); simCtx.lineTo(smoothFlatEndX, jointY + 20); simCtx.stroke();
+            simCtx.setLineDash([]);
+
+            drawCalloutPill(jointX, jointY - 135, tStr('transitionPtC'), '#15803d', '#f0fdf4');
+            drawCalloutPill(smoothFlatEndX, jointY - 135, tStr('roughStartsC'), '#b91c1c', '#fef2f2');
+
+            // Ticks on Slope & Flat
+            simCtx.fillStyle = '#0f172a';
+            simCtx.font = 'bold 12px monospace';
+            simCtx.textAlign = 'center';
+            for (let m = 0; m <= 5; m += 1) {
+                const tx = startX + m * pxPerMeter * Math.cos(rad);
+                const ty = startY + m * pxPerMeter * Math.sin(rad);
+                if (m % 5 === 0) simCtx.fillText(m + 'm', tx - 8, ty + 26);
+            }
+            for (let m = 6; m <= 15; m += 1) {
+                const tx = jointX + (m - 5) * pxPerMeter;
+                const isMajor = (m === 10 || m === 15);
+                simCtx.strokeStyle = '#64748b';
+                simCtx.lineWidth = isMajor ? 2 : 1;
+                simCtx.beginPath();
+                simCtx.moveTo(tx, jointY + 20);
+                simCtx.lineTo(tx, jointY + (isMajor ? 30 : 25));
+                simCtx.stroke();
+                if (m === 10 || m === 15) {
+                    simCtx.fillText(m + 'm', tx, jointY + 45);
+                }
+            }
+
+            if (car.d <= EXP_C_SLOPE_LEN) {
+                const carX = startX + car.d * pxPerMeter * Math.cos(rad);
+                const carY = startY + car.d * pxPerMeter * Math.sin(rad);
+                drawCarWithForceVector(carX, carY, rad);
+            } else {
+                const carX = jointX + (car.d - EXP_C_SLOPE_LEN) * pxPerMeter;
+                drawCarWithForceVector(carX, jointY, 0);
+            }
+
+            simCtx.restore();
+        }
+
+        function drawExpDTrackAndCar(W, H) {
+            const {
+                startX, upperY, pushEndX,
+                slopeStartX, slopeStartY,
+                slopeEndX, lowerY,
+                flat2SmoothEndX, endX,
+                pxPerMeter, rad
+            } = getExpDGeometry(W, H);
+
+            simCtx.save();
+
+            // Support Platform under Upper Track & Slope
+            simCtx.fillStyle = '#f8fafc';
+            simCtx.strokeStyle = '#cbd5e1';
+            simCtx.lineWidth = 1.5;
+            simCtx.beginPath();
+            simCtx.moveTo(startX, upperY);
+            simCtx.lineTo(slopeStartX, upperY);
+            simCtx.lineTo(slopeEndX, lowerY);
+            simCtx.lineTo(startX, lowerY);
+            simCtx.closePath();
+            simCtx.fill();
+            simCtx.stroke();
+
+            // Blue Slope Wedge Highlight
+            simCtx.fillStyle = '#eff6ff';
+            simCtx.strokeStyle = '#93c5fd';
+            simCtx.beginPath();
+            simCtx.moveTo(slopeStartX, slopeStartY);
+            simCtx.lineTo(slopeEndX, lowerY);
+            simCtx.lineTo(slopeStartX, lowerY);
+            simCtx.closePath();
+            simCtx.fill();
+            simCtx.stroke();
+
+            // Angle label inside wedge
+            simCtx.fillStyle = '#1d4ed8';
+            simCtx.font = 'bold 12.5px "Segoe UI", sans-serif';
+            simCtx.fillText(`θ = ${rampAngleDeg}°`, slopeStartX + 6, lowerY - 6);
+
+            // 1. Zone 1: Hand Push (Amber, 0 to 0.5m)
+            simCtx.fillStyle = '#fef3c7';
+            simCtx.fillRect(startX, upperY, pushEndX - startX, 16);
+            simCtx.strokeStyle = ZONE_COLORS.PUSH;
+            simCtx.lineWidth = 5;
+            simCtx.beginPath(); simCtx.moveTo(startX, upperY); simCtx.lineTo(pushEndX, upperY); simCtx.stroke();
+
+            // 2. Zone 2: Upper Smooth Flat (Green, 0.5m to 3.5m)
+            simCtx.fillStyle = '#dcfce7';
+            simCtx.fillRect(pushEndX, upperY, slopeStartX - pushEndX, 16);
+            simCtx.strokeStyle = ZONE_COLORS.SMOOTH_FLAT;
+            simCtx.lineWidth = 5;
+            simCtx.beginPath(); simCtx.moveTo(pushEndX, upperY); simCtx.lineTo(slopeStartX, upperY); simCtx.stroke();
+
+            // 3. Zone 3: Inclined Slope (Blue, 3.5m to 7.5m)
+            simCtx.strokeStyle = ZONE_COLORS.SLOPE;
+            simCtx.lineWidth = 5.5;
+            simCtx.beginPath(); simCtx.moveTo(slopeStartX, slopeStartY); simCtx.lineTo(slopeEndX, lowerY); simCtx.stroke();
+
+            // 4. Zone 4: Lower Smooth Flat (Green, 7.5m to 11.5m)
+            simCtx.fillStyle = '#dcfce7';
+            simCtx.fillRect(slopeEndX, lowerY, flat2SmoothEndX - slopeEndX, 18);
+            simCtx.strokeStyle = ZONE_COLORS.SMOOTH_FLAT;
+            simCtx.lineWidth = 5;
+            simCtx.beginPath(); simCtx.moveTo(slopeEndX, lowerY); simCtx.lineTo(flat2SmoothEndX, lowerY); simCtx.stroke();
+
+            // 5. Zone 5: Lower Frictional Ground (Red, 11.5m to 16.0m)
+            simCtx.fillStyle = '#fee2e2';
+            simCtx.fillRect(flat2SmoothEndX, lowerY, endX - flat2SmoothEndX, 18);
+            simCtx.strokeStyle = ZONE_COLORS.ROUGH_FLAT;
+            simCtx.lineWidth = 5;
+            simCtx.beginPath(); simCtx.moveTo(flat2SmoothEndX, lowerY); simCtx.lineTo(endX, lowerY); simCtx.stroke();
+
+            // Hatching on Red Zone
+            simCtx.strokeStyle = '#f87171';
+            simCtx.lineWidth = 1.5;
+            for (let x = flat2SmoothEndX + 7; x < endX - 3; x += 9) {
+                simCtx.beginPath();
+                simCtx.moveTo(x, lowerY + 2);
+                simCtx.lineTo(x - 5, lowerY + 16);
+                simCtx.stroke();
+            }
+
+            // Dashed Boundary Lines & Callouts
+            simCtx.setLineDash([4, 4]);
+            simCtx.lineWidth = 1.5;
+
+            simCtx.strokeStyle = ZONE_COLORS.SLOPE;
+            simCtx.beginPath(); simCtx.moveTo(slopeStartX, upperY - 95); simCtx.lineTo(slopeStartX, upperY + 16); simCtx.stroke();
+
+            simCtx.strokeStyle = ZONE_COLORS.SMOOTH_FLAT;
+            simCtx.beginPath(); simCtx.moveTo(slopeEndX, lowerY - 95); simCtx.lineTo(slopeEndX, lowerY + 18); simCtx.stroke();
+
+            simCtx.strokeStyle = ZONE_COLORS.ROUGH_FLAT;
+            simCtx.beginPath(); simCtx.moveTo(flat2SmoothEndX, lowerY - 95); simCtx.lineTo(flat2SmoothEndX, lowerY + 18); simCtx.stroke();
+            simCtx.setLineDash([]);
+
+            drawCalloutPill(slopeStartX, upperY - 110, tStr('slopeStartsD'), '#1d4ed8', '#eff6ff');
+            drawCalloutPill(slopeEndX, lowerY - 110, tStr('flat2StartsD'), '#15803d', '#f0fdf4');
+            drawCalloutPill(flat2SmoothEndX + 20, lowerY - 110, tStr('roughStartsD'), '#b91c1c', '#fef2f2');
+
+            // Distance Labels
+            simCtx.fillStyle = '#0f172a';
+            simCtx.font = 'bold 11.5px monospace';
+            simCtx.textAlign = 'center';
+            simCtx.fillText('0m', startX, upperY + 32);
+            simCtx.fillText('3.5m', slopeStartX, upperY + 32);
+            simCtx.fillText('7.5m', slopeEndX, lowerY + 36);
+            simCtx.fillText('11.5m', flat2SmoothEndX, lowerY + 36);
+            simCtx.fillText('16m', endX, lowerY + 36);
+
+            // Compute Car Position & Angle along the 5-Zone A-B-A Track
+            let carX = startX;
+            let carY = upperY;
+            let carAngle = 0;
+
+            if (car.d <= EXP_D_FLAT1_END) {
+                carX = startX + car.d * pxPerMeter;
+                carY = upperY;
+                carAngle = 0;
+            } else if (car.d <= EXP_D_SLOPE_END) {
+                const sDist = car.d - EXP_D_FLAT1_END;
+                carX = slopeStartX + sDist * pxPerMeter * Math.cos(rad);
+                carY = slopeStartY + sDist * pxPerMeter * Math.sin(rad);
+                carAngle = rad;
+            } else {
+                const fDist = car.d - EXP_D_SLOPE_END;
+                carX = slopeEndX + fDist * pxPerMeter;
+                carY = lowerY;
+                carAngle = 0;
+            }
+
+            drawCarWithForceVector(carX, carY, carAngle);
+
+            simCtx.restore();
+        }
+
+        function drawCalloutPill(cx, cy, text, borderColor, bgColor) {
+            simCtx.save();
+            simCtx.font = 'bold 12px "Segoe UI", "Microsoft JhengHei", sans-serif';
+            const w = simCtx.measureText(text).width + 18;
+            const clampedX = Math.min(Math.max(cx, w / 2 + 10), simCanvas.width - w / 2 - 10);
+            simCtx.fillStyle = bgColor;
+            simCtx.strokeStyle = borderColor;
+            simCtx.lineWidth = 1.5;
+            roundRect(simCtx, clampedX - w / 2, cy - 12, w, 24, 7, true, true);
+            simCtx.fillStyle = borderColor;
+            simCtx.textAlign = 'center';
+            simCtx.textBaseline = 'middle';
+            simCtx.fillText(text, clampedX, cy);
+            simCtx.restore();
+        }
+
+        // ============================================================================
+        // CAR & SIMPLIFIED FORCE VECTOR RENDERER
+        // ============================================================================
+        function drawCarWithForceVector(x, y, angleRad) {
+            const showForces = document.getElementById('chk-forces').checked;
+
+            simCtx.save();
+            simCtx.translate(x, y);
+            simCtx.rotate(angleRad);
+
+            const carW = 54;
+            const carH = 22;
+            const wheelR = 6;
+            const comY = -wheelR - carH / 2;
+
+            const draggable = canUserDragCar();
+            if (draggable) {
+                simCtx.fillStyle = 'rgba(79, 70, 229, 0.14)';
+                simCtx.strokeStyle = 'rgba(79, 70, 229, 0.6)';
+                simCtx.lineWidth = 2;
+                roundRect(simCtx, -carW / 2 - 8, -wheelR - carH - 14, carW + 16, carH + wheelR + 18, 10, true, true);
+            }
+
+            // 1. Wheels
+            simCtx.fillStyle = '#1e293b';
+            simCtx.strokeStyle = '#475569';
+            simCtx.lineWidth = 2;
+            [-15, 15].forEach(wx => {
+                simCtx.beginPath();
+                simCtx.arc(wx, -wheelR, wheelR, 0, Math.PI * 2);
+                simCtx.fill();
+                simCtx.stroke();
+            });
+
+            // 2. Car Body
+            simCtx.fillStyle = '#2563eb';
+            simCtx.strokeStyle = '#1d4ed8';
+            simCtx.lineWidth = 1.5;
+            roundRect(simCtx, -carW / 2, -wheelR - carH, carW, carH, 6, true, true);
+
+            // Cabin Top
+            simCtx.fillStyle = '#93c5fd';
+            roundRect(simCtx, -13, -wheelR - carH - 8, 24, 8, 4, true, false);
+
+            // 3. Free-Body Center of Mass Dot on Car Body
+            simCtx.fillStyle = '#10b981';
+            simCtx.strokeStyle = '#ffffff';
+            simCtx.lineWidth = 2;
+            simCtx.beginPath();
+            simCtx.arc(0, comY, 4.5, 0, Math.PI * 2);
+            simCtx.fill();
+            simCtx.stroke();
+
+            // 4. Simplified Force Vector (F, F = 0 N, or Frictional Force)
+            if (showForces) {
+                if (car.phase === 'PUSHING') {
+                    const fLen = 50 + car.F_forward * 5;
+                    drawVectorArrow(0, comY, fLen, comY, ZONE_COLORS.PUSH, 5);
+                    drawVectorLabel(fLen / 2 + 10, comY - 30, tStr('vecPush'), '#b45309', '#fffbeb');
+                } else if (car.phase === 'COASTING_SMOOTH' || car.phase === 'FLAT_SMOOTH') {
+                    drawVectorLabel(0, comY - 32, tStr('vecZeroNet'), '#15803d', '#f0fdf4');
+                } else if (car.phase === 'BRAKING_ROUGH' || car.phase === 'FLAT_ROUGH') {
+                    const fLen = 54;
+                    drawVectorArrow(0, comY, -fLen, comY, ZONE_COLORS.ROUGH_FLAT, 5);
+                    drawVectorLabel(-fLen / 2 - 8, comY - 30, tStr('vecFriction'), '#b91c1c', '#fef2f2');
+                } else if (car.phase === 'MOVING_SLOPE' || (car.phase === 'READY' && (currentExp === 'B' || currentExp === 'C'))) {
+                    const rad = rampAngleDeg * Math.PI / 180;
+                    const fGrav = G_ACCEL * Math.sin(rad);
+                    const fLen = 38 + fGrav * 15;
+                    drawVectorArrow(0, comY, fLen, comY, '#dc2626', 5);
+                    drawVectorLabel(fLen / 2 + 10, comY - 30, tStr('vecGravity'), '#b91c1c', '#fef2f2');
+                } else if (car.phase === 'REST_RECORDING' || car.phase === 'STOPPED') {
+                    drawVectorLabel(0, comY - 30, tStr('vecAtRest'), '#334155', '#f1f5f9');
+                }
+            }
+
+            if (draggable && (car.phase === 'STOPPED' || car.phase === 'REST_RECORDING' || car.phase === 'READY')) {
+                drawVectorLabel(0, comY - 60, tStr('dragMeHint'), '#4338ca', '#eef2ff');
+            }
+
+            simCtx.restore();
+        }
+
+        function drawVectorArrow(x1, y1, x2, y2, color, lineWidth) {
+            const headLen = 11;
+            const angle = Math.atan2(y2 - y1, x2 - x1);
+
+            simCtx.save();
+            simCtx.strokeStyle = color;
+            simCtx.fillStyle = color;
+            simCtx.lineWidth = lineWidth;
+
+            simCtx.beginPath();
+            simCtx.moveTo(x1, y1);
+            simCtx.lineTo(x2 - headLen * 0.7 * Math.cos(angle), y2 - headLen * 0.7 * Math.sin(angle));
+            simCtx.stroke();
+
+            simCtx.beginPath();
+            simCtx.moveTo(x2, y2);
+            simCtx.lineTo(x2 - headLen * Math.cos(angle - Math.PI / 6), y2 - headLen * Math.sin(angle - Math.PI / 6));
+            simCtx.lineTo(x2 - headLen * Math.cos(angle + Math.PI / 6), y2 - headLen * Math.sin(angle + Math.PI / 6));
+            simCtx.closePath();
+            simCtx.fill();
+            simCtx.restore();
+        }
+
+        function drawVectorLabel(cx, cy, text, textColor, bgColor) {
+            simCtx.save();
+            simCtx.font = 'bold 12px "Segoe UI", "Microsoft JhengHei", sans-serif';
+            const padX = 9;
+            const w = simCtx.measureText(text).width + padX * 2;
+            const h = 23;
+
+            simCtx.fillStyle = bgColor;
+            simCtx.strokeStyle = textColor;
+            simCtx.lineWidth = 1.5;
+            roundRect(simCtx, cx - w / 2, cy - h / 2, w, h, 6, true, true);
+
+            simCtx.fillStyle = textColor;
+            simCtx.textAlign = 'center';
+            simCtx.textBaseline = 'middle';
+            simCtx.fillText(text, cx, cy);
+            simCtx.restore();
+        }
+
+        // ============================================================================
+        // DRAGGING THE CAR ON THE SQUARE SIMULATION CANVAS (MATCHES EXPT A, B, C, D)
+        // ============================================================================
+        function getSimMouseCoords(evt) {
+            const rect = simCanvas.getBoundingClientRect();
+            const scaleX = simCanvas.width / rect.width;
+            const scaleY = simCanvas.height / rect.height;
+            const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+            const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+
+        function convertSimMouseToDistance(pos) {
+            const W = simCanvas.width;
+            const H = simCanvas.height;
+            if (currentExp === 'A') {
+                const { startX, pxPerMeter } = getExpAGeometry(W, H);
+                return Math.max(0, Math.min(EXP_A_MAX_DIST, (pos.x - startX) / pxPerMeter));
+            } else if (currentExp === 'B') {
+                const { startX, startY, pxPerMeter, rad } = getExpBGeometry(W, H);
+                const dx = pos.x - startX;
+                const dy = pos.y - startY;
+                const projPx = dx * Math.cos(rad) + dy * Math.sin(rad);
+                return Math.max(0, Math.min(EXP_B_MAX_DIST, projPx / pxPerMeter));
+            } else if (currentExp === 'C') {
+                const { startX, startY, jointX, pxPerMeter, rad } = getExpCGeometry(W, H);
+                if (pos.x <= jointX) {
+                    const dx = pos.x - startX;
+                    const dy = pos.y - startY;
+                    const projPx = dx * Math.cos(rad) + dy * Math.sin(rad);
+                    return Math.max(0, Math.min(EXP_C_SLOPE_LEN, projPx / pxPerMeter));
+                } else {
+                    const flatDist = (pos.x - jointX) / pxPerMeter;
+                    return Math.max(EXP_C_SLOPE_LEN, Math.min(EXP_C_MAX_DIST, EXP_C_SLOPE_LEN + flatDist));
+                }
+            } else {
+                // EXP D (A -> B -> A)
+                const { startX, slopeStartX, slopeStartY, slopeEndX, pxPerMeter, rad } = getExpDGeometry(W, H);
+                if (pos.x <= slopeStartX) {
+                    return Math.max(0, Math.min(EXP_D_FLAT1_END, (pos.x - startX) / pxPerMeter));
+                } else if (pos.x <= slopeEndX) {
+                    const dx = pos.x - slopeStartX;
+                    const dy = pos.y - slopeStartY;
+                    const projPx = dx * Math.cos(rad) + dy * Math.sin(rad);
+                    const sDist = Math.max(0, Math.min(EXP_D_SLOPE_END - EXP_D_FLAT1_END, projPx / pxPerMeter));
+                    return EXP_D_FLAT1_END + sDist;
+                } else {
+                    const fDist = (pos.x - slopeEndX) / pxPerMeter;
+                    return Math.max(EXP_D_SLOPE_END, Math.min(EXP_D_MAX_DIST, EXP_D_SLOPE_END + fDist));
+                }
+            }
+        }
+
+        simCanvas.addEventListener('mousedown', (evt) => {
+            if (!canUserDragCar()) return;
+            const pos = getSimMouseCoords(evt);
+            isDraggingCar = true;
+            simCanvas.style.cursor = 'grabbing';
+            const targetD = convertSimMouseToDistance(pos);
+            scrubToDistance(targetD);
+        });
+
+        simCanvas.addEventListener('touchstart', (evt) => {
+            if (!canUserDragCar()) return;
+            const pos = getSimMouseCoords(evt);
+            if (evt.cancelable) evt.preventDefault();
+            isDraggingCar = true;
+            const targetD = convertSimMouseToDistance(pos);
+            scrubToDistance(targetD);
+        }, { passive: false });
+
+        window.addEventListener('mousemove', (evt) => {
+            if (isDraggingCar) {
+                const pos = getSimMouseCoords(evt);
+                const targetD = convertSimMouseToDistance(pos);
+                scrubToDistance(targetD);
+            } else if (canUserDragCar()) {
+                simCanvas.style.cursor = 'grab';
+            } else {
+                simCanvas.style.cursor = 'default';
+            }
+        });
+
+        window.addEventListener('touchmove', (evt) => {
+            if (!isDraggingCar) return;
+            if (evt.cancelable) evt.preventDefault();
+            const pos = getSimMouseCoords(evt);
+            const targetD = convertSimMouseToDistance(pos);
+            scrubToDistance(targetD);
+        }, { passive: false });
+
+        window.addEventListener('mouseup', () => {
+            if (isDraggingCar) {
+                isDraggingCar = false;
+                simCanvas.style.cursor = canUserDragCar() ? 'grab' : 'default';
+            }
+        });
+        window.addEventListener('touchend', () => { isDraggingCar = false; });
+
+        // ============================================================================
+        // RIGHT CANVAS: INTERACTIVE d-t GRAPH WITH COLOR-CODED SEGMENTS
+        // ============================================================================
+        function getGraphBounds() {
+            const pad = { left: 64, right: 30, top: 38, bottom: 52 };
+            const plotW = graphCanvas.width - pad.left - pad.right;
+            const plotH = graphCanvas.height - pad.top - pad.bottom;
+
+            let maxT = 6.0;
+            let maxD = (currentExp === 'A') ? 6.5 : (currentExp === 'B' ? 6.5 : (currentExp === 'C' ? 15.0 : 16.0));
+
+            runs.forEach(r => {
+                if (r.visible && r.data.length > 0) {
+                    const lastPt = r.data[r.data.length - 1];
+                    if (lastPt.t > maxT - 0.3) maxT = Math.ceil((lastPt.t + 0.4) * 2) / 2;
+                    if (lastPt.d > maxD - 0.3) maxD = Math.ceil(lastPt.d + 0.5);
+                }
+            });
+
+            return { pad, plotW, plotH, maxT, maxD };
+        }
+
+        function drawGraph() {
+            const W = graphCanvas.width;
+            const H = graphCanvas.height;
+            graphCtx.clearRect(0, 0, W, H);
+
+            const { pad, plotW, plotH, maxT, maxD } = getGraphBounds();
+            const toX = t => pad.left + (t / maxT) * plotW;
+            const toY = d => pad.top + plotH - (d / maxD) * plotH;
+
+            // 1. Grid Lines & Axes
+            graphCtx.strokeStyle = '#e2e8f0';
+            graphCtx.lineWidth = 1;
+            graphCtx.fillStyle = '#334155';
+            graphCtx.font = 'bold 12.5px monospace';
+
+            const tStep = maxT <= 6 ? 0.5 : (maxT <= 10 ? 1.0 : 2.0);
+            graphCtx.textAlign = 'center';
+            for (let t = 0; t <= maxT + 0.01; t += tStep) {
+                const x = toX(t);
+                graphCtx.beginPath(); graphCtx.moveTo(x, pad.top); graphCtx.lineTo(x, pad.top + plotH); graphCtx.stroke();
+                graphCtx.fillText(t.toFixed(1) + 's', x, pad.top + plotH + 20);
+            }
+
+            const dStep = maxD <= 7 ? 1.0 : 2.0;
+            graphCtx.textAlign = 'right';
+            for (let d = 0; d <= maxD + 0.01; d += dStep) {
+                const y = toY(d);
+                graphCtx.beginPath(); graphCtx.moveTo(pad.left, y); graphCtx.lineTo(pad.left + plotW, y); graphCtx.stroke();
+                graphCtx.fillText(d.toFixed(1) + 'm', pad.left - 10, y + 4);
+            }
+
+            // Axes Borders
+            graphCtx.strokeStyle = '#334155';
+            graphCtx.lineWidth = 2;
+            graphCtx.beginPath();
+            graphCtx.moveTo(pad.left, pad.top);
+            graphCtx.lineTo(pad.left, pad.top + plotH);
+            graphCtx.lineTo(pad.left + plotW, pad.top + plotH);
+            graphCtx.stroke();
+
+            // Axis Titles
+            graphCtx.fillStyle = '#0f172a';
+            graphCtx.font = 'bold 14.5px "Segoe UI", "Microsoft JhengHei", sans-serif';
+            graphCtx.textAlign = 'center';
+            graphCtx.fillText(tStr('axisTime'), pad.left + plotW / 2, H - 10);
+
+            graphCtx.save();
+            graphCtx.translate(18, pad.top + plotH / 2);
+            graphCtx.rotate(-Math.PI / 2);
+            graphCtx.fillText(tStr('axisDist'), 0, 0);
+            graphCtx.restore();
+
+            // 2. Plot Recorded Curves
+            runs.forEach((run, idx) => {
+                if (!run.visible || run.data.length < 2) return;
+                const isActive = (idx === activeRunIndex);
+
+                graphCtx.save();
+                graphCtx.lineCap = 'round';
+                graphCtx.lineJoin = 'round';
+
+                if (isActive) {
+                    graphCtx.lineWidth = 4.2;
+                    let segStartIdx = 0;
+                    for (let i = 1; i < run.data.length; i++) {
+                        const prevPhase = run.data[segStartIdx].phase;
+                        const curPhase = run.data[i].phase;
+                        if (curPhase !== prevPhase || i === run.data.length - 1) {
+                            graphCtx.strokeStyle = getPhaseColor(prevPhase);
+                            graphCtx.beginPath();
+                            for (let k = segStartIdx; k <= i; k++) {
+                                const px = toX(run.data[k].t);
+                                const py = toY(run.data[k].d);
+                                if (k === segStartIdx) graphCtx.moveTo(px, py);
+                                else graphCtx.lineTo(px, py);
+                            }
+                            graphCtx.stroke();
+                            segStartIdx = i;
+                        }
+                    }
+                } else {
+                    graphCtx.strokeStyle = run.color;
+                    graphCtx.lineWidth = 2.4;
+                    graphCtx.globalAlpha = 0.55;
+                    graphCtx.beginPath();
+                    run.data.forEach((pt, i) => {
+                        const px = toX(pt.t);
+                        const py = toY(pt.d);
+                        if (i === 0) graphCtx.moveTo(px, py);
+                        else graphCtx.lineTo(px, py);
+                    });
+                    graphCtx.stroke();
+                }
+
+                // Transition Boundary Dots on Curve
+                run.markers.forEach(m => {
+                    const mx = toX(m.t);
+                    const my = toY(m.d);
+                    graphCtx.fillStyle = '#ffffff';
+                    graphCtx.strokeStyle = m.color;
+                    graphCtx.lineWidth = 2.5;
+                    graphCtx.beginPath();
+                    graphCtx.arc(mx, my, 5.5, 0, Math.PI * 2);
+                    graphCtx.fill();
+                    graphCtx.stroke();
+                });
+
+                graphCtx.restore();
+            });
+
+            // 3. Draw Multi-Point Tangents (P1, P2, P3) on Active Run
+            if (activeRunIndex >= 0 && runs[activeRunIndex] && runs[activeRunIndex].visible) {
+                const activeRun = runs[activeRunIndex];
+                tangentPoints.forEach((tp, idx) => {
+                    const sample = interpolateRunAtTime(activeRun, tp.t);
+                    if (!sample) return;
+
+                    const cx = toX(sample.t);
+                    const cy = toY(sample.d);
+
+                    const dtSpan = maxT * 0.1;
+                    const t1 = Math.max(0, sample.t - dtSpan);
+                    const t2 = Math.min(maxT, sample.t + dtSpan);
+                    const d1 = sample.d + sample.v * (t1 - sample.t);
+                    const d2 = sample.d + sample.v * (t2 - sample.t);
+
+                    graphCtx.save();
+                    graphCtx.strokeStyle = tp.color;
+                    graphCtx.lineWidth = 2.5;
+                    graphCtx.setLineDash([6, 4]);
+                    graphCtx.beginPath();
+                    graphCtx.moveTo(toX(t1), toY(d1));
+                    graphCtx.lineTo(toX(t2), toY(d2));
+                    graphCtx.stroke();
+                    graphCtx.setLineDash([]);
+
+                    // Draggable Point Handle
+                    graphCtx.fillStyle = tp.color;
+                    graphCtx.strokeStyle = '#ffffff';
+                    graphCtx.lineWidth = 2.5;
+                    graphCtx.beginPath();
+                    graphCtx.arc(cx, cy, 7.5, 0, Math.PI * 2);
+                    graphCtx.fill();
+                    graphCtx.stroke();
+
+                    // Compact Staggered Label Pill
+                    const lbl = `P${idx + 1}: v=${sample.v.toFixed(2)}m/s`;
+                    graphCtx.font = 'bold 12px "Segoe UI", sans-serif';
+                    const lw = graphCtx.measureText(lbl).width + 14;
+                    const offsetY = (idx % 2 === 0) ? 14 : -34;
+                    const boxX = Math.min(Math.max(cx - lw / 2, pad.left + 4), pad.left + plotW - lw - 4);
+                    const boxY = Math.min(Math.max(cy + offsetY, pad.top + 34), pad.top + plotH - 24);
+
+                    graphCtx.fillStyle = '#ffffff';
+                    graphCtx.strokeStyle = tp.color;
+                    graphCtx.lineWidth = 1.5;
+                    roundRect(graphCtx, boxX, boxY, lw, 22, 5, true, true);
+                    graphCtx.fillStyle = tp.color;
+                    graphCtx.textAlign = 'center';
+                    graphCtx.textBaseline = 'middle';
+                    graphCtx.fillText(lbl, boxX + lw / 2, boxY + 11);
+                    graphCtx.restore();
+                });
+            }
+
+            // 4. Draw Synchronized Live/Scrubbed Car Position Marker on Active Curve
+            if (activeRunIndex >= 0 && runs[activeRunIndex] && runs[activeRunIndex].visible) {
+                const run = runs[activeRunIndex];
+                const maxRecordedD = run.data[run.data.length - 1].d;
+                const curveD = Math.min(car.d, maxRecordedD);
+                const cx = toX(car.t);
+                const cy = toY(curveD);
+
+                graphCtx.save();
+                graphCtx.strokeStyle = 'rgba(79, 70, 229, 0.5)';
+                graphCtx.lineWidth = 1.5;
+                graphCtx.setLineDash([4, 3]);
+                graphCtx.beginPath();
+                graphCtx.moveTo(cx, pad.top + plotH);
+                graphCtx.lineTo(cx, cy);
+                graphCtx.lineTo(pad.left, cy);
+                graphCtx.stroke();
+                graphCtx.setLineDash([]);
+
+                graphCtx.fillStyle = '#4f46e5';
+                graphCtx.strokeStyle = '#ffffff';
+                graphCtx.lineWidth = 2.5;
+                graphCtx.beginPath();
+                graphCtx.arc(cx, cy, 8, 0, Math.PI * 2);
+                graphCtx.fill();
+                graphCtx.stroke();
+
+                const carLbl = `🚗 (${car.t.toFixed(2)}s, ${curveD.toFixed(2)}m)  v = ${car.v.toFixed(2)} m/s`;
+                graphCtx.font = 'bold 12.5px "Segoe UI", "Microsoft JhengHei", sans-serif';
+                const cw = graphCtx.measureText(carLbl).width + 18;
+                const pillX = pad.left + 8;
+                const pillY = pad.top + 6;
+
+                graphCtx.fillStyle = '#eef2ff';
+                graphCtx.strokeStyle = '#4f46e5';
+                graphCtx.lineWidth = 1.5;
+                roundRect(graphCtx, pillX, pillY, cw, 24, 6, true, true);
+                graphCtx.fillStyle = '#312e81';
+                graphCtx.textAlign = 'left';
+                graphCtx.textBaseline = 'middle';
+                graphCtx.fillText(carLbl, pillX + 9, pillY + 12);
+
+                graphCtx.restore();
+            }
+        }
+
+        function interpolateRunAtTime(run, targetT) {
+            if (!run || run.data.length === 0) return null;
+            const data = run.data;
+            if (targetT <= data[0].t) return data[0];
+            if (targetT >= data[data.length - 1].t) return data[data.length - 1];
+
+            for (let i = 0; i < data.length - 1; i++) {
+                const p1 = data[i];
+                const p2 = data[i + 1];
+                if (targetT >= p1.t && targetT <= p2.t) {
+                    const ratio = (p2.t - p1.t) > 1e-6 ? (targetT - p1.t) / (p2.t - p1.t) : 0;
+                    return {
+                        t: targetT,
+                        d: p1.d + ratio * (p2.d - p1.d),
+                        v: p1.v + ratio * (p2.v - p1.v),
+                        a: p1.a,
+                        F_forward: p1.F_forward,
+                        F_friction: p1.F_friction,
+                        phase: p1.phase
+                    };
+                }
+            }
+            return data[data.length - 1];
+        }
+
+        // ============================================================================
+        // MULTI-TANGENT MANAGEMENT & GRAPH DRAG INTERACTION
+        // ============================================================================
+        function autoPlacePedagogicalTangents(run) {
+            if (!run || run.data.length < 5) return;
+            const maxRunT = run.data[run.data.length - 1].t;
+            const motionEndT = Math.max(0.5, maxRunT - POST_STOP_DURATION);
+
+            if (currentExp === 'A' && run.markers.length >= 2) {
+                const tPushEnd = run.markers[0].t;
+                const tSmoothEnd = run.markers[1].t;
+                const tStop = run.markers[2] ? run.markers[2].t : motionEndT;
+                tangentPoints = [
+                    { t: (tPushEnd + tSmoothEnd) * 0.5, color: TANGENT_COLORS[0] },
+                    { t: (tSmoothEnd + tStop) * 0.5, color: TANGENT_COLORS[1] },
+                    { t: tStop + 1.0, color: TANGENT_COLORS[2] }
+                ];
+            } else if (currentExp === 'C' && run.markers.length >= 2) {
+                const tSlopeEnd = run.markers[0].t;
+                const tSmoothEnd = run.markers[1].t;
+                const tStop = run.markers[2] ? run.markers[2].t : motionEndT;
+                tangentPoints = [
+                    { t: tSlopeEnd * 0.6, color: TANGENT_COLORS[0] },
+                    { t: (tSlopeEnd + tSmoothEnd) * 0.5, color: TANGENT_COLORS[1] },
+                    { t: (tSmoothEnd + tStop) * 0.5, color: TANGENT_COLORS[2] }
+                ];
+            } else if (currentExp === 'D' && run.markers.length >= 4) {
+                // For Exp D (A-B-A):
+                // P1 on Upper Smooth Flat (Green 1, v1)
+                // P2 on Inclined Slope (Blue, accelerating)
+                // P3 on Lower Smooth Flat (Green 2, v2 > v1)
+                const tPushEnd = run.markers[0].t;
+                const tFlat1End = run.markers[1].t;
+                const tSlopeEnd = run.markers[2].t;
+                const tFlat2End = run.markers[3].t;
+                tangentPoints = [
+                    { t: (tPushEnd + tFlat1End) * 0.5, color: TANGENT_COLORS[0] },
+                    { t: (tFlat1End + tSlopeEnd) * 0.5, color: TANGENT_COLORS[1] },
+                    { t: (tSlopeEnd + tFlat2End) * 0.5, color: TANGENT_COLORS[2] }
+                ];
+            } else {
+                tangentPoints = [
+                    { t: motionEndT * 0.35, color: TANGENT_COLORS[0] },
+                    { t: motionEndT * 0.75, color: TANGENT_COLORS[1] },
+                    { t: motionEndT + 1.0, color: TANGENT_COLORS[2] }
+                ];
+            }
+        }
+
+        function addTangentPoint() {
+            if (activeRunIndex < 0 || !runs[activeRunIndex]) return;
+            if (tangentPoints.length >= 3) tangentPoints.shift();
+            const run = runs[activeRunIndex];
+            const maxRunT = run.data[run.data.length - 1].t || 2.0;
+            const frac = (tangentPoints.length + 1) / 4;
+            tangentPoints.push({
+                t: maxRunT * frac,
+                color: TANGENT_COLORS[tangentPoints.length % TANGENT_COLORS.length]
+            });
+            drawGraph();
+            updateTangentReadouts();
+        }
+
+        function clearTangents() {
+            tangentPoints = [];
+            drawGraph();
+            updateTangentReadouts();
+        }
+
+        function updateTangentReadouts() {
+            const container = document.getElementById('tangent-readouts');
+            if (activeRunIndex < 0 || !runs[activeRunIndex] || tangentPoints.length === 0) {
+                container.innerHTML = `<div class="col-span-3 text-slate-600 italic py-1 text-sm">${tStr('tangentEmpty')}</div>`;
+                return;
+            }
+
+            const run = runs[activeRunIndex];
+            container.innerHTML = tangentPoints.map((tp, idx) => {
+                const s = interpolateRunAtTime(run, tp.t);
+                if (!s) return '';
+                return `
+                    <div class="bg-slate-50 border border-slate-300 rounded-xl p-2.5 flex flex-col gap-1" style="border-left: 5px solid ${tp.color}">
+                        <div class="flex items-center justify-between">
+                            <span class="font-extrabold text-sm" style="color:${tp.color}">P${idx + 1}</span>
+                            <span class="text-xs text-slate-700 font-mono font-bold">t=${s.t.toFixed(2)}s, d=${s.d.toFixed(2)}m</span>
+                        </div>
+                        <div class="text-base font-extrabold text-slate-900">
+                            Slope = v = ${s.v.toFixed(2)} m/s
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getRunDisplayLabel(r) {
+            if (r.exp === 'A') {
+                return `${tStr('runWord')} ${r.id}: ${tStr(PUSH_PRESETS[r.presetKey].key)}`;
+            } else if (r.exp === 'B') {
+                return `${tStr('runWord')} ${r.id}: ${tStr('slopeWord')} ${r.angleDeg}°`;
+            } else if (r.exp === 'C') {
+                return `${tStr('runWord')} ${r.id}: ${r.angleDeg}° ${tStr('slopeToFlat')}`;
+            } else {
+                return `${tStr('runWord')} ${r.id}: ${tStr(PUSH_PRESETS[r.presetKey].key)} + ${r.angleDeg}° (${tStr('abaWord')})`;
+            }
+        }
+
+        function updateRunPills() {
+            const container = document.getElementById('run-pills');
+            if (runs.length === 0) {
+                container.innerHTML = `<span class="text-sm text-slate-500 italic">${tStr('noRuns')}</span>`;
+                return;
+            }
+
+            container.innerHTML = runs.map((r, idx) => {
+                const isActive = (idx === activeRunIndex);
+                return `
+                    <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold cursor-pointer border transition ${isActive ? 'bg-blue-50 text-blue-950 border-blue-500 shadow-sm' : 'bg-slate-100 text-slate-700 border-slate-300'}"
+                         onclick="selectActiveRun(${idx})">
+                        <input type="checkbox" ${r.visible ? 'checked' : ''} onclick="event.stopPropagation(); toggleRunVisibility(${idx})" class="accent-blue-600 w-4 h-4 cursor-pointer">
+                        <span class="inline-block w-3 h-3 rounded-full" style="background:${r.color}"></span>
+                        <span>${getRunDisplayLabel(r)}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function selectActiveRun(idx) {
+            activeRunIndex = idx;
+            if (runs[idx]) {
+                const lastPt = runs[idx].data[runs[idx].data.length - 1];
+                if (lastPt) scrubToTime(lastPt.t);
+                if (tangentPoints.length === 0) autoPlacePedagogicalTangents(runs[idx]);
+            }
+            updateRunPills();
+            updateScrubBarUI();
+            drawGraph();
+            updateTangentReadouts();
+        }
+
+        function toggleRunVisibility(idx) {
+            runs[idx].visible = !runs[idx].visible;
+            updateRunPills();
+            drawGraph();
+        }
+
+        // Mouse & Touch Dragging on Graph Canvas
+        let isDraggingGraphCar = false;
+
+        function getGraphMouseCoords(evt) {
+            const rect = graphCanvas.getBoundingClientRect();
+            const scaleX = graphCanvas.width / rect.width;
+            const scaleY = graphCanvas.height / rect.height;
+            const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+            const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+
+        graphCanvas.addEventListener('mousedown', startDragGraph);
+        graphCanvas.addEventListener('touchstart', startDragGraph, { passive: false });
+
+        function startDragGraph(evt) {
+            if (activeRunIndex < 0 || !runs[activeRunIndex]) return;
+            const pos = getGraphMouseCoords(evt);
+            const { pad, plotW, plotH, maxT, maxD } = getGraphBounds();
+            const toX = t => pad.left + (t / maxT) * plotW;
+            const toY = d => pad.top + plotH - (d / maxD) * plotH;
+
+            const run = runs[activeRunIndex];
+            let closestIdx = -1;
+            let minDist = 26;
+
+            tangentPoints.forEach((tp, idx) => {
+                const s = interpolateRunAtTime(run, tp.t);
+                if (!s) return;
+                const dist = Math.hypot(pos.x - toX(s.t), pos.y - toY(s.d));
+                if (dist < minDist) {
+                    minDist = dist;
+                    closestIdx = idx;
+                }
+            });
+
+            if (closestIdx !== -1) {
+                if (evt.cancelable) evt.preventDefault();
+                draggingTangentIdx = closestIdx;
+                return;
+            }
+
+            if (canUserDragCar() && pos.x >= pad.left && pos.x <= pad.left + plotW) {
+                if (evt.cancelable) evt.preventDefault();
+                isDraggingGraphCar = true;
+                const maxRunT = run.data[run.data.length - 1].t;
+                const newT = Math.max(0, Math.min(maxRunT, ((pos.x - pad.left) / plotW) * maxT));
+                scrubToTime(newT);
+            }
+        }
+
+        window.addEventListener('mousemove', moveDragGraph);
+        window.addEventListener('touchmove', moveDragGraph, { passive: false });
+
+        function moveDragGraph(evt) {
+            if (draggingTangentIdx === -1 && !isDraggingGraphCar) return;
+            if (activeRunIndex < 0) return;
+            if (evt.cancelable) evt.preventDefault();
+
+            const pos = getGraphMouseCoords(evt);
+            const { pad, plotW, maxT } = getGraphBounds();
+            const run = runs[activeRunIndex];
+            const maxRunT = run.data[run.data.length - 1].t;
+            const newT = Math.max(0, Math.min(maxRunT, ((pos.x - pad.left) / plotW) * maxT));
+
+            if (draggingTangentIdx !== -1) {
+                tangentPoints[draggingTangentIdx].t = newT;
+                drawGraph();
+                updateTangentReadouts();
+            } else if (isDraggingGraphCar) {
+                scrubToTime(newT);
+            }
+        }
+
+        window.addEventListener('mouseup', () => {
+            draggingTangentIdx = -1;
+            isDraggingGraphCar = false;
+        });
+        window.addEventListener('touchend', () => {
+            draggingTangentIdx = -1;
+            isDraggingGraphCar = false;
+        });
+
+        // ============================================================================
+        // UTILITY HELPERS
+        // ============================================================================
+        function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+            if (fill) ctx.fill();
+            if (stroke) ctx.stroke();
+        }
+
+        // Initial Boot
+        applyLanguageUI();
+        switchExperiment('A');
+    </script>
+</body>
+</html>
