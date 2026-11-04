@@ -137,7 +137,6 @@
     .strategy-box strong{display:block;margin-bottom:6px;font-size:13px}
     .strategy-box p{margin:0;font-size:12px;color:#64748b;line-height:1.5}
 
-    /* Reading explanations only: textbook-style four-step layout. */
     #meterExplainCard{touch-action:pan-y}
     #meterExplainBody .reading-step{
       padding:22px 0;border-bottom:1px solid #d7deea;
@@ -292,6 +291,8 @@
       const TERM_R = 14;
       const CLICK_DRAG_THRESHOLD = 4;
       const DEFAULT_BATTERY_VOLTAGE = 1.5;
+      const DEFAULT_BULB_RESISTANCE = 20;
+      const DEFAULT_RESISTOR_RESISTANCE = 10;
       const ROTATE_STEP = 15;
       const PROJECT_FILE_VERSION = 9;
       const PLACE_SCALE = 0.5;
@@ -351,51 +352,32 @@
                   </div>
                   <div class="tutorial-diagram">
 <svg viewBox="0 0 460 260" aria-hidden="true">
-  <!-- Top row -->
   <rect x="16" y="22" width="94" height="54" rx="16" fill="#dbeafe" stroke="#2563eb" stroke-width="3"/>
   <text x="63" y="55" text-anchor="middle" font-size="18" font-weight="700" fill="#1e3a8a">Goal</text>
-
   <rect x="132" y="22" width="94" height="54" rx="16" fill="#dcfce7" stroke="#16a34a" stroke-width="3"/>
   <text x="179" y="55" text-anchor="middle" font-size="18" font-weight="700" fill="#166534">Break</text>
-
   <rect x="248" y="22" width="94" height="54" rx="16" fill="#fef3c7" stroke="#d97706" stroke-width="3"/>
   <text x="295" y="55" text-anchor="middle" font-size="18" font-weight="700" fill="#92400e">Pattern</text>
-
   <rect x="364" y="22" width="80" height="54" rx="16" fill="#ede9fe" stroke="#7c3aed" stroke-width="3"/>
   <text x="404" y="55" text-anchor="middle" font-size="18" font-weight="700" fill="#5b21b6">Rule</text>
-
-  <!-- Bottom row -->
   <rect x="132" y="158" width="94" height="54" rx="16" fill="#e0f2fe" stroke="#0284c7" stroke-width="3"/>
   <text x="179" y="191" text-anchor="middle" font-size="18" font-weight="700" fill="#075985">Build</text>
-
   <rect x="248" y="158" width="94" height="54" rx="16" fill="#fee2e2" stroke="#dc2626" stroke-width="3"/>
   <text x="295" y="191" text-anchor="middle" font-size="18" font-weight="700" fill="#991b1b">Test</text>
-
   <rect x="364" y="158" width="80" height="54" rx="16" fill="#ecfccb" stroke="#65a30d" stroke-width="3"/>
   <text x="404" y="191" text-anchor="middle" font-size="18" font-weight="700" fill="#3f6212">Revise</text>
-
-  <!-- Top row arrows -->
   <path d="M110 49 H132" stroke="#64748b" stroke-width="4" fill="none"/>
   <polygon points="132,49 122,44 122,54" fill="#64748b"/>
-
   <path d="M226 49 H248" stroke="#64748b" stroke-width="4" fill="none"/>
   <polygon points="248,49 238,44 238,54" fill="#64748b"/>
-
   <path d="M342 49 H364" stroke="#64748b" stroke-width="4" fill="none"/>
   <polygon points="364,49 354,44 354,54" fill="#64748b"/>
-
-  <!-- Down arrow Rule -> Revise -->
   <path d="M404 76 V158" stroke="#64748b" stroke-width="4" fill="none"/>
   <polygon points="404,158 399,148 409,148" fill="#64748b"/>
-
-  <!-- Bottom row arrows going left -->
   <path d="M364 185 H342" stroke="#64748b" stroke-width="4" fill="none"/>
   <polygon points="342,185 352,180 352,190" fill="#64748b"/>
-
   <path d="M248 185 H226" stroke="#64748b" stroke-width="4" fill="none"/>
   <polygon points="226,185 236,180 236,190" fill="#64748b"/>
-
-  <!-- Up arrow Build -> Break -->
   <path d="M179 158 V76" stroke="#64748b" stroke-width="4" fill="none"/>
   <polygon points="179,76 174,86 184,86" fill="#64748b"/>
 </svg>
@@ -476,51 +458,32 @@
                   </div>
                   <div class="tutorial-diagram">
 <svg viewBox="0 0 460 260" aria-hidden="true">
-  <!-- Top row -->
   <rect x="16" y="22" width="94" height="54" rx="16" fill="#dbeafe" stroke="#2563eb" stroke-width="3"/>
   <text x="63" y="55" text-anchor="middle" font-size="18" font-weight="700" fill="#1e3a8a">目標</text>
-
   <rect x="132" y="22" width="94" height="54" rx="16" fill="#dcfce7" stroke="#16a34a" stroke-width="3"/>
   <text x="179" y="55" text-anchor="middle" font-size="18" font-weight="700" fill="#166534">拆解</text>
-
   <rect x="248" y="22" width="94" height="54" rx="16" fill="#fef3c7" stroke="#d97706" stroke-width="3"/>
   <text x="295" y="55" text-anchor="middle" font-size="18" font-weight="700" fill="#92400e">模式</text>
-
   <rect x="364" y="22" width="80" height="54" rx="16" fill="#ede9fe" stroke="#7c3aed" stroke-width="3"/>
   <text x="404" y="55" text-anchor="middle" font-size="18" font-weight="700" fill="#5b21b6">規則</text>
-
-  <!-- Bottom row -->
   <rect x="132" y="158" width="94" height="54" rx="16" fill="#e0f2fe" stroke="#0284c7" stroke-width="3"/>
   <text x="179" y="191" text-anchor="middle" font-size="18" font-weight="700" fill="#075985">建構</text>
-
   <rect x="248" y="158" width="94" height="54" rx="16" fill="#fee2e2" stroke="#dc2626" stroke-width="3"/>
   <text x="295" y="191" text-anchor="middle" font-size="18" font-weight="700" fill="#991b1b">測試</text>
-
   <rect x="364" y="158" width="80" height="54" rx="16" fill="#ecfccb" stroke="#65a30d" stroke-width="3"/>
   <text x="404" y="191" text-anchor="middle" font-size="18" font-weight="700" fill="#3f6212">修正</text>
-
-  <!-- Top row arrows -->
   <path d="M110 49 H132" stroke="#64748b" stroke-width="4" fill="none"/>
   <polygon points="132,49 122,44 122,54" fill="#64748b"/>
-
   <path d="M226 49 H248" stroke="#64748b" stroke-width="4" fill="none"/>
   <polygon points="248,49 238,44 238,54" fill="#64748b"/>
-
   <path d="M342 49 H364" stroke="#64748b" stroke-width="4" fill="none"/>
   <polygon points="364,49 354,44 354,54" fill="#64748b"/>
-
-  <!-- Down arrow Rule -> Revise -->
   <path d="M404 76 V158" stroke="#64748b" stroke-width="4" fill="none"/>
   <polygon points="404,158 399,148 409,148" fill="#64748b"/>
-
-  <!-- Bottom row arrows going left -->
   <path d="M364 185 H342" stroke="#64748b" stroke-width="4" fill="none"/>
   <polygon points="342,185 352,180 352,190" fill="#64748b"/>
-
   <path d="M248 185 H226" stroke="#64748b" stroke-width="4" fill="none"/>
   <polygon points="226,185 236,180 236,190" fill="#64748b"/>
-
-  <!-- Up arrow Build -> Break -->
   <path d="M179 158 V76" stroke="#64748b" stroke-width="4" fill="none"/>
   <polygon points="179,76 174,86 184,86" fill="#64748b"/>
 </svg>
@@ -558,8 +521,8 @@
 
       const PART_DEFS=[
         {type:"battery",icon:"🔋",r:0.2,voltage:DEFAULT_BATTERY_VOLTAGE,angle:0},
-        {type:"bulb",icon:"💡",r:20,angle:0},
-        {type:"resistor",icon:"〰️",r:10,angle:0},
+        {type:"bulb",icon:"💡",r:DEFAULT_BULB_RESISTANCE,angle:0},
+        {type:"resistor",icon:"〰️",r:DEFAULT_RESISTOR_RESISTANCE,angle:0},
         {type:"switch",icon:"⎋",r:OPEN_RESISTANCE,closed:false,angle:0},
         {type:"ammeter",icon:"Ⓐ",r:AMMETER_RESISTANCE,angle:0,lockUpright:true},
         {type:"voltmeter",icon:"Ⓥ",r:VOLTMETER_RESISTANCE,angle:0,lockUpright:true},
@@ -618,14 +581,27 @@
       }
       function undo(){const s=state.history.pop();if(s)restoreData(s)}
       function normalizeComponentAngle(type,angle){return ((angle%360)+360)%360}
+
       function getDefaultLabelOffset(c){
-        if(c.type==="battery")return {x:0,y:-118};
-        if(c.type==="ammeter"||c.type==="voltmeter")return {x:0,y:-88};
-        return {x:0,y:-96};
+        if(c.type==="battery")return {x:0,y:-32};
+        if(c.type==="ammeter"||c.type==="voltmeter")return {x:0,y:-32};
+        return {x:0,y:-32};
       }
+
+      function getDefaultValueLabelOffset(c){
+        if(c.type==="battery")return {x:0,y:-64};
+        if(c.type==="ammeter"||c.type==="voltmeter")return {x:0,y:-55};
+        if(c.type==="bulb")return {x:0,y:34};
+        if(c.type==="resistor")return {x:0,y:34};
+        return {x:0,y:0};
+      }
+
       function ensureLabelOffset(c){
         if(!c.labelOffset||typeof c.labelOffset.x!=="number"||typeof c.labelOffset.y!=="number"){
           c.labelOffset=getDefaultLabelOffset(c);
+        }
+        if(!c.valueLabelOffset||typeof c.valueLabelOffset.x!=="number"||typeof c.valueLabelOffset.y!=="number"){
+          c.valueLabelOffset=getDefaultValueLabelOffset(c);
         }
         return c.labelOffset;
       }
@@ -637,7 +613,9 @@
           angle:normalizeComponentAngle(type,def.angle??0),
           resistance:def.r??10,sourceVoltage:def.voltage??0,closed:def.closed??true,
           current:0,voltage:0,power:0,branchVoltage:0,isJunction:!!def.junction,
-          scale:type==="junction"?1:PLACE_SCALE,labelOffset:getDefaultLabelOffset({type})
+          scale:type==="junction"?1:PLACE_SCALE,
+          labelOffset:getDefaultLabelOffset({type}),
+          valueLabelOffset:getDefaultValueLabelOffset({type})
         };
       }
       function getCompScale(c){return c.scale||1}
@@ -940,79 +918,192 @@
         }
         return M.map(row=>row[n]);
       }
+
       function solveCircuit(){
         for(const c of state.components){c.current=0;c.voltage=0;c.power=0;c.branchVoltage=0}
+
         const activeComponents=state.components.filter(c=>!c.isJunction);
         if(!activeComponents.length){
-          state.lastPhysics={solved:false,open:true,nodeVoltages:[],nodeOfTerminal:null,groups:null,isShort:false};return;
+          state.lastPhysics={solved:false,open:true,nodeVoltages:[],nodeOfTerminal:null,groups:null,isShort:false};
+          return;
         }
+
         const groups=getNodeGroups(),roots=[...groups.keys()],nodeIndex=new Map();
         roots.forEach((root,i)=>nodeIndex.set(root,i));
+
         const terminalRootMap=new Map();
-        for(const [root,list]of groups.entries())for(const item of list)terminalRootMap.set(terminalKey(item.componentId,item.side),root);
+        for(const [root,list]of groups.entries()){
+          for(const item of list)terminalRootMap.set(terminalKey(item.componentId,item.side),root);
+        }
         function nodeOfTerminal(componentId,side){
           const root=terminalRootMap.get(terminalKey(componentId,side));
           return root==null?null:nodeIndex.get(root);
         }
-        const n=roots.length,batteries=[],resistive=[];
+
+        const n=roots.length;
+        const nodeVoltages=Array(n).fill(0);
+        const componentIsland=new Map();
+        const islands=[];
+        const visitedNodes=new Set();
+
+        const edges=[];
         for(const c of activeComponents){
-          const ts=getTerminals(c);if(ts.length!==2)continue;
+          const ts=getTerminals(c);
+          if(ts.length!==2)continue;
           const a=nodeOfTerminal(c.id,ts[0].side),b=nodeOfTerminal(c.id,ts[1].side);
           if(a==null||b==null)continue;
-          if(c.type==="battery")batteries.push({component:c,a,b,v:c.sourceVoltage});
-          else{
-            let r=c.resistance;
-            if(c.type==="switch")r=c.closed?IDEAL_WIRE_RESISTANCE:OPEN_RESISTANCE;
-            if(c.type==="ammeter")r=AMMETER_RESISTANCE;
-            if(c.type==="voltmeter")r=VOLTMETER_RESISTANCE;
-            resistive.push({component:c,a,b,r:Math.max(r,IDEAL_WIRE_RESISTANCE)});
+          let r=c.resistance;
+          if(c.type==="switch")r=c.closed?IDEAL_WIRE_RESISTANCE:OPEN_RESISTANCE;
+          if(c.type==="ammeter")r=AMMETER_RESISTANCE;
+          if(c.type==="voltmeter")r=VOLTMETER_RESISTANCE;
+          edges.push({
+            component:c,a,b,
+            isBattery:c.type==="battery",
+            v:c.sourceVoltage,
+            r:Math.max(r??IDEAL_WIRE_RESISTANCE,IDEAL_WIRE_RESISTANCE)
+          });
+        }
+
+        function conductiveForIsland(e){
+          return e.isBattery || e.component.type!=="voltmeter";
+        }
+
+        for(let start=0;start<n;start++){
+          if(visitedNodes.has(start))continue;
+          const queue=[start];
+          visitedNodes.add(start);
+          const islandNodes=new Set([start]);
+
+          for(let qi=0;qi<queue.length;qi++){
+            const node=queue[qi];
+            for(const e of edges){
+              if(!conductiveForIsland(e))continue;
+              if(e.a!==node&&e.b!==node)continue;
+              const other=e.a===node?e.b:e.a;
+              if(!visitedNodes.has(other)){
+                visitedNodes.add(other);
+                islandNodes.add(other);
+                queue.push(other);
+              }
+            }
           }
+
+          const islandEdges=edges.filter(e=>islandNodes.has(e.a)&&islandNodes.has(e.b));
+          const islandBatteries=islandEdges.filter(e=>e.isBattery);
+          const islandResistive=islandEdges.filter(e=>!e.isBattery);
+
+          for(const e of islandEdges)componentIsland.set(e.component.id,islands.length);
+          islands.push({nodes:islandNodes,edges:islandEdges,batteries:islandBatteries,resistive:islandResistive,solved:false,open:true,isShort:false});
         }
-        if(batteries.length===0){
-          state.lastPhysics={solved:true,open:true,noBattery:true,nodeVoltages:Array(n).fill(0),nodeOfTerminal,groups,isShort:false,batteries:[]};return;
-        }
-        const ground=batteries[0].b,unknownMap=new Map();let nv=0;
-        for(let i=0;i<n;i++)if(i!==ground)unknownMap.set(i,nv++);
-        const m=batteries.length,size=nv+m;
-        const A=Array.from({length:size},()=>Array(size).fill(0)),z=Array(size).fill(0);
-        function addG(i,j,g){
-          if(i===j)return;
-          if(i!==ground)A[unknownMap.get(i)][unknownMap.get(i)]+=g;
-          if(j!==ground)A[unknownMap.get(j)][unknownMap.get(j)]+=g;
-          if(i!==ground&&j!==ground){
-            A[unknownMap.get(i)][unknownMap.get(j)]-=g;A[unknownMap.get(j)][unknownMap.get(i)]-=g;
+
+        let anySolved=false;
+        let anyOpen=false;
+        let anyShort=false;
+        let anyBattery=false;
+
+        for(const island of islands){
+          if(!island.batteries.length){
+            island.solved=true;
+            island.open=true;
+            continue;
           }
+
+          anyBattery=true;
+
+          const orderedNodes=[...island.nodes].sort((a,b)=>a-b);
+          const ground=island.batteries[0].b;
+          const unknownMap=new Map();
+          let nv=0;
+          for(const i of orderedNodes)if(i!==ground)unknownMap.set(i,nv++);
+          const m=island.batteries.length,size=nv+m;
+          const A=Array.from({length:size},()=>Array(size).fill(0)),z=Array(size).fill(0);
+
+          function addG(i,j,g){
+            if(i===j)return;
+            if(i!==ground)A[unknownMap.get(i)][unknownMap.get(i)]+=g;
+            if(j!==ground)A[unknownMap.get(j)][unknownMap.get(j)]+=g;
+            if(i!==ground&&j!==ground){
+              A[unknownMap.get(i)][unknownMap.get(j)]-=g;
+              A[unknownMap.get(j)][unknownMap.get(i)]-=g;
+            }
+          }
+
+          for(const e of island.resistive)addG(e.a,e.b,1/e.r);
+
+          island.batteries.forEach((e,k)=>{
+            const row=nv+k;
+            if(e.a!==ground){const ia=unknownMap.get(e.a);A[ia][row]+=1;A[row][ia]+=1}
+            if(e.b!==ground){const ib=unknownMap.get(e.b);A[ib][row]-=1;A[row][ib]-=1}
+            z[row]=e.v;
+          });
+
+          const sol=solveLinearSystem(A,z);
+          if(!sol){
+            island.solved=false;
+            island.open=true;
+            anyOpen=true;
+            continue;
+          }
+
+          island.solved=true;
+          anySolved=true;
+
+          for(const i of orderedNodes){
+            nodeVoltages[i]=i===ground?0:sol[unknownMap.get(i)];
+          }
+
+          island.batteries.forEach((e,k)=>{
+            const ibat=sol[nv+k];
+            e.component.current=ibat;
+            e.component.branchVoltage=e.v;
+            e.component.voltage=Math.abs(e.v);
+            e.component.power=Math.abs(ibat*e.v);
+            if(Math.abs(ibat)>SHORT_CURRENT_THRESHOLD){
+              island.isShort=true;
+              anyShort=true;
+            }
+          });
+
+          for(const e of island.resistive){
+            const va=nodeVoltages[e.a]??0,vb=nodeVoltages[e.b]??0,vdrop=va-vb;
+            const cur=(Math.abs(e.r)<1e-15||e.a===e.b)?0:vdrop/e.r;
+            e.component.current=cur;
+            e.component.branchVoltage=vdrop;
+            e.component.voltage=Math.abs(vdrop);
+            e.component.power=Math.abs(vdrop*cur);
+          }
+
+          const islandOpenDueToUnconnected = activeComponents.some(c=>{
+            if(componentIsland.get(c.id)!==componentIsland.get(island.edges[0]?.component?.id))return false;
+            if(c.type==="switch"&&!c.closed)return true;
+            return getTerminals(c).some(tt=>!terminalRootMap.has(terminalKey(tt.componentId,tt.side)));
+          });
+
+          island.open=!!islandOpenDueToUnconnected;
+          if(island.open)anyOpen=true;
         }
-        for(const e of resistive)addG(e.a,e.b,1/e.r);
-        batteries.forEach((e,k)=>{
-          const row=nv+k;
-          if(e.a!==ground){const ia=unknownMap.get(e.a);A[ia][row]+=1;A[row][ia]+=1}
-          if(e.b!==ground){const ib=unknownMap.get(e.b);A[ib][row]-=1;A[row][ib]-=1}
-          z[row]=e.v;
-        });
-        const sol=solveLinearSystem(A,z);
-        if(!sol){
-          state.lastPhysics={solved:false,open:true,noBattery:false,nodeVoltages:Array(n).fill(0),nodeOfTerminal,groups,isShort:false,batteries};return;
+
+        if(!anyBattery){
+          state.lastPhysics={
+            solved:true,open:true,noBattery:true,nodeVoltages,nodeOfTerminal,groups,isShort:false,batteries:[],islands,componentIsland
+          };
+          return;
         }
-        const nodeVoltages=Array(n).fill(0);
-        for(let i=0;i<n;i++)nodeVoltages[i]=i===ground?0:sol[unknownMap.get(i)];
-        batteries.forEach((e,k)=>{
-          const ibat=sol[nv+k];e.component.current=ibat;e.component.branchVoltage=e.v;
-          e.component.voltage=Math.abs(e.v);e.component.power=Math.abs(ibat*e.v);
-        });
-        for(const e of resistive){
-          const va=nodeVoltages[e.a]??0,vb=nodeVoltages[e.b]??0,vdrop=va-vb;
-          const cur=(Math.abs(e.r)<1e-15||e.a===e.b)?0:vdrop/e.r;
-          e.component.current=cur;e.component.branchVoltage=vdrop;e.component.voltage=Math.abs(vdrop);e.component.power=Math.abs(vdrop*cur);
-        }
-        const open=activeComponents.some(c=>{
-          if(c.type==="switch"&&!c.closed)return true;
-          return getTerminals(c).some(tt=>!terminalRootMap.has(terminalKey(tt.componentId,tt.side)));
-        });
-        let isShort=false;
-        for(const b of batteries)if(Math.abs(b.component.current)>SHORT_CURRENT_THRESHOLD)isShort=true;
-        state.lastPhysics={solved:true,open,noBattery:false,nodeVoltages,nodeOfTerminal,groups,isShort,batteries};
+
+        state.lastPhysics={
+          solved:anySolved,
+          open:anyOpen || !anySolved,
+          noBattery:false,
+          nodeVoltages,
+          nodeOfTerminal,
+          groups,
+          isShort:anyShort,
+          batteries:edges.filter(e=>e.isBattery),
+          islands,
+          componentIsland
+        };
       }
+
       function formatNumber(n,digits=3){
         if(!isFinite(n))return "0";
         const abs=Math.abs(n);let d=digits;
@@ -1023,6 +1114,12 @@
         if(!state.lastPhysics||!state.lastPhysics.solved||!state.lastPhysics.nodeOfTerminal)return 0;
         const a=state.lastPhysics.nodeOfTerminal(c.id,"left"),b=state.lastPhysics.nodeOfTerminal(c.id,"right");
         if(a==null||b==null)return 0;
+        const islandMap=state.lastPhysics.componentIsland;
+        if(islandMap){
+          const ia=islandMap.get(c.id);
+          const compA=state.components.find(x=>x.id===c.id);
+          if(compA&&ia==null)return 0;
+        }
         return Math.abs((state.lastPhysics.nodeVoltages[a]??0)-(state.lastPhysics.nodeVoltages[b]??0));
       }
       function componentShortName(c){
@@ -1052,7 +1149,7 @@
         }
         ctx.strokeStyle="rgba(53,94,170,.10)";ctx.lineWidth=1;
         for(let x=((ox%major)+major)%major;x<=w;x+=major){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke()}
-        for(let y=((oy%major)+major)%major;y<=h;y+=major){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
+        for(let y=((oy%major)+major)%major;y<=h;y+=major){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,h?y:y);ctx.stroke()}
         ctx.restore();
       }
       function render(hideTransientUI=false){
@@ -1092,10 +1189,9 @@
         ctx.beginPath();ctx.arc(p.x,p.y,11,0,Math.PI*2);ctx.stroke();ctx.restore();
       }
       function computeAutoLabelOffset(c){
-        const defaults=[];
-        if(c.type==="battery")defaults.push({x:0,y:-118},{x:0,y:104},{x:-88,y:-84},{x:88,y:-84});
-        else if(c.type==="ammeter"||c.type==="voltmeter")defaults.push({x:0,y:-88},{x:0,y:88},{x:-88,y:0},{x:88,y:0},{x:-72,y:-72},{x:72,y:-72});
-        else defaults.push({x:0,y:-96},{x:0,y:96},{x:-88,y:0},{x:88,y:0},{x:-72,y:-72},{x:72,y:-72});
+        const defaults=[
+          {x:0,y:-32},{x:0,y:32},{x:-32,y:0},{x:32,y:0},{x:-24,y:-24},{x:24,y:-24}
+        ];
         let best=defaults[0],bestScore=Infinity;
         for(const off of defaults){
           const rect=getComponentNameRect(c,off,true);let score=0;
@@ -1112,15 +1208,34 @@
         }
         return best;
       }
+
       function getValueLabelTextForComponent(c){
         if(c.type==="battery")return `${formatNumber(c.sourceVoltage,2)} V`;
         if(c.type==="ammeter")return `${formatNumber(Math.abs(c.current),3)} A`;
         if(c.type==="voltmeter")return `${formatNumber(getVoltmeterReading(c),3)} V`;
+        if(c.type==="bulb")return `${formatNumber(c.resistance,2)} Ω`;
         return "";
       }
-      function getLabelMetrics(text){return {fontSize:11,width:Math.max(58,Math.min(104,text.length*7+16)),height:22}}
+
+      function getValueLabelStyle(c){
+        if(c.type==="battery")return {stroke:"#43a047",text:"#43a047"};
+        if(c.type==="ammeter")return {stroke:"#4f7ee8",text:"#4f7ee8"};
+        if(c.type==="voltmeter")return {stroke:"#c62828",text:"#c62828"};
+        if(c.type==="bulb")return {stroke:"#d97706",text:"#92400e"};
+        return {stroke:"#64748b",text:"#334155"};
+      }
+
+      function getLabelMetrics(text){
+        return {fontSize:11,width:Math.max(58,Math.min(110,text.length*7+16)),height:22};
+      }
+
+      function getValueLabelOffset(c){
+        ensureLabelOffset(c);
+        return c.valueLabelOffset||getDefaultValueLabelOffset(c);
+      }
+
       function getValueLabelRectForComponent(c,offsetOverride=null,useRender=false){
-        const pos=useRender?getCompPos(c,true):getCompPos(c,false),off=offsetOverride||ensureLabelOffset(c);
+        const pos=useRender?getCompPos(c,true):getCompPos(c,false),baseOff=getValueLabelOffset(c),off=offsetOverride||baseOff;
         const m=getLabelMetrics(getValueLabelTextForComponent(c));
         return {
           x1:pos.x+off.x-m.width/2-LABEL_HIT_PAD,y1:pos.y+off.y-m.height/2-LABEL_HIT_PAD,
@@ -1128,12 +1243,14 @@
           width:m.width,height:m.height,fontSize:m.fontSize,cx:pos.x+off.x,cy:pos.y+off.y
         };
       }
+
       function getComponentNameRect(c,offsetOverride=null,useRender=false){
         const pos=useRender?getCompPos(c,true):getCompPos(c,false),off=offsetOverride||ensureLabelOffset(c);
         const text=componentShortName(c),sc=getCompScale(c),fontSize=Math.max(11,Math.round(16*sc+6));
-        const width=Math.max(30,Math.min(90,text.length*(fontSize*0.62)+10)),height=fontSize+8,cy=pos.y+off.y+24,cx=pos.x+off.x;
+        const width=Math.max(30,Math.min(90,text.length*(fontSize*0.62)+10)),height=fontSize+8,cy=pos.y+off.y,cx=pos.x+off.x;
         return {x1:cx-width/2-LABEL_HIT_PAD,y1:cy-height/2-LABEL_HIT_PAD,x2:cx+width/2+LABEL_HIT_PAD,y2:cy+height/2+LABEL_HIT_PAD,cx,cy,width,height,fontSize};
       }
+
       function drawComponent(ctx,c,hideTransientUI=false){
         const selected=!hideTransientUI&&state.selectedComponents.has(c.id),pos=getCompPos(c,true),sc=getCompScale(c);
         if(selected){
@@ -1149,16 +1266,27 @@
           case "buzzer":drawBuzzer(ctx,c);break;case "fan":drawFan(ctx,c);break;
         }
         ctx.restore();
+
         if(!c.labelOffset)c.labelOffset=computeAutoLabelOffset(c);
+        ensureLabelOffset(c);
+
         const nameRect=getComponentNameRect(c,null,true);
         ctx.save();ctx.font=`bold ${nameRect.fontSize}px sans-serif`;ctx.fillStyle="#1f2937";ctx.textAlign="center";ctx.textBaseline="middle";
         ctx.lineWidth=5;ctx.strokeStyle="rgba(255,255,255,.95)";ctx.strokeText(componentShortName(c),nameRect.cx,nameRect.cy);
         ctx.fillText(componentShortName(c),nameRect.cx,nameRect.cy);ctx.restore();
-        if(c.type==="battery"||c.type==="ammeter"||c.type==="voltmeter"){
-          const text=getValueLabelTextForComponent(c),color=c.type==="battery"?"#43a047":c.type==="ammeter"?"#4f7ee8":"#c62828";
+
+        if(c.type==="battery"||c.type==="ammeter"||c.type==="voltmeter"||c.type==="bulb"){
+          const text=getValueLabelTextForComponent(c),style=getValueLabelStyle(c);
           const rect=getValueLabelRectForComponent(c,null,true);
-          roundRect(ctx,rect.cx-rect.width/2,rect.cy-rect.height/2,rect.width,rect.height,11,"#fff",color,2);
-          ctx.save();ctx.font="bold 11px sans-serif";ctx.fillStyle=color;ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(text,rect.cx,rect.cy+0.5);ctx.restore();
+          roundRect(ctx,rect.cx-rect.width/2,rect.cy-rect.height/2,rect.width,rect.height,11,"#fff",style.stroke,2);
+          ctx.save();ctx.font="bold 11px sans-serif";ctx.fillStyle=style.text;ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(text,rect.cx,rect.cy+0.5);ctx.restore();
+        }
+
+        if(c.type==="resistor"){
+          const rr=getResistorTextRect(c,true);
+          roundRect(ctx,rr.cx-rr.width/2,rr.cy-rr.height/2,rr.width,rr.height,11,"rgba(255,255,255,.96)","#64748b",1.5);
+          ctx.save();ctx.font="bold 11px sans-serif";ctx.fillStyle="#334155";ctx.textAlign="center";ctx.textBaseline="middle";
+          ctx.fillText(`${formatNumber(c.resistance,2)} Ω`,rr.cx,rr.cy+0.5);ctx.restore();
         }
       }
       function drawJunction(ctx){ctx.save();ctx.fillStyle="#111827";ctx.beginPath();ctx.arc(0,0,8,0,Math.PI*2);ctx.fill();ctx.restore()}
@@ -1235,19 +1363,6 @@
         ctx.fillStyle="#111827";ctx.beginPath();ctx.arc(0,0,4,0,Math.PI*2);ctx.fill();ctx.restore();
       }
 
-      /*
-       * REVISED READING EXPLANATIONS
-       *
-       * The existing simulator solver and component settings above are unchanged.
-       * This independent explanation engine calculates predictions from topology,
-       * resistance and source voltage, not from the displayed meter readings.
-       *
-       * - Recursive graph reduction handles nested series/parallel networks.
-       * - Verified degree-two nodes identify series connections.
-       * - Shared endpoint pairs identify parallel connections.
-       * - A separate nodal/MNA calculation handles bridges and multiple sources.
-       * - No branch is identified merely because its current matches a meter.
-       */
       let readingCacheKey="";
       let readingCacheInfo=null;
       let readingDOMKey="";
@@ -1376,7 +1491,6 @@
         return {voltages,currents,ground};
       }
 
-      /* A single source or an untapped series chain can define a total-circuit port. */
       function readingSourcePort(sources,resistors){
         if(sources.length===1){
           const s=sources[0];
@@ -1929,6 +2043,21 @@
       function canvasPoint(evt){
         const rect=state.canvas.getBoundingClientRect();return {x:evt.clientX-rect.left,y:evt.clientY-rect.top};
       }
+
+      function getResistorTextRect(c,useRender=false){
+        const pos=getCompPos(c,useRender),off=getValueLabelOffset(c);
+        return {
+          cx:pos.x+off.x,
+          cy:pos.y+off.y,
+          width:72,
+          height:22,
+          x1:pos.x+off.x-36-LABEL_HIT_PAD,
+          y1:pos.y+off.y-11-LABEL_HIT_PAD,
+          x2:pos.x+off.x+36+LABEL_HIT_PAD,
+          y2:pos.y+off.y+11+LABEL_HIT_PAD
+        };
+      }
+
       function hitComponent(world){
         for(let i=state.components.length-1;i>=0;i--){
           const c=state.components[i],pos=getCompPos(c,true);
@@ -1940,18 +2069,40 @@
         }
         return null;
       }
-      function hitLabel(world){
+
+      function hitEditableValue(world){
         for(let i=state.components.length-1;i>=0;i--){
-          const c=state.components[i];if(c.isJunction)continue;
-          const nr=getComponentNameRect(c,null,true);
-          if(world.x>=nr.x1&&world.x<=nr.x2&&world.y>=nr.y1&&world.y<=nr.y2)return c;
-          if(c.type==="battery"||c.type==="ammeter"||c.type==="voltmeter"){
+          const c=state.components[i];
+          if(c.isJunction)continue;
+          if(c.type==="battery"){
             const vr=getValueLabelRectForComponent(c,null,true);
-            if(world.x>=vr.x1&&world.x<=vr.x2&&world.y>=vr.y1&&world.y<=vr.y2)return c;
+            if(world.x>=vr.x1&&world.x<=vr.x2&&world.y>=vr.y1&&world.y<=vr.y2)return {component:c,kind:"batteryVoltage"};
+          }
+          if(c.type==="bulb"){
+            const vr=getValueLabelRectForComponent(c,null,true);
+            if(world.x>=vr.x1&&world.x<=vr.x2&&world.y>=vr.y1&&world.y<=vr.y2)return {component:c,kind:"bulbResistanceLabel"};
+          }
+          if(c.type==="resistor"){
+            const rr=getResistorTextRect(c,true);
+            if(world.x>=rr.x1&&world.x<=rr.x2&&world.y>=rr.y1&&world.y<=rr.y2)return {component:c,kind:"resistorResistanceLabel"};
           }
         }
         return null;
       }
+
+      function hitLabel(world){
+        for(let i=state.components.length-1;i>=0;i--){
+          const c=state.components[i];if(c.isJunction)continue;
+          const nr=getComponentNameRect(c,null,true);
+          if(world.x>=nr.x1&&world.x<=nr.x2&&world.y>=nr.y1&&world.y<=nr.y2)return {component:c,kind:"name"};
+          if(c.type==="ammeter"||c.type==="voltmeter"||c.type==="battery"||c.type==="bulb"||c.type==="resistor"){
+            const vr=c.type==="resistor"?getResistorTextRect(c,true):getValueLabelRectForComponent(c,null,true);
+            if(world.x>=vr.x1&&world.x<=vr.x2&&world.y>=vr.y1&&world.y<=vr.y2)return {component:c,kind:"value"};
+          }
+        }
+        return null;
+      }
+
       function hitTerminal(world){
         for(let i=state.components.length-1;i>=0;i--){
           const c=state.components[i];
@@ -2019,6 +2170,38 @@
         const c=state.components.find(x=>x.id===id);
         if(c&&c.type==="switch"){pushHistory();c.closed=!c.closed;solveAndRender()}
       }
+
+      function requestNumberValue(message, initialValue, fallbackValue){
+        const raw=window.prompt(message, String(initialValue));
+        if(raw===null)return null;
+        const value=Number(String(raw).trim().replace(/[^\d.\-+eE]/g,""));
+        if(!Number.isFinite(value) || value<=0)return fallbackValue;
+        return value;
+      }
+
+      function editComponentValue(c){
+        if(!c)return false;
+        if(c.type==="bulb"){
+          const msg=state.lang==="zhHant"?"請輸入燈泡電阻（Ω）":"Enter bulb resistance (Ω)";
+          const next=requestNumberValue(msg,c.resistance||DEFAULT_BULB_RESISTANCE,c.resistance||DEFAULT_BULB_RESISTANCE);
+          if(next==null)return false;
+          pushHistory();c.resistance=next;solveAndRender();return true;
+        }
+        if(c.type==="resistor"){
+          const msg=state.lang==="zhHant"?"請輸入電阻值（Ω）":"Enter resistor value (Ω)";
+          const next=requestNumberValue(msg,c.resistance||DEFAULT_RESISTOR_RESISTANCE,c.resistance||DEFAULT_RESISTOR_RESISTANCE);
+          if(next==null)return false;
+          pushHistory();c.resistance=next;solveAndRender();return true;
+        }
+        if(c.type==="battery"){
+          const msg=state.lang==="zhHant"?"請輸入電池電壓（V）":"Enter battery voltage (V)";
+          const next=requestNumberValue(msg,c.sourceVoltage||DEFAULT_BATTERY_VOLTAGE,c.sourceVoltage||DEFAULT_BATTERY_VOLTAGE);
+          if(next==null)return false;
+          pushHistory();c.sourceVoltage=next;solveAndRender();return true;
+        }
+        return false;
+      }
+
       function addComponentAt(type,p){
         const x=snap(p.x),y=snap(p.y);
         if(type==="junction"){
@@ -2108,6 +2291,10 @@
             const lo=rotatePoint(c.labelOffset.x,c.labelOffset.y,90);
             c.labelOffset={x:Math.round(lo.x/4)*4,y:Math.round(lo.y/4)*4};
           }
+          if(c.valueLabelOffset){
+            const vo=rotatePoint(c.valueLabelOffset.x,c.valueLabelOffset.y,90);
+            c.valueLabelOffset={x:Math.round(vo.x/4)*4,y:Math.round(vo.y/4)*4};
+          }
         }
         solveAndRender();
       }
@@ -2154,7 +2341,6 @@
         const c=state.components.find(x=>x.id===state.meterExplainTarget);
         if(!c||!["ammeter","voltmeter"].includes(c.type)){card.classList.remove("show");return}
 
-        /* Cache only the explanation: do not rebuild its DOM every animation frame. */
         const key=JSON.stringify({
           target:c.id,lang:state.lang,
           components:state.components.map(x=>({
@@ -2200,9 +2386,24 @@
             return;
           }
           if(evt.button===2||state.mode==="pan"){state.panning=true;state.panLastScreen=p;return}
-          const world=screenToWorld(p),labelComp=hitLabel(world),term=hitTerminal(world),comp=hitComponent(world),wire=hitWire(world),nearWire=getNearestWirePoint(world,14);
-          if(labelComp){
-            pushHistory();state.labelDragging={componentId:labelComp.id,startWorld:world,startOffset:{...ensureLabelOffset(labelComp)}};return;
+          const world=screenToWorld(p),editable=hitEditableValue(world),labelHit=hitLabel(world),term=hitTerminal(world),comp=hitComponent(world),wire=hitWire(world),nearWire=getNearestWirePoint(world,14);
+
+          if(editable){
+            editComponentValue(editable.component);
+            return;
+          }
+
+          if(labelHit){
+            const targetComp=labelHit.component;
+            pushHistory();
+            ensureLabelOffset(targetComp);
+            state.labelDragging={
+              componentId:targetComp.id,
+              startWorld:world,
+              startOffset:{...targetComp.labelOffset},
+              startValueOffset:{...targetComp.valueLabelOffset}
+            };
+            return;
           }
           if(state.pendingAddType){
             if(state.pendingAddType==="wire"){
@@ -2290,10 +2491,18 @@
           }
           if(state.labelDragging){
             const c=state.components.find(x=>x.id===state.labelDragging.componentId);
-            if(c)c.labelOffset={
-              x:state.labelDragging.startOffset.x+(world.x-state.labelDragging.startWorld.x),
-              y:state.labelDragging.startOffset.y+(world.y-state.labelDragging.startWorld.y)
-            };
+            if(c){
+              const dx=world.x-state.labelDragging.startWorld.x;
+              const dy=world.y-state.labelDragging.startWorld.y;
+              c.labelOffset={
+                x:state.labelDragging.startOffset.x+dx,
+                y:state.labelDragging.startOffset.y+dy
+              };
+              c.valueLabelOffset={
+                x:state.labelDragging.startValueOffset.x+dx,
+                y:state.labelDragging.startValueOffset.y+dy
+              };
+            }
             render();return;
           }
           if(state.dragging&&state.dragLastWorld){
@@ -2329,6 +2538,7 @@
               const c=state.components.find(x=>x.id===pressedId);
               if(c){
                 if(c.type==="switch"){toggleSwitchById(pressedId);return}
+                if(c.type==="bulb"||c.type==="resistor"){editComponentValue(c);return}
                 if(c.type==="ammeter"||c.type==="voltmeter"){
                   state.meterExplainTarget=c.id;updateMeterExplainCard();
                   document.getElementById("meterExplainCard").classList.add("show");return;
