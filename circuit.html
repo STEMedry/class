@@ -136,46 +136,26 @@
     .strategy-box{border-radius:14px;padding:12px;border:1px solid #dbe6f5;background:#fff}
     .strategy-box strong{display:block;margin-bottom:6px;font-size:13px}
     .strategy-box p{margin:0;font-size:12px;color:#64748b;line-height:1.5}
-
     #meterExplainCard{touch-action:pan-y}
-    #meterExplainBody .reading-step{
-      padding:22px 0;border-bottom:1px solid #d7deea;
-    }
+    #meterExplainBody .reading-step{padding:22px 0;border-bottom:1px solid #d7deea}
     #meterExplainBody .reading-step:last-child{border-bottom:0}
-    #meterExplainBody .reading-step h5{
-      margin:0 0 14px;font-size:19px;font-weight:750;line-height:1.45;color:#18202c;
-    }
-    #meterExplainBody .reading-step p,
-    #meterExplainBody .reading-step li{
-      font-size:15px;line-height:1.8;color:#414852;
-    }
+    #meterExplainBody .reading-step h5{margin:0 0 14px;font-size:19px;font-weight:750;line-height:1.45;color:#18202c}
+    #meterExplainBody .reading-step p,#meterExplainBody .reading-step li{font-size:15px;line-height:1.8;color:#414852}
     #meterExplainBody .reading-step p{margin:10px 0}
     #meterExplainBody .reading-step li{margin:10px 0}
     #meterExplainBody .math-line{
       padding:15px 8px;margin:12px 0;text-align:center;
-      font-family:Cambria,"Times New Roman",serif;
-      font-size:21px;line-height:2;color:#18202c;
+      font-family:Cambria,"Times New Roman",serif;font-size:21px;line-height:2;color:#18202c;
       overflow-x:auto;touch-action:pan-x;overflow-wrap:anywhere;
     }
     #meterExplainBody .math-line sub{font-size:.68em}
     #meterExplainBody .math-line strong{font-weight:800}
-    #meterExplainBody .math-frac{
-      display:inline-flex;flex-direction:column;vertical-align:middle;
-      text-align:center;line-height:1.4;margin:0 .22em;
-    }
-    #meterExplainBody .math-frac>span:first-child{
-      border-bottom:1px solid currentColor;padding:0 .25em .1em;
-    }
+    #meterExplainBody .math-frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;line-height:1.4;margin:0 .22em}
+    #meterExplainBody .math-frac>span:first-child{border-bottom:1px solid currentColor;padding:0 .25em .1em}
     #meterExplainBody .math-frac>span:last-child{padding:.1em .25em 0}
-    #meterExplainBody .reading-subsection{
-      margin:14px 0;padding:12px 14px;background:#fafcff;
-      border:1px solid #e2e8f0;border-radius:12px;
-    }
+    #meterExplainBody .reading-subsection{margin:14px 0;padding:12px 14px;background:#fafcff;border:1px solid #e2e8f0;border-radius:12px}
     #meterExplainBody .reading-subsection h6{margin:0 0 8px;font-size:15px}
-    #meterExplainBody .reading-warning{
-      border:1px solid #fcd34d;background:#fffbeb;border-radius:12px;
-      padding:12px 14px;margin:12px 0;color:#854d0e;font-size:13px;line-height:1.7;
-    }
+    #meterExplainBody .reading-warning{border:1px solid #fcd34d;background:#fffbeb;border-radius:12px;padding:12px 14px;margin:12px 0;color:#854d0e;font-size:13px;line-height:1.7}
     #meterExplainBody .table-scroll{overflow-x:auto;touch-action:pan-x}
     #meterExplainBody .detail-table td{font-variant-numeric:tabular-nums}
     #meterExplainBody .selected-meter-row{background:#eff6ff;font-weight:700}
@@ -279,28 +259,71 @@
       </div>
     </div>
   </div>
+
   <script>
     (() => {
-      const GRID = 32;
-      const OPEN_RESISTANCE = 1e12;
-      const IDEAL_WIRE_RESISTANCE = 1e-7;
-      const AMMETER_RESISTANCE = 1e-5;
-      const VOLTMETER_RESISTANCE = 1e12;
-      const SOLVER_EPS = 1e-10;
-      const HIT_R = 72;
-      const TERM_R = 14;
-      const CLICK_DRAG_THRESHOLD = 4;
-      const DEFAULT_BATTERY_VOLTAGE = 1.5;
-      const DEFAULT_BULB_RESISTANCE = 20;
-      const DEFAULT_RESISTOR_RESISTANCE = 10;
-      const ROTATE_STEP = 15;
-      const PROJECT_FILE_VERSION = 9;
-      const PLACE_SCALE = 0.5;
-      const SHORT_CURRENT_THRESHOLD = 5;
-      const LABEL_HIT_PAD = 8;
+      "use strict";
 
-      const I18N = {
-        en: {
+      const GRID=32;
+      const OPEN_RESISTANCE=1e12;
+      const IDEAL_WIRE_RESISTANCE=1e-9;
+      const AMMETER_RESISTANCE=1e-6;
+      const VOLTMETER_RESISTANCE=1e12;
+      const SOLVER_EPS=1e-14;
+      const HIT_R=72;
+      const TERM_R=14;
+      const CLICK_DRAG_THRESHOLD=4;
+      const DOUBLE_CLICK_MS=320;
+      const DEFAULT_BATTERY_VOLTAGE=1.5;
+      const DEFAULT_BULB_RESISTANCE=20;
+      const DEFAULT_RESISTOR_RESISTANCE=10;
+      const ROTATE_STEP=15;
+      const PROJECT_FILE_VERSION=10;
+      const PLACE_SCALE=0.5;
+      const SHORT_CURRENT_THRESHOLD=5;
+      const LABEL_HIT_PAD=8;
+
+      /*
+       * Fixed display reference, not a circuit parameter.
+       * A default 20 Ω bulb across a default 1.5 V ideal battery dissipates
+       * 0.1125 W. All bulbs use the SAME reference, even when their resistance
+       * differs. Adding/removing another bulb cannot rescale existing bulbs.
+       */
+      const BULB_REFERENCE_POWER=
+        DEFAULT_BATTERY_VOLTAGE*DEFAULT_BATTERY_VOLTAGE/DEFAULT_BULB_RESISTANCE;
+
+      function tutorialDiagram(zh){
+        const labels=zh
+          ?["目標","拆解","模式","規則","建構","測試","修正"]
+          :["Goal","Break","Pattern","Rule","Build","Test","Revise"];
+        return `
+          <svg viewBox="0 0 460 260" aria-hidden="true">
+            <rect x="16" y="22" width="94" height="54" rx="16" fill="#dbeafe" stroke="#2563eb" stroke-width="3"/>
+            <text x="63" y="55" text-anchor="middle" font-size="18" font-weight="700" fill="#1e3a8a">${labels[0]}</text>
+            <rect x="132" y="22" width="94" height="54" rx="16" fill="#dcfce7" stroke="#16a34a" stroke-width="3"/>
+            <text x="179" y="55" text-anchor="middle" font-size="18" font-weight="700" fill="#166534">${labels[1]}</text>
+            <rect x="248" y="22" width="94" height="54" rx="16" fill="#fef3c7" stroke="#d97706" stroke-width="3"/>
+            <text x="295" y="55" text-anchor="middle" font-size="18" font-weight="700" fill="#92400e">${labels[2]}</text>
+            <rect x="364" y="22" width="80" height="54" rx="16" fill="#ede9fe" stroke="#7c3aed" stroke-width="3"/>
+            <text x="404" y="55" text-anchor="middle" font-size="18" font-weight="700" fill="#5b21b6">${labels[3]}</text>
+            <rect x="132" y="158" width="94" height="54" rx="16" fill="#e0f2fe" stroke="#0284c7" stroke-width="3"/>
+            <text x="179" y="191" text-anchor="middle" font-size="18" font-weight="700" fill="#075985">${labels[4]}</text>
+            <rect x="248" y="158" width="94" height="54" rx="16" fill="#fee2e2" stroke="#dc2626" stroke-width="3"/>
+            <text x="295" y="191" text-anchor="middle" font-size="18" font-weight="700" fill="#991b1b">${labels[5]}</text>
+            <rect x="364" y="158" width="80" height="54" rx="16" fill="#ecfccb" stroke="#65a30d" stroke-width="3"/>
+            <text x="404" y="191" text-anchor="middle" font-size="18" font-weight="700" fill="#3f6212">${labels[6]}</text>
+            <path d="M110 49 H132" stroke="#64748b" stroke-width="4" fill="none"/><polygon points="132,49 122,44 122,54" fill="#64748b"/>
+            <path d="M226 49 H248" stroke="#64748b" stroke-width="4" fill="none"/><polygon points="248,49 238,44 238,54" fill="#64748b"/>
+            <path d="M342 49 H364" stroke="#64748b" stroke-width="4" fill="none"/><polygon points="364,49 354,44 354,54" fill="#64748b"/>
+            <path d="M404 76 V158" stroke="#64748b" stroke-width="4" fill="none"/><polygon points="404,158 399,148 409,148" fill="#64748b"/>
+            <path d="M364 185 H342" stroke="#64748b" stroke-width="4" fill="none"/><polygon points="342,185 352,180 352,190" fill="#64748b"/>
+            <path d="M248 185 H226" stroke="#64748b" stroke-width="4" fill="none"/><polygon points="226,185 236,180 236,190" fill="#64748b"/>
+            <path d="M179 158 V76" stroke="#64748b" stroke-width="4" fill="none"/><polygon points="179,76 174,86 184,86" fill="#64748b"/>
+          </svg>`;
+      }
+
+      const I18N={
+        en:{
           brandTitle:"Circuit Learning Studio",
           brandSubtitle:"Computational Thinking Edition",
           selectMode:"Select / Move",panMode:"Pan View",
@@ -337,6 +360,9 @@
           partNoteSwitch:"click on/off",partNoteAmmeter:"series meter",partNoteVoltmeter:"across nodes",
           partNoteJunction:"insert on wire",partNoteBuzzer:"sound output",partNoteFan:"motor load",partNoteWire:"draw connections",
           step1:"Step 1",step2:"Step 2",step3:"Step 3",step4:"Step 4",step5:"Step 5",step6:"Step 6",
+          editBulbResistance:"Enter bulb resistance (Ω)",
+          editResistorResistance:"Enter resistor value (Ω)",
+          editBatteryVoltage:"Enter battery voltage (V)",
           tutPages:[
             {
               title:"Circuit Problem-Solving through Computational Thinking",
@@ -350,38 +376,7 @@
                       <div class="mini-card"><h6>Evidence-based revision</h6><p>Students test their ideas with meter readings, bulb brightness, and switching actions, then improve one feature at a time.</p></div>
                     </div>
                   </div>
-                  <div class="tutorial-diagram">
-<svg viewBox="0 0 460 260" aria-hidden="true">
-  <rect x="16" y="22" width="94" height="54" rx="16" fill="#dbeafe" stroke="#2563eb" stroke-width="3"/>
-  <text x="63" y="55" text-anchor="middle" font-size="18" font-weight="700" fill="#1e3a8a">Goal</text>
-  <rect x="132" y="22" width="94" height="54" rx="16" fill="#dcfce7" stroke="#16a34a" stroke-width="3"/>
-  <text x="179" y="55" text-anchor="middle" font-size="18" font-weight="700" fill="#166534">Break</text>
-  <rect x="248" y="22" width="94" height="54" rx="16" fill="#fef3c7" stroke="#d97706" stroke-width="3"/>
-  <text x="295" y="55" text-anchor="middle" font-size="18" font-weight="700" fill="#92400e">Pattern</text>
-  <rect x="364" y="22" width="80" height="54" rx="16" fill="#ede9fe" stroke="#7c3aed" stroke-width="3"/>
-  <text x="404" y="55" text-anchor="middle" font-size="18" font-weight="700" fill="#5b21b6">Rule</text>
-  <rect x="132" y="158" width="94" height="54" rx="16" fill="#e0f2fe" stroke="#0284c7" stroke-width="3"/>
-  <text x="179" y="191" text-anchor="middle" font-size="18" font-weight="700" fill="#075985">Build</text>
-  <rect x="248" y="158" width="94" height="54" rx="16" fill="#fee2e2" stroke="#dc2626" stroke-width="3"/>
-  <text x="295" y="191" text-anchor="middle" font-size="18" font-weight="700" fill="#991b1b">Test</text>
-  <rect x="364" y="158" width="80" height="54" rx="16" fill="#ecfccb" stroke="#65a30d" stroke-width="3"/>
-  <text x="404" y="191" text-anchor="middle" font-size="18" font-weight="700" fill="#3f6212">Revise</text>
-  <path d="M110 49 H132" stroke="#64748b" stroke-width="4" fill="none"/>
-  <polygon points="132,49 122,44 122,54" fill="#64748b"/>
-  <path d="M226 49 H248" stroke="#64748b" stroke-width="4" fill="none"/>
-  <polygon points="248,49 238,44 238,54" fill="#64748b"/>
-  <path d="M342 49 H364" stroke="#64748b" stroke-width="4" fill="none"/>
-  <polygon points="364,49 354,44 354,54" fill="#64748b"/>
-  <path d="M404 76 V158" stroke="#64748b" stroke-width="4" fill="none"/>
-  <polygon points="404,158 399,148 409,148" fill="#64748b"/>
-  <path d="M364 185 H342" stroke="#64748b" stroke-width="4" fill="none"/>
-  <polygon points="342,185 352,180 352,190" fill="#64748b"/>
-  <path d="M248 185 H226" stroke="#64748b" stroke-width="4" fill="none"/>
-  <polygon points="226,185 236,180 236,190" fill="#64748b"/>
-  <path d="M179 158 V76" stroke="#64748b" stroke-width="4" fill="none"/>
-  <polygon points="179,76 174,86 184,86" fill="#64748b"/>
-</svg>
-                  </div>
+                  <div class="tutorial-diagram">${tutorialDiagram(false)}</div>
                 </div>`
             },
             {
@@ -443,6 +438,9 @@
           partNoteSwitch:"點擊開 / 關",partNoteAmmeter:"串聯儀表",partNoteVoltmeter:"跨接量測",
           partNoteJunction:"插在線上",partNoteBuzzer:"聲音輸出",partNoteFan:"馬達負載",partNoteWire:"繪製連接",
           step1:"步驟 1",step2:"步驟 2",step3:"步驟 3",step4:"步驟 4",step5:"步驟 5",step6:"步驟 6",
+          editBulbResistance:"請輸入燈泡電阻（Ω）",
+          editResistorResistance:"請輸入電阻值（Ω）",
+          editBatteryVoltage:"請輸入電池電壓（V）",
           tutPages:[
             {
               title:"用運算思維進行電路解題",
@@ -456,38 +454,7 @@
                       <div class="mini-card"><h6>以證據修正</h6><p>學生可根據儀表讀值、燈泡亮度和開關狀態，逐步修正設計，而不是隨機猜測。</p></div>
                     </div>
                   </div>
-                  <div class="tutorial-diagram">
-<svg viewBox="0 0 460 260" aria-hidden="true">
-  <rect x="16" y="22" width="94" height="54" rx="16" fill="#dbeafe" stroke="#2563eb" stroke-width="3"/>
-  <text x="63" y="55" text-anchor="middle" font-size="18" font-weight="700" fill="#1e3a8a">目標</text>
-  <rect x="132" y="22" width="94" height="54" rx="16" fill="#dcfce7" stroke="#16a34a" stroke-width="3"/>
-  <text x="179" y="55" text-anchor="middle" font-size="18" font-weight="700" fill="#166534">拆解</text>
-  <rect x="248" y="22" width="94" height="54" rx="16" fill="#fef3c7" stroke="#d97706" stroke-width="3"/>
-  <text x="295" y="55" text-anchor="middle" font-size="18" font-weight="700" fill="#92400e">模式</text>
-  <rect x="364" y="22" width="80" height="54" rx="16" fill="#ede9fe" stroke="#7c3aed" stroke-width="3"/>
-  <text x="404" y="55" text-anchor="middle" font-size="18" font-weight="700" fill="#5b21b6">規則</text>
-  <rect x="132" y="158" width="94" height="54" rx="16" fill="#e0f2fe" stroke="#0284c7" stroke-width="3"/>
-  <text x="179" y="191" text-anchor="middle" font-size="18" font-weight="700" fill="#075985">建構</text>
-  <rect x="248" y="158" width="94" height="54" rx="16" fill="#fee2e2" stroke="#dc2626" stroke-width="3"/>
-  <text x="295" y="191" text-anchor="middle" font-size="18" font-weight="700" fill="#991b1b">測試</text>
-  <rect x="364" y="158" width="80" height="54" rx="16" fill="#ecfccb" stroke="#65a30d" stroke-width="3"/>
-  <text x="404" y="191" text-anchor="middle" font-size="18" font-weight="700" fill="#3f6212">修正</text>
-  <path d="M110 49 H132" stroke="#64748b" stroke-width="4" fill="none"/>
-  <polygon points="132,49 122,44 122,54" fill="#64748b"/>
-  <path d="M226 49 H248" stroke="#64748b" stroke-width="4" fill="none"/>
-  <polygon points="248,49 238,44 238,54" fill="#64748b"/>
-  <path d="M342 49 H364" stroke="#64748b" stroke-width="4" fill="none"/>
-  <polygon points="364,49 354,44 354,54" fill="#64748b"/>
-  <path d="M404 76 V158" stroke="#64748b" stroke-width="4" fill="none"/>
-  <polygon points="404,158 399,148 409,148" fill="#64748b"/>
-  <path d="M364 185 H342" stroke="#64748b" stroke-width="4" fill="none"/>
-  <polygon points="342,185 352,180 352,190" fill="#64748b"/>
-  <path d="M248 185 H226" stroke="#64748b" stroke-width="4" fill="none"/>
-  <polygon points="226,185 236,180 236,190" fill="#64748b"/>
-  <path d="M179 158 V76" stroke="#64748b" stroke-width="4" fill="none"/>
-  <polygon points="179,76 174,86 184,86" fill="#64748b"/>
-</svg>
-                  </div>
+                  <div class="tutorial-diagram">${tutorialDiagram(true)}</div>
                 </div>`
             },
             {
@@ -542,14 +509,13 @@
         audioCtx:null,audioEnabled:true,buzzerOscillators:new Map(),
         labelDragging:null,dragSnapshot:null,
         view:{scale:1,minScale:0.35,maxScale:3,offsetX:0,offsetY:0},
-        pointers:new Map(),pinchStart:null
+        pointers:new Map(),pinchStart:null,clickCandidate:null,lastPointerDown:null
       };
 
       function t(key){return I18N[state.lang][key]}
       function snap(v){return Math.round(v/GRID)*GRID}
       function uid(prefix){return prefix+"_"+Math.random().toString(36).slice(2,9)}
       function degToRad(d){return d*Math.PI/180}
-
       function cloneData(){
         return {
           components:JSON.parse(JSON.stringify(state.components)),
@@ -573,7 +539,7 @@
         if(snapshot.view)state.view={...snapshot.view};
         if(snapshot.lang&&I18N[snapshot.lang])state.lang=snapshot.lang;
         if(snapshot.mode)state.mode=snapshot.mode;
-        ensureAllLabelOffsets();solveAndRender(false);refreshPaletteSelection();
+        ensureAllLabelOffsets();solveAndRender();refreshPaletteSelection();
       }
       function pushHistory(){
         state.history.push(cloneData());
@@ -581,29 +547,18 @@
       }
       function undo(){const s=state.history.pop();if(s)restoreData(s)}
       function normalizeComponentAngle(type,angle){return ((angle%360)+360)%360}
-
-      function getDefaultLabelOffset(c){
-        if(c.type==="battery")return {x:0,y:-32};
-        if(c.type==="ammeter"||c.type==="voltmeter")return {x:0,y:-32};
-        return {x:0,y:-32};
-      }
-
+      function getDefaultLabelOffset(){return {x:0,y:-32}}
       function getDefaultValueLabelOffset(c){
         if(c.type==="battery")return {x:0,y:-64};
         if(c.type==="ammeter"||c.type==="voltmeter")return {x:0,y:-55};
-        if(c.type==="bulb")return {x:0,y:34};
-        if(c.type==="resistor")return {x:0,y:34};
+        if(c.type==="bulb"||c.type==="resistor")return {x:0,y:34};
         return {x:0,y:0};
       }
-
       function ensureLabelOffset(c){
-        if(!c.labelOffset||typeof c.labelOffset.x!=="number"||typeof c.labelOffset.y!=="number"){
+        if(!c.labelOffset||!Number.isFinite(c.labelOffset.x)||!Number.isFinite(c.labelOffset.y))
           c.labelOffset=getDefaultLabelOffset(c);
-        }
-        if(!c.valueLabelOffset||typeof c.valueLabelOffset.x!=="number"||typeof c.valueLabelOffset.y!=="number"){
+        if(!c.valueLabelOffset||!Number.isFinite(c.valueLabelOffset.x)||!Number.isFinite(c.valueLabelOffset.y))
           c.valueLabelOffset=getDefaultValueLabelOffset(c);
-        }
-        return c.labelOffset;
       }
       function ensureAllLabelOffsets(){for(const c of state.components)ensureLabelOffset(c)}
       function createComponent(type,x,y){
@@ -620,23 +575,32 @@
       }
       function getCompScale(c){return c.scale||1}
       function screenToWorld(p){
-        return {x:(p.x-state.view.offsetX)/state.view.scale,y:(p.y-state.view.offsetY)/state.view.scale};
+        return {
+          x:(p.x-state.view.offsetX)/state.view.scale,
+          y:(p.y-state.view.offsetY)/state.view.scale
+        };
       }
       function rotatePoint(x,y,angleDeg){
-        const a=degToRad(angleDeg||0),c=Math.cos(a),s=Math.sin(a);
-        return {x:x*c-y*s,y:x*s+y*c};
+        const a=degToRad(angleDeg||0),co=Math.cos(a),si=Math.sin(a);
+        return {x:x*co-y*si,y:x*si+y*co};
       }
       function inverseRotatePoint(x,y,angleDeg){return rotatePoint(x,y,-(angleDeg||0))}
+      function getCompPos(c,useRender=false){return {x:useRender?c.renderX:c.x,y:useRender?c.renderY:c.y}}
       function componentBounds(c,pad=0,useRender=false){
-        const cx=useRender?c.renderX:c.x,cy=useRender?c.renderY:c.y,sc=getCompScale(c);
+        const {x:cx,y:cy}=getCompPos(c,useRender),sc=getCompScale(c);
         if(c.isJunction)return {x1:cx-12-pad,y1:cy-12-pad,x2:cx+12+pad,y2:cy+12+pad};
         const hr=HIT_R*sc;
-        const corners=[rotatePoint(-hr,-hr,c.angle),rotatePoint(hr,-hr,c.angle),rotatePoint(hr,hr,c.angle),rotatePoint(-hr,hr,c.angle)];
+        const corners=[
+          rotatePoint(-hr,-hr,c.angle),rotatePoint(hr,-hr,c.angle),
+          rotatePoint(hr,hr,c.angle),rotatePoint(-hr,hr,c.angle)
+        ];
         const xs=corners.map(p=>p.x+cx),ys=corners.map(p=>p.y+cy);
-        return {x1:Math.min(...xs)-pad,y1:Math.min(...ys)-pad,x2:Math.max(...xs)+pad,y2:Math.max(...ys)+pad};
+        return {
+          x1:Math.min(...xs)-pad,y1:Math.min(...ys)-pad,
+          x2:Math.max(...xs)+pad,y2:Math.max(...ys)+pad
+        };
       }
       function rectsOverlap(a,b){return !(a.x2<b.x1||a.x1>b.x2||a.y2<b.y1||a.y1>b.y2)}
-      function getCompPos(c,useRender=false){return {x:useRender?c.renderX:c.x,y:useRender?c.renderY:c.y}}
       function getTerminals(c,useRender=false){
         const pos=getCompPos(c,useRender);
         if(c.isJunction)return [{x:pos.x,y:pos.y,componentId:c.id,side:"node"}];
@@ -649,15 +613,16 @@
       function getTerminalPosition(ref,useRender=false){
         const c=state.components.find(x=>x.id===ref.componentId);
         if(!c)return {x:0,y:0};
-        if(c.isJunction||ref.side==="node"){const pos=getCompPos(c,useRender);return {x:pos.x,y:pos.y}}
-        const pos=getCompPos(c,useRender),sc=getCompScale(c);
-        const local=ref.side==="left"?rotatePoint(-56*sc,0,c.angle):rotatePoint(56*sc,0,c.angle);
+        const pos=getCompPos(c,useRender);
+        if(c.isJunction||ref.side==="node")return pos;
+        const sc=getCompScale(c);
+        const local=rotatePoint(ref.side==="left"?-56*sc:56*sc,0,c.angle);
         return {x:pos.x+local.x,y:pos.y+local.y};
       }
       function terminalKey(componentId,side){return componentId+":"+side}
       function placementRectForType(type,x,y){
-        if(type==="junction")return {x1:x-12,y1:y-12,x2:x+12,y2:y+12};
-        const hr=HIT_R*PLACE_SCALE;return {x1:x-hr,y1:y-hr,x2:x+hr,y2:y+hr};
+        const hr=type==="junction"?12:HIT_R*PLACE_SCALE;
+        return {x1:x-hr,y1:y-hr,x2:x+hr,y2:y+hr};
       }
       function placementOverlaps(type,x,y,ignoreIds=new Set()){
         const r=placementRectForType(type,x,y);
@@ -669,7 +634,8 @@
       }
       function pathLength(path){
         let len=0;
-        for(let i=0;i<path.length-1;i++)len+=Math.abs(path[i+1].x-path[i].x)+Math.abs(path[i+1].y-path[i].y);
+        for(let i=0;i<path.length-1;i++)
+          len+=Math.abs(path[i+1].x-path[i].x)+Math.abs(path[i+1].y-path[i].y);
         return len;
       }
       function segmentIntersectsRect(a,b,rect){
@@ -693,8 +659,7 @@
         const reduced=[out[0]];
         for(let i=1;i<out.length-1;i++){
           const a=reduced[reduced.length-1],b=out[i],c=out[i+1];
-          const col=(a.x===b.x&&b.x===c.x)||(a.y===b.y&&b.y===c.y);
-          if(!col)reduced.push(b);
+          if(!((a.x===b.x&&b.x===c.x)||(a.y===b.y&&b.y===c.y)))reduced.push(b);
         }
         reduced.push(out[out.length-1]);return reduced;
       }
@@ -712,7 +677,8 @@
         ];
         let best=null,bestScore=Infinity;
         for(const cand of candidates){
-          const path=simplifyPath(cand);let penalty=path.length*12+pathLength(path);
+          const path=simplifyPath(cand);
+          let penalty=path.length*12+pathLength(path);
           for(let i=0;i<path.length-1;i++){
             for(const c of state.components){
               if(ignoreComponentIds.has(c.id)||c.isJunction)continue;
@@ -730,9 +696,9 @@
       function pointProjectionOnSegment(p,a,b){
         const dx=b.x-a.x,dy=b.y-a.y,len2=dx*dx+dy*dy;
         if(len2===0)return {x:a.x,y:a.y,t:0,dist:Math.hypot(p.x-a.x,p.y-a.y)};
-        let tt=((p.x-a.x)*dx+(p.y-a.y)*dy)/len2;tt=Math.max(0,Math.min(1,tt));
+        const tt=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/len2));
         const proj={x:a.x+tt*dx,y:a.y+tt*dy};
-        return {x:proj.x,y:proj.y,t:tt,dist:Math.hypot(p.x-proj.x,p.y-proj.y)};
+        return {...proj,t:tt,dist:Math.hypot(p.x-proj.x,p.y-proj.y)};
       }
       function getNearestWirePoint(world,tolerance=12){
         let best=null;
@@ -741,8 +707,9 @@
           for(let i=0;i<path.length-1;i++){
             const proj=pointProjectionOnSegment(world,path[i],path[i+1]);
             if(proj.dist<=tolerance){
-              const snapped={x:snap(proj.x),y:snap(proj.y)},score=proj.dist;
-              if(!best||score<best.score)best={wire,x:snapped.x,y:snapped.y,score};
+              const score=proj.dist;
+              if(!best||score<best.score)
+                best={wire,x:snap(proj.x),y:snap(proj.y),score};
             }
           }
         }
@@ -752,11 +719,12 @@
         const sx=snap(x),sy=snap(y);
         const existing=state.components.find(c=>c.isJunction&&c.x===sx&&c.y===sy);
         if(existing)return existing;
-        const nearbyWirePoint=getNearestWirePoint({x:sx,y:sy},14);
-        if(!nearbyWirePoint||nearbyWirePoint.x!==sx||nearbyWirePoint.y!==sy){
+        const nearby=getNearestWirePoint({x:sx,y:sy},14);
+        if(!nearby||nearby.x!==sx||nearby.y!==sy){
           if(placementOverlaps("junction",sx,sy))return null;
         }
-        const j=createComponent("junction",sx,sy);j.scale=1;state.components.push(j);return j;
+        const j=createComponent("junction",sx,sy);
+        j.scale=1;state.components.push(j);return j;
       }
       function addWire(from,to){
         if(!from||!to)return false;
@@ -769,31 +737,20 @@
         state.wires.push({id:uid("w"),from:{...from},to:{...to},path:computeWirePath(from,to)});
         return true;
       }
-      function rerouteAllWires(useRender=false){for(const w of state.wires)w.path=computeWirePath(w.from,w.to,useRender)}
+      function rerouteAllWires(useRender=false){
+        for(const w of state.wires)w.path=computeWirePath(w.from,w.to,useRender);
+      }
       function clearSelection(){state.selectedComponents.clear();state.selectedWires.clear()}
       function pointOnSegment(p,a,b,eps=0.5){
-        if(a.x===b.x){
-          if(Math.abs(p.x-a.x)>eps)return false;
-          return p.y>=Math.min(a.y,b.y)-eps&&p.y<=Math.max(a.y,b.y)+eps;
-        }
-        if(a.y===b.y){
-          if(Math.abs(p.y-a.y)>eps)return false;
-          return p.x>=Math.min(a.x,b.x)-eps&&p.x<=Math.max(a.x,b.x)+eps;
-        }
+        if(a.x===b.x)
+          return Math.abs(p.x-a.x)<=eps&&p.y>=Math.min(a.y,b.y)-eps&&p.y<=Math.max(a.y,b.y)+eps;
+        if(a.y===b.y)
+          return Math.abs(p.y-a.y)<=eps&&p.x>=Math.min(a.x,b.x)-eps&&p.x<=Math.max(a.x,b.x)+eps;
         return false;
       }
-      function segmentIntersection(a1,a2,b1,b2){
-        const av=a1.x===a2.x,bv=b1.x===b2.x;
-        if(av===bv)return null;
-        const vertical=av?[a1,a2]:[b1,b2],horizontal=av?[b1,b2]:[a1,a2];
-        const vx=vertical[0].x,hy=horizontal[0].y;
-        const vy1=Math.min(vertical[0].y,vertical[1].y),vy2=Math.max(vertical[0].y,vertical[1].y);
-        const hx1=Math.min(horizontal[0].x,horizontal[1].x),hx2=Math.max(horizontal[0].x,horizontal[1].x);
-        if(vx>=hx1&&vx<=hx2&&hy>=vy1&&hy<=vy2)return {x:vx,y:hy};
-        return null;
-      }
       function splitWireAtPoint(wire,x,y){
-        const path=wire.path||computeWirePath(wire.from,wire.to);let bestPoint=null;
+        const path=wire.path||computeWirePath(wire.from,wire.to);
+        let bestPoint=null;
         for(let i=0;i<path.length-1;i++){
           const proj=pointProjectionOnSegment({x,y},path[i],path[i+1]);
           if(proj.dist<=10){
@@ -805,335 +762,417 @@
           }
         }
         if(!bestPoint)return null;
-        const sx=bestPoint.x,sy=bestPoint.y;
-        const existing=state.components.find(c=>c.isJunction&&c.x===sx&&c.y===sy);
-        const node=existing||ensureJunctionAt(sx,sy);
+        const node=ensureJunctionAt(bestPoint.x,bestPoint.y);
         if(!node)return null;
         state.wires=state.wires.filter(w=>w.id!==wire.id);
         addWire(wire.from,{componentId:node.id,side:"node"});
         addWire({componentId:node.id,side:"node"},wire.to);
         return node;
       }
+
+      /*
+       * Electrical topology:
+       * - A wire joins only its referenced terminals and explicit nodes on it.
+       * - Crossing wires do not connect without a conducting node.
+       * - Nearby terminals are NOT joined merely because they round to the
+       *   same grid cell. Actual coincident terminals can still connect.
+       */
       function getNodeGroups(){
         const parent=new Map();
         function make(k){if(!parent.has(k))parent.set(k,k)}
         function find(k){
           make(k);
-          while(parent.get(k)!==k){parent.set(k,parent.get(parent.get(k)));k=parent.get(k)}
-          return k;
+          let root=k;
+          while(parent.get(root)!==root)root=parent.get(root);
+          while(parent.get(k)!==k){
+            const next=parent.get(k);parent.set(k,root);k=next;
+          }
+          return root;
         }
-        function union(a,b){const ra=find(a),rb=find(b);if(ra!==rb)parent.set(ra,rb)}
-        for(const c of state.components)for(const tt of getTerminals(c))make(terminalKey(tt.componentId,tt.side));
+        function union(a,b){
+          const ra=find(a),rb=find(b);
+          if(ra!==rb)parent.set(ra,rb);
+        }
+
+        const allTerminals=[];
+        for(const c of state.components){
+          for(const tt of getTerminals(c)){
+            const key=terminalKey(tt.componentId,tt.side);
+            make(key);allTerminals.push({...tt,key});
+          }
+        }
+        const validKeys=new Set(allTerminals.map(tt=>tt.key));
+
         for(const w of state.wires){
-          union(terminalKey(w.from.componentId,w.from.side),terminalKey(w.to.componentId,w.to.side));
+          const fk=terminalKey(w.from.componentId,w.from.side);
+          const tk=terminalKey(w.to.componentId,w.to.side);
+          if(!validKeys.has(fk)||!validKeys.has(tk))continue;
+          union(fk,tk);
           const path=w.path||computeWirePath(w.from,w.to);
           for(const c of state.components){
             if(!c.isJunction)continue;
-            const jk=terminalKey(c.id,"node");
-            if(path.some(p=>snap(p.x)===snap(c.x)&&snap(p.y)===snap(c.y))){
-              union(jk,terminalKey(w.from.componentId,w.from.side));union(jk,terminalKey(w.to.componentId,w.to.side));
-            }
             for(let i=0;i<path.length-1;i++){
               if(pointOnSegment({x:c.x,y:c.y},path[i],path[i+1],0.1)){
-                union(jk,terminalKey(w.from.componentId,w.from.side));union(jk,terminalKey(w.to.componentId,w.to.side));
+                union(terminalKey(c.id,"node"),fk);break;
               }
             }
           }
         }
-        const snappedTerminalMap=new Map();
-        for(const c of state.components){
-          for(const tt of getTerminals(c)){
-            const pos=getTerminalPosition(tt),key=snap(pos.x)+","+snap(pos.y);
-            if(!snappedTerminalMap.has(key))snappedTerminalMap.set(key,[]);
-            snappedTerminalMap.get(key).push(tt);
+
+        for(let i=0;i<allTerminals.length;i++){
+          for(let j=i+1;j<allTerminals.length;j++){
+            const a=allTerminals[i],b=allTerminals[j];
+            if(Math.hypot(a.x-b.x,a.y-b.y)<=0.01)union(a.key,b.key);
           }
         }
-        for(const list of snappedTerminalMap.values()){
-          if(list.length>1){
-            const first=terminalKey(list[0].componentId,list[0].side);
-            for(let i=1;i<list.length;i++)union(first,terminalKey(list[i].componentId,list[i].side));
-          }
-        }
-        for(const c of state.components){
-          if(!c.isJunction)continue;
-          const jk=terminalKey(c.id,"node");
-          for(const other of state.components){
-            for(const tt of getTerminals(other)){
-              const p=getTerminalPosition(tt);
-              if(Math.hypot(p.x-c.x,p.y-c.y)<2)union(jk,terminalKey(tt.componentId,tt.side));
-            }
-          }
-          for(const w of state.wires){
-            const path=w.path||computeWirePath(w.from,w.to);
-            for(let i=0;i<path.length-1;i++){
-              if(pointOnSegment({x:c.x,y:c.y},path[i],path[i+1],0.1)){
-                union(jk,terminalKey(w.from.componentId,w.from.side));union(jk,terminalKey(w.to.componentId,w.to.side));
-              }
-            }
-          }
-        }
-        for(let i=0;i<state.wires.length;i++){
-          const wi=state.wires[i],pi=wi.path||computeWirePath(wi.from,wi.to);
-          for(let j=i+1;j<state.wires.length;j++){
-            const wj=state.wires[j],pj=wj.path||computeWirePath(wj.from,wj.to);
-            for(let a=0;a<pi.length-1;a++){
-              for(let b=0;b<pj.length-1;b++){
-                const inter=segmentIntersection(pi[a],pi[a+1],pj[b],pj[b+1]);
-                if(!inter)continue;
-                const junction=state.components.find(c=>c.isJunction&&snap(c.x)===snap(inter.x)&&snap(c.y)===snap(inter.y));
-                if(!junction)continue;
-                const jk=terminalKey(junction.id,"node");
-                union(jk,terminalKey(wi.from.componentId,wi.from.side));
-                union(jk,terminalKey(wi.to.componentId,wi.to.side));
-                union(jk,terminalKey(wj.from.componentId,wj.from.side));
-                union(jk,terminalKey(wj.to.componentId,wj.to.side));
-              }
-            }
-          }
-        }
+
         const groups=new Map();
-        for(const c of state.components){
-          for(const tt of getTerminals(c)){
-            const k=terminalKey(tt.componentId,tt.side),root=find(k);
-            if(!groups.has(root))groups.set(root,[]);
-            groups.get(root).push({componentId:c.id,side:tt.side});
-          }
+        for(const tt of allTerminals){
+          const root=find(tt.key);
+          if(!groups.has(root))groups.set(root,[]);
+          groups.get(root).push({componentId:tt.componentId,side:tt.side});
         }
         return groups;
       }
+
+      function effectiveResistanceOf(c){
+        if(c.type==="switch")return c.closed?IDEAL_WIRE_RESISTANCE:OPEN_RESISTANCE;
+        if(c.type==="ammeter")return AMMETER_RESISTANCE;
+        if(c.type==="voltmeter")return VOLTMETER_RESISTANCE;
+        if(c.type==="battery")return null;
+        const value=Number(c.resistance);
+        return Number.isFinite(value)&&value>0
+          ?Math.max(value,IDEAL_WIRE_RESISTANCE):IDEAL_WIRE_RESISTANCE;
+      }
+
+      /*
+       * Rank-revealing, row-scaled Gaussian elimination.
+       * Consistent redundant ideal-source equations are allowed.
+       * Inconsistent equations and failed residual checks are rejected.
+       * Variables not uniquely defined are identified rather than presented
+       * as physically meaningful meter readings.
+       */
       function solveLinearSystem(A,b){
-        const n=A.length;if(n===0)return [];
-        const M=A.map((row,i)=>[...row,b[i]]);
-        for(let col=0;col<n;col++){
-          let pivot=col;
-          for(let r=col+1;r<n;r++)if(Math.abs(M[r][col])>Math.abs(M[pivot][col]))pivot=r;
-          if(Math.abs(M[pivot][col])<SOLVER_EPS)return null;
-          if(pivot!==col)[M[col],M[pivot]]=[M[pivot],M[col]];
-          const div=M[col][col];for(let c=col;c<=n;c++)M[col][c]/=div;
+        const n=A.length;
+        if(n===0){
+          const result=[];
+          result.ambiguous=new Set();result.rankDeficient=false;
+          return result;
+        }
+        if(b.length!==n||A.some(row=>row.length!==n))return null;
+
+        const M=[];
+        for(let i=0;i<n;i++){
+          if(!Number.isFinite(b[i])||A[i].some(v=>!Number.isFinite(v)))return null;
+          let scale=0;
+          for(const v of A[i])scale=Math.max(scale,Math.abs(v));
+          if(scale===0)scale=1;
+          M.push([...A[i].map(v=>v/scale),b[i]/scale]);
+        }
+
+        const pivots=[];
+        let row=0;
+        for(let col=0;col<n&&row<n;col++){
+          let pivot=row;
+          for(let r=row+1;r<n;r++)
+            if(Math.abs(M[r][col])>Math.abs(M[pivot][col]))pivot=r;
+          if(Math.abs(M[pivot][col])<=SOLVER_EPS)continue;
+          if(pivot!==row)[M[row],M[pivot]]=[M[pivot],M[row]];
+          const div=M[row][col];
+          for(let j=col;j<=n;j++)M[row][j]/=div;
+          M[row][col]=1;
           for(let r=0;r<n;r++){
-            if(r===col)continue;
-            const factor=M[r][col];if(Math.abs(factor)<SOLVER_EPS)continue;
-            for(let c=col;c<=n;c++)M[r][c]-=factor*M[col][c];
+            if(r===row)continue;
+            const factor=M[r][col];
+            if(factor===0)continue;
+            for(let j=col+1;j<=n;j++)M[r][j]-=factor*M[row][j];
+            M[r][col]=0;
+          }
+          pivots.push(col);row++;
+        }
+
+        for(let r=row;r<n;r++){
+          let maxCoefficient=0;
+          for(let j=0;j<n;j++)maxCoefficient=Math.max(maxCoefficient,Math.abs(M[r][j]));
+          if(maxCoefficient<=SOLVER_EPS&&Math.abs(M[r][n])>1e-10)return null;
+        }
+
+        const result=Array(n).fill(0);
+        for(let r=0;r<pivots.length;r++)result[pivots[r]]=M[r][n];
+        if(result.some(v=>!Number.isFinite(v)))return null;
+
+        const pivotSet=new Set(pivots);
+        const free=[];
+        for(let j=0;j<n;j++)if(!pivotSet.has(j))free.push(j);
+        const ambiguous=new Set(free);
+        for(let r=0;r<pivots.length;r++){
+          if(free.some(col=>Math.abs(M[r][col])>1e-10))
+            ambiguous.add(pivots[r]);
+        }
+
+        for(let i=0;i<n;i++){
+          let computed=0,magnitude=Math.abs(b[i]);
+          for(let j=0;j<n;j++){
+            const term=A[i][j]*result[j];
+            computed+=term;magnitude+=Math.abs(term);
+          }
+          if(Math.abs(computed-b[i])>1e-8*Math.max(1,magnitude))return null;
+        }
+        result.ambiguous=ambiguous;
+        result.rankDeficient=free.length>0;
+        return result;
+      }
+
+      function readingSolveLinear(A,b){return solveLinearSystem(A,b)}
+      function readingR(e){return effectiveResistanceOf(e.component)}
+      function readingConductive(e){
+        return e.component.type!=="voltmeter"&&
+          !(e.component.type==="switch"&&!e.component.closed);
+      }
+
+      function readingTopology(){
+        const groups=getNodeGroups(),terminalNode=new Map();
+        let index=0;
+        for(const list of groups.values()){
+          for(const item of list)
+            terminalNode.set(terminalKey(item.componentId,item.side),index);
+          index++;
+        }
+        const edges=[];
+        for(const c of state.components){
+          if(c.isJunction)continue;
+          const a=terminalNode.get(terminalKey(c.id,"left"));
+          const b=terminalNode.get(terminalKey(c.id,"right"));
+          if(a==null||b==null)continue;
+
+          /*
+           * Drawn battery: left is negative, right is positive.
+           * All branch quantities use left-to-right reference:
+           * V(left) - V(right) = -sourceVoltage.
+           */
+          edges.push({
+            id:c.id,component:c,a,b,
+            r:c.type==="battery"?0:effectiveResistanceOf(c),
+            v:c.type==="battery"?-(Number(c.sourceVoltage)||0):0,
+            isBattery:c.type==="battery"
+          });
+        }
+        return {edges,terminalNode,groups,nodeCount:index};
+      }
+
+      function readingIsland(edges,start){
+        const nodes=new Set([start]),queue=[start];
+        const adjacency=new Map();
+        for(const e of edges){
+          if(!readingConductive(e))continue;
+          if(!adjacency.has(e.a))adjacency.set(e.a,[]);
+          if(!adjacency.has(e.b))adjacency.set(e.b,[]);
+          adjacency.get(e.a).push(e.b);adjacency.get(e.b).push(e.a);
+        }
+        for(let i=0;i<queue.length;i++){
+          for(const other of adjacency.get(queue[i])||[]){
+            if(!nodes.has(other)){nodes.add(other);queue.push(other)}
           }
         }
-        return M.map(row=>row[n]);
+        return nodes;
+      }
+
+      /*
+       * Shared modified nodal analysis with explicit branch-current unknowns.
+       *
+       * KCL: sum of branch currents at every non-reference node = 0.
+       * Resistor: Va - Vb - R*I = 0.
+       * Battery:  Va - Vb = specified signed voltage.
+       *
+       * Keeping I as an unknown avoids subtracting almost-equal node voltages
+       * to find ammeter current and avoids 1e9 S closed-switch stamps.
+       * Main simulation and explanation use exactly this same engine.
+       */
+      function readingMNA(nodes,resistors,sources,ground){
+        const unknown=[...nodes].filter(n=>n!==ground);
+        const map=new Map(unknown.map((n,i)=>[n,i]));
+        const branches=[...resistors,...sources];
+        const nv=unknown.length,size=nv+branches.length;
+        const A=Array.from({length:size},()=>Array(size).fill(0));
+        const rhs=Array(size).fill(0);
+
+        branches.forEach((e,k)=>{
+          const row=nv+k,ia=map.get(e.a),ib=map.get(e.b);
+          if(ia!=null){A[ia][row]+=1;A[row][ia]+=1}
+          if(ib!=null){A[ib][row]-=1;A[row][ib]-=1}
+          if(k<resistors.length){
+            if(!Number.isFinite(e.r)||e.r<=0)return;
+            A[row][row]=-e.r;
+          }else rhs[row]=e.v;
+        });
+        if(resistors.some(e=>!Number.isFinite(e.r)||e.r<=0))return null;
+
+        const solution=solveLinearSystem(A,rhs);
+        if(!solution)return null;
+
+        const voltages=new Map([[ground,0]]),currents=new Map();
+        const ambiguousNodes=new Set(),ambiguousCurrents=new Set();
+        unknown.forEach((n,i)=>{
+          voltages.set(n,solution[i]);
+          if(solution.ambiguous.has(i))ambiguousNodes.add(n);
+        });
+        branches.forEach((e,k)=>{
+          currents.set(e.id,solution[nv+k]);
+          if(solution.ambiguous.has(nv+k))ambiguousCurrents.add(e.id);
+        });
+        return {
+          voltages,currents,ground,ambiguousNodes,ambiguousCurrents,
+          rankDeficient:solution.rankDeficient
+        };
+      }
+
+      function sourceHasShortPath(source,edges){
+        if(source.a===source.b)return Math.abs(source.v)>1e-12;
+        const lowResistanceEdges=edges.filter(e=>
+          e.component.type==="ammeter"||
+          (e.component.type==="switch"&&e.component.closed)
+        );
+        const reachable=readingIsland(lowResistanceEdges,source.a);
+        return reachable.has(source.b)&&Math.abs(source.v)>1e-12;
       }
 
       function solveCircuit(){
-        for(const c of state.components){c.current=0;c.voltage=0;c.power=0;c.branchVoltage=0}
-
-        const activeComponents=state.components.filter(c=>!c.isJunction);
-        if(!activeComponents.length){
-          state.lastPhysics={solved:false,open:true,nodeVoltages:[],nodeOfTerminal:null,groups:null,isShort:false};
-          return;
+        for(const c of state.components){
+          c.current=0;c.voltage=0;c.power=0;c.branchVoltage=0;
+          c.electricalValid=false;c.currentValid=false;c.voltageValid=false;
         }
 
-        const groups=getNodeGroups(),roots=[...groups.keys()],nodeIndex=new Map();
-        roots.forEach((root,i)=>nodeIndex.set(root,i));
+        const topology=readingTopology();
+        const {edges,terminalNode,groups,nodeCount}=topology;
+        const nodeVoltages=Array(nodeCount).fill(NaN);
+        const nodeIsland=Array(nodeCount).fill(-1);
+        const islands=[],componentIsland=new Map(),visited=new Set();
+        const nodeOfTerminal=(id,side)=>terminalNode.get(terminalKey(id,side))??null;
 
-        const terminalRootMap=new Map();
-        for(const [root,list]of groups.entries()){
-          for(const item of list)terminalRootMap.set(terminalKey(item.componentId,item.side),root);
-        }
-        function nodeOfTerminal(componentId,side){
-          const root=terminalRootMap.get(terminalKey(componentId,side));
-          return root==null?null:nodeIndex.get(root);
-        }
+        let anySolved=false,anyComplete=false,anyShort=false,anyFailure=false;
 
-        const n=roots.length;
-        const nodeVoltages=Array(n).fill(0);
-        const componentIsland=new Map();
-        const islands=[];
-        const visitedNodes=new Set();
+        for(let start=0;start<nodeCount;start++){
+          if(visited.has(start))continue;
+          const nodes=readingIsland(edges,start);
+          for(const n of nodes)visited.add(n);
+          const islandEdges=edges.filter(e=>nodes.has(e.a)&&nodes.has(e.b));
+          const batteries=islandEdges.filter(e=>e.isBattery);
+          const resistive=islandEdges.filter(e=>!e.isBattery&&readingConductive(e));
+          const ground=batteries.length?batteries[0].b:start;
+          const isShort=batteries.some(e=>sourceHasShortPath(e,islandEdges));
+          const solution=readingMNA(nodes,resistive,batteries,ground);
+          const idx=islands.length;
+          const island={
+            nodes,edges:islandEdges,batteries,resistive,
+            solved:!!solution,open:true,isShort,solution
+          };
+          islands.push(island);
+          for(const n of nodes)nodeIsland[n]=idx;
+          for(const e of islandEdges)componentIsland.set(e.id,idx);
 
-        const edges=[];
-        for(const c of activeComponents){
-          const ts=getTerminals(c);
-          if(ts.length!==2)continue;
-          const a=nodeOfTerminal(c.id,ts[0].side),b=nodeOfTerminal(c.id,ts[1].side);
-          if(a==null||b==null)continue;
-          let r=c.resistance;
-          if(c.type==="switch")r=c.closed?IDEAL_WIRE_RESISTANCE:OPEN_RESISTANCE;
-          if(c.type==="ammeter")r=AMMETER_RESISTANCE;
-          if(c.type==="voltmeter")r=VOLTMETER_RESISTANCE;
-          edges.push({
-            component:c,a,b,
-            isBattery:c.type==="battery",
-            v:c.sourceVoltage,
-            r:Math.max(r??IDEAL_WIRE_RESISTANCE,IDEAL_WIRE_RESISTANCE)
-          });
-        }
-
-        function conductiveForIsland(e){
-          return e.isBattery || e.component.type!=="voltmeter";
-        }
-
-        for(let start=0;start<n;start++){
-          if(visitedNodes.has(start))continue;
-          const queue=[start];
-          visitedNodes.add(start);
-          const islandNodes=new Set([start]);
-
-          for(let qi=0;qi<queue.length;qi++){
-            const node=queue[qi];
-            for(const e of edges){
-              if(!conductiveForIsland(e))continue;
-              if(e.a!==node&&e.b!==node)continue;
-              const other=e.a===node?e.b:e.a;
-              if(!visitedNodes.has(other)){
-                visitedNodes.add(other);
-                islandNodes.add(other);
-                queue.push(other);
+          if(isShort)anyShort=true;
+          if(!solution){
+            anyFailure=true;
+            /*
+             * An inconsistent loop made solely from ideal batteries/wires
+             * is not an ordinary open circuit. Its ideal-source constraints
+             * are incompatible and no finite operating point exists.
+             */
+            if(batteries.length>1){
+              const sourceOnlyNodes=readingIsland(batteries,batteries[0].a);
+              const sourceOnly=batteries.filter(e=>
+                sourceOnlyNodes.has(e.a)&&sourceOnlyNodes.has(e.b));
+              if(!readingMNA(sourceOnlyNodes,[],sourceOnly,batteries[0].b)){
+                island.sourceConflict=true;
               }
             }
-          }
-
-          const islandEdges=edges.filter(e=>islandNodes.has(e.a)&&islandNodes.has(e.b));
-          const islandBatteries=islandEdges.filter(e=>e.isBattery);
-          const islandResistive=islandEdges.filter(e=>!e.isBattery);
-
-          for(const e of islandEdges)componentIsland.set(e.component.id,islands.length);
-          islands.push({nodes:islandNodes,edges:islandEdges,batteries:islandBatteries,resistive:islandResistive,solved:false,open:true,isShort:false});
-        }
-
-        let anySolved=false;
-        let anyOpen=false;
-        let anyShort=false;
-        let anyBattery=false;
-
-        for(const island of islands){
-          if(!island.batteries.length){
-            island.solved=true;
-            island.open=true;
             continue;
           }
 
-          anyBattery=true;
+          if(batteries.length)anySolved=true;
 
-          const orderedNodes=[...island.nodes].sort((a,b)=>a-b);
-          const ground=island.batteries[0].b;
-          const unknownMap=new Map();
-          let nv=0;
-          for(const i of orderedNodes)if(i!==ground)unknownMap.set(i,nv++);
-          const m=island.batteries.length,size=nv+m;
-          const A=Array.from({length:size},()=>Array(size).fill(0)),z=Array(size).fill(0);
-
-          function addG(i,j,g){
-            if(i===j)return;
-            if(i!==ground)A[unknownMap.get(i)][unknownMap.get(i)]+=g;
-            if(j!==ground)A[unknownMap.get(j)][unknownMap.get(j)]+=g;
-            if(i!==ground&&j!==ground){
-              A[unknownMap.get(i)][unknownMap.get(j)]-=g;
-              A[unknownMap.get(j)][unknownMap.get(i)]-=g;
-            }
+          for(const [n,v] of solution.voltages){
+            if(!solution.ambiguousNodes.has(n))nodeVoltages[n]=v;
           }
 
-          for(const e of island.resistive)addG(e.a,e.b,1/e.r);
+          for(const e of [...resistive,...batteries]){
+            const c=e.component;
+            const current=solution.currents.get(e.id)||0;
+            const currentValid=!solution.ambiguousCurrents.has(e.id);
+            const va=nodeVoltages[e.a],vb=nodeVoltages[e.b];
+            const voltageValid=Number.isFinite(va)&&Number.isFinite(vb);
+            /*
+             * R*I is accurate even for tiny ammeter/switch voltage drops.
+             * Source voltage is prescribed by the battery equation.
+             */
+            const vdrop=e.isBattery?e.v:e.r*current;
+            c.current=currentValid?current:0;
+            c.currentValid=currentValid;
+            c.branchVoltage=voltageValid?vdrop:0;
+            c.voltage=voltageValid?Math.abs(vdrop):0;
+            c.voltageValid=voltageValid;
+            c.electricalValid=currentValid&&voltageValid;
+            c.power=c.electricalValid
+              ?(e.isBattery?Math.abs(vdrop*current):current*current*e.r):0;
+          }
 
-          island.batteries.forEach((e,k)=>{
-            const row=nv+k;
-            if(e.a!==ground){const ia=unknownMap.get(e.a);A[ia][row]+=1;A[row][ia]+=1}
-            if(e.b!==ground){const ib=unknownMap.get(e.b);A[ib][row]-=1;A[row][ib]-=1}
-            z[row]=e.v;
+          const delivered=batteries.some(e=>{
+            const c=e.component;
+            return c.currentValid&&Math.abs(c.current)>1e-12;
           });
-
-          const sol=solveLinearSystem(A,z);
-          if(!sol){
-            island.solved=false;
-            island.open=true;
-            anyOpen=true;
-            continue;
-          }
-
-          island.solved=true;
-          anySolved=true;
-
-          for(const i of orderedNodes){
-            nodeVoltages[i]=i===ground?0:sol[unknownMap.get(i)];
-          }
-
-          island.batteries.forEach((e,k)=>{
-            const ibat=sol[nv+k];
-            e.component.current=ibat;
-            e.component.branchVoltage=e.v;
-            e.component.voltage=Math.abs(e.v);
-            e.component.power=Math.abs(ibat*e.v);
-            if(Math.abs(ibat)>SHORT_CURRENT_THRESHOLD){
-              island.isShort=true;
-              anyShort=true;
-            }
-          });
-
-          for(const e of island.resistive){
-            const va=nodeVoltages[e.a]??0,vb=nodeVoltages[e.b]??0,vdrop=va-vb;
-            const cur=(Math.abs(e.r)<1e-15||e.a===e.b)?0:vdrop/e.r;
-            e.component.current=cur;
-            e.component.branchVoltage=vdrop;
-            e.component.voltage=Math.abs(vdrop);
-            e.component.power=Math.abs(vdrop*cur);
-          }
-
-          const islandOpenDueToUnconnected = activeComponents.some(c=>{
-            if(componentIsland.get(c.id)!==componentIsland.get(island.edges[0]?.component?.id))return false;
-            if(c.type==="switch"&&!c.closed)return true;
-            return getTerminals(c).some(tt=>!terminalRootMap.has(terminalKey(tt.componentId,tt.side)));
-          });
-
-          island.open=!!islandOpenDueToUnconnected;
-          if(island.open)anyOpen=true;
+          island.open=!delivered;
+          if(batteries.length&&delivered)anyComplete=true;
         }
 
-        if(!anyBattery){
-          state.lastPhysics={
-            solved:true,open:true,noBattery:true,nodeVoltages,nodeOfTerminal,groups,isShort:false,batteries:[],islands,componentIsland
-          };
-          return;
+        /*
+         * An ideal voltmeter and an open switch carry no current.
+         * Their voltage is meaningful only within one solved electrical
+         * island, not between independently grounded floating networks.
+         */
+        for(const e of edges){
+          const c=e.component;
+          if(c.type!=="voltmeter"&&!(c.type==="switch"&&!c.closed))continue;
+          c.current=0;c.currentValid=true;c.power=0;
+          const sameIsland=nodeIsland[e.a]===nodeIsland[e.b];
+          const island=islands[nodeIsland[e.a]];
+          const va=nodeVoltages[e.a],vb=nodeVoltages[e.b];
+          const valid=sameIsland&&island?.solved&&Number.isFinite(va)&&Number.isFinite(vb);
+          c.voltageValid=!!valid;c.electricalValid=!!valid;
+          c.branchVoltage=valid?va-vb:0;
+          c.voltage=valid?Math.abs(va-vb):0;
+          if(sameIsland)componentIsland.set(c.id,nodeIsland[e.a]);
         }
 
         state.lastPhysics={
           solved:anySolved,
-          open:anyOpen || !anySolved,
-          noBattery:false,
-          nodeVoltages,
-          nodeOfTerminal,
-          groups,
-          isShort:anyShort,
+          open:!anyComplete,
+          noBattery:!edges.some(e=>e.isBattery),
+          nodeVoltages,nodeOfTerminal,groups,isShort:anyShort,
           batteries:edges.filter(e=>e.isBattery),
-          islands,
-          componentIsland
+          islands,componentIsland,nodeIsland,anyFailure,topology
         };
       }
 
       function formatNumber(n,digits=3){
-        if(!isFinite(n))return "0";
-        const abs=Math.abs(n);let d=digits;
+        if(!Number.isFinite(n))return "—";
+        const abs=Math.abs(n);
+        let d=digits;
         if(abs>=100)d=1;else if(abs>=10)d=2;
-        return Number(n).toFixed(d).replace(/\.?0+$/,m=>m==="."?"":m);
+        const fixed=Number(n).toFixed(d);
+        return fixed.includes(".")?fixed.replace(/0+$/,"").replace(/\.$/,""):fixed;
       }
       function getVoltmeterReading(c){
-        if(!state.lastPhysics||!state.lastPhysics.solved||!state.lastPhysics.nodeOfTerminal)return 0;
-        const a=state.lastPhysics.nodeOfTerminal(c.id,"left"),b=state.lastPhysics.nodeOfTerminal(c.id,"right");
-        if(a==null||b==null)return 0;
-        const islandMap=state.lastPhysics.componentIsland;
-        if(islandMap){
-          const ia=islandMap.get(c.id);
-          const compA=state.components.find(x=>x.id===c.id);
-          if(compA&&ia==null)return 0;
-        }
-        return Math.abs((state.lastPhysics.nodeVoltages[a]??0)-(state.lastPhysics.nodeVoltages[b]??0));
+        return c.voltageValid?Math.abs(c.branchVoltage):NaN;
       }
       function componentShortName(c){
         const map={battery:"B",bulb:"L",resistor:"R",switch:"S",ammeter:"A",voltmeter:"V",junction:"N",buzzer:"BZ",fan:"F"};
         const idx=state.components.filter(x=>x.type===c.type).findIndex(x=>x.id===c.id)+1;
         return map[c.type]+idx;
       }
-      function getLabelAnchorPosition(c){
-        const pos=getCompPos(c,true),off=ensureLabelOffset(c);
-        return {x:pos.x+off.x,y:pos.y+off.y};
-      }
       function roundRect(ctx,x,y,w,h,r,fill,stroke,lw){
-        ctx.save();ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);
-        ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);
+        ctx.save();ctx.beginPath();ctx.moveTo(x+r,y);
+        ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);
+        ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);
         if(fill){ctx.fillStyle=fill;ctx.fill()}
         if(stroke){ctx.lineWidth=lw||1;ctx.strokeStyle=stroke;ctx.stroke()}
         ctx.restore();
@@ -1149,21 +1188,25 @@
         }
         ctx.strokeStyle="rgba(53,94,170,.10)";ctx.lineWidth=1;
         for(let x=((ox%major)+major)%major;x<=w;x+=major){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke()}
-        for(let y=((oy%major)+major)%major;y<=h;y+=major){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,h?y:y);ctx.stroke()}
+        for(let y=((oy%major)+major)%major;y<=h;y+=major){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
         ctx.restore();
       }
       function render(hideTransientUI=false){
-        const canvas=state.canvas,ctx=state.ctx,rect=canvas.getBoundingClientRect();
-        if(canvas.width!==Math.floor(rect.width*devicePixelRatio)||canvas.height!==Math.floor(rect.height*devicePixelRatio)){
-          canvas.width=Math.floor(rect.width*devicePixelRatio);canvas.height=Math.floor(rect.height*devicePixelRatio);
-        }
-        ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
-        state.width=rect.width;state.height=rect.height;ctx.clearRect(0,0,state.width,state.height);
-        drawGrid(ctx);ctx.save();ctx.translate(state.view.offsetX,state.view.offsetY);ctx.scale(state.view.scale,state.view.scale);
+        const canvas=state.canvas,ctx=state.ctx;
+        if(!canvas||!ctx)return;
+        const rect=canvas.getBoundingClientRect(),dpr=window.devicePixelRatio||1;
+        const pw=Math.floor(rect.width*dpr),ph=Math.floor(rect.height*dpr);
+        if(canvas.width!==pw||canvas.height!==ph){canvas.width=pw;canvas.height=ph}
+        ctx.setTransform(dpr,0,0,dpr,0,0);
+        state.width=rect.width;state.height=rect.height;
+        ctx.clearRect(0,0,state.width,state.height);drawGrid(ctx);
+        ctx.save();ctx.translate(state.view.offsetX,state.view.offsetY);
+        ctx.scale(state.view.scale,state.view.scale);
         for(const w of state.wires)drawWire(ctx,w,hideTransientUI);
         if(!hideTransientUI&&state.pendingWireStart){
           const p=getTerminalPosition(state.pendingWireStart,true);
-          ctx.save();ctx.fillStyle="rgba(59,130,246,.18)";ctx.strokeStyle="#3b82f6";ctx.lineWidth=3/state.view.scale;
+          ctx.save();ctx.fillStyle="rgba(59,130,246,.18)";
+          ctx.strokeStyle="#3b82f6";ctx.lineWidth=3/state.view.scale;
           ctx.beginPath();ctx.arc(p.x,p.y,13,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();
         }
         for(const c of state.components)drawComponent(ctx,c,hideTransientUI);
@@ -1173,50 +1216,75 @@
         if(!hideTransientUI){updateStatus();updateMeterExplainCard()}
       }
       function drawWire(ctx,wire,hideTransientUI=false){
-        const path=wire.path||computeWirePath(wire.from,wire.to,true),selected=!hideTransientUI&&state.selectedWires.has(wire.id);
-        ctx.save();ctx.lineWidth=selected?6:4;ctx.lineCap="round";ctx.lineJoin="round";ctx.strokeStyle=selected?"#f59e0b":"#1f2937";ctx.beginPath();
-        if(path.length===1){ctx.moveTo(path[0].x,path[0].y);ctx.lineTo(path[0].x+0.01,path[0].y+0.01)}
-        else{ctx.moveTo(path[0].x,path[0].y);for(let i=1;i<path.length;i++)ctx.lineTo(path[i].x,path[i].y)}
+        const path=wire.path||computeWirePath(wire.from,wire.to,true);
+        const selected=!hideTransientUI&&state.selectedWires.has(wire.id);
+        if(!path.length)return;
+        ctx.save();ctx.lineWidth=selected?6:4;ctx.lineCap="round";ctx.lineJoin="round";
+        ctx.strokeStyle=selected?"#f59e0b":"#1f2937";ctx.beginPath();
+
+        /*
+         * The routing grid is retained, but actual terminal positions are
+         * included in the drawing so rotation/scaling cannot leave a visual
+         * gap between a connected wire and its terminal.
+         */
+        const start=getTerminalPosition(wire.from,true);
+        const end=getTerminalPosition(wire.to,true);
+        ctx.moveTo(start.x,start.y);
+        for(const p of path)ctx.lineTo(p.x,p.y);
+        ctx.lineTo(end.x,end.y);
         ctx.stroke();ctx.restore();
       }
       function drawSelectionBox(ctx,box){
-        const x=Math.min(box.x1,box.x2),y=Math.min(box.y1,box.y2),w=Math.abs(box.x2-box.x1),h=Math.abs(box.y2-box.y1);
-        ctx.save();ctx.setLineDash([8/state.view.scale,6/state.view.scale]);ctx.lineWidth=2/state.view.scale;
-        ctx.strokeStyle="#3b82f6";ctx.fillStyle="rgba(59,130,246,.08)";ctx.fillRect(x,y,w,h);ctx.strokeRect(x,y,w,h);ctx.restore();
+        const x=Math.min(box.x1,box.x2),y=Math.min(box.y1,box.y2);
+        const w=Math.abs(box.x2-box.x1),h=Math.abs(box.y2-box.y1);
+        ctx.save();ctx.setLineDash([8/state.view.scale,6/state.view.scale]);
+        ctx.lineWidth=2/state.view.scale;ctx.strokeStyle="#3b82f6";
+        ctx.fillStyle="rgba(59,130,246,.08)";ctx.fillRect(x,y,w,h);ctx.strokeRect(x,y,w,h);ctx.restore();
       }
       function drawHoverTerminal(ctx,ref){
-        const p=getTerminalPosition(ref,true);ctx.save();ctx.strokeStyle="#16a34a";ctx.lineWidth=3/state.view.scale;
+        const p=getTerminalPosition(ref,true);
+        ctx.save();ctx.strokeStyle="#16a34a";ctx.lineWidth=3/state.view.scale;
         ctx.beginPath();ctx.arc(p.x,p.y,11,0,Math.PI*2);ctx.stroke();ctx.restore();
       }
+      function computeBulbBrightnessNormalized(c){
+        if(c.type!=="bulb"||!c.electricalValid)return 0;
+        const power=Number(c.power);
+        if(!Number.isFinite(power)||power<=0)return 0;
+        /*
+         * Smooth monotonic tone mapping:
+         * zero power -> zero emitted light, no artificial brightness floor.
+         * Low-power light remains approximately proportional to power.
+         * Saturation at high power is a display limitation, not a change
+         * to electrical power. Never normalize to the brightest bulb.
+         */
+        return Math.max(0,Math.min(1,-Math.expm1(-power/BULB_REFERENCE_POWER)));
+      }
       function computeAutoLabelOffset(c){
-        const defaults=[
-          {x:0,y:-32},{x:0,y:32},{x:-32,y:0},{x:32,y:0},{x:-24,y:-24},{x:24,y:-24}
-        ];
+        const defaults=[{x:0,y:-32},{x:0,y:32},{x:-32,y:0},{x:32,y:0},{x:-24,y:-24},{x:24,y:-24}];
         let best=defaults[0],bestScore=Infinity;
         for(const off of defaults){
-          const rect=getComponentNameRect(c,off,true);let score=0;
+          const rect=getComponentNameRect(c,off,true);
+          let score=0;
           for(const other of state.components){
-            if(other.id===c.id)continue;
-            if(rectsOverlap(rect,componentBounds(other,8,true)))score+=1000;
+            if(other.id!==c.id&&rectsOverlap(rect,componentBounds(other,8,true)))score+=1000;
           }
           for(const w of state.wires){
             const path=w.path||computeWirePath(w.from,w.to,true);
-            for(let i=0;i<path.length-1;i++)if(segmentIntersectsRect(path[i],path[i+1],rect))score+=350;
+            for(let i=0;i<path.length-1;i++)
+              if(segmentIntersectsRect(path[i],path[i+1],rect))score+=350;
           }
           score+=Math.abs(off.x)*0.1+Math.abs(off.y)*0.08;
           if(score<bestScore){bestScore=score;best=off}
         }
         return best;
       }
-
       function getValueLabelTextForComponent(c){
         if(c.type==="battery")return `${formatNumber(c.sourceVoltage,2)} V`;
-        if(c.type==="ammeter")return `${formatNumber(Math.abs(c.current),3)} A`;
+        if(c.type==="ammeter")return `${formatNumber(c.currentValid?Math.abs(c.current):NaN,3)} A`;
         if(c.type==="voltmeter")return `${formatNumber(getVoltmeterReading(c),3)} V`;
         if(c.type==="bulb")return `${formatNumber(c.resistance,2)} Ω`;
         return "";
       }
-
       function getValueLabelStyle(c){
         if(c.type==="battery")return {stroke:"#43a047",text:"#43a047"};
         if(c.type==="ammeter")return {stroke:"#4f7ee8",text:"#4f7ee8"};
@@ -1224,18 +1292,10 @@
         if(c.type==="bulb")return {stroke:"#d97706",text:"#92400e"};
         return {stroke:"#64748b",text:"#334155"};
       }
-
-      function getLabelMetrics(text){
-        return {fontSize:11,width:Math.max(58,Math.min(110,text.length*7+16)),height:22};
-      }
-
-      function getValueLabelOffset(c){
-        ensureLabelOffset(c);
-        return c.valueLabelOffset||getDefaultValueLabelOffset(c);
-      }
-
+      function getLabelMetrics(text){return {fontSize:11,width:Math.max(58,Math.min(110,text.length*7+16)),height:22}}
+      function getValueLabelOffset(c){ensureLabelOffset(c);return c.valueLabelOffset}
       function getValueLabelRectForComponent(c,offsetOverride=null,useRender=false){
-        const pos=useRender?getCompPos(c,true):getCompPos(c,false),baseOff=getValueLabelOffset(c),off=offsetOverride||baseOff;
+        const pos=getCompPos(c,useRender),off=offsetOverride||getValueLabelOffset(c);
         const m=getLabelMetrics(getValueLabelTextForComponent(c));
         return {
           x1:pos.x+off.x-m.width/2-LABEL_HIT_PAD,y1:pos.y+off.y-m.height/2-LABEL_HIT_PAD,
@@ -1243,53 +1303,65 @@
           width:m.width,height:m.height,fontSize:m.fontSize,cx:pos.x+off.x,cy:pos.y+off.y
         };
       }
-
       function getComponentNameRect(c,offsetOverride=null,useRender=false){
-        const pos=useRender?getCompPos(c,true):getCompPos(c,false),off=offsetOverride||ensureLabelOffset(c);
+        ensureLabelOffset(c);
+        const pos=getCompPos(c,useRender),off=offsetOverride||c.labelOffset;
         const text=componentShortName(c),sc=getCompScale(c),fontSize=Math.max(11,Math.round(16*sc+6));
-        const width=Math.max(30,Math.min(90,text.length*(fontSize*0.62)+10)),height=fontSize+8,cy=pos.y+off.y,cx=pos.x+off.x;
-        return {x1:cx-width/2-LABEL_HIT_PAD,y1:cy-height/2-LABEL_HIT_PAD,x2:cx+width/2+LABEL_HIT_PAD,y2:cy+height/2+LABEL_HIT_PAD,cx,cy,width,height,fontSize};
+        const width=Math.max(30,Math.min(90,text.length*(fontSize*0.62)+10));
+        const height=fontSize+8,cy=pos.y+off.y,cx=pos.x+off.x;
+        return {
+          x1:cx-width/2-LABEL_HIT_PAD,y1:cy-height/2-LABEL_HIT_PAD,
+          x2:cx+width/2+LABEL_HIT_PAD,y2:cy+height/2+LABEL_HIT_PAD,
+          cx,cy,width,height,fontSize
+        };
       }
-
       function drawComponent(ctx,c,hideTransientUI=false){
-        const selected=!hideTransientUI&&state.selectedComponents.has(c.id),pos=getCompPos(c,true),sc=getCompScale(c);
+        const selected=!hideTransientUI&&state.selectedComponents.has(c.id);
+        const pos=getCompPos(c,true),sc=getCompScale(c);
         if(selected){
-          const b=componentBounds(c,6,true);ctx.save();ctx.strokeStyle="#3b82f6";ctx.setLineDash([8/state.view.scale,6/state.view.scale]);
-          ctx.lineWidth=2/state.view.scale;ctx.strokeRect(b.x1,b.y1,b.x2-b.x1,b.y2-b.y1);ctx.setLineDash([]);ctx.restore();
+          const b=componentBounds(c,6,true);
+          ctx.save();ctx.strokeStyle="#3b82f6";
+          ctx.setLineDash([8/state.view.scale,6/state.view.scale]);
+          ctx.lineWidth=2/state.view.scale;ctx.strokeRect(b.x1,b.y1,b.x2-b.x1,b.y2-b.y1);ctx.restore();
         }
         if(c.isJunction){ctx.save();ctx.translate(pos.x,pos.y);drawJunction(ctx);ctx.restore();return}
         ctx.save();ctx.translate(pos.x,pos.y);ctx.rotate(degToRad(c.angle));ctx.scale(sc,sc);drawTerminals(ctx);
         switch(c.type){
-          case "battery":drawBattery(ctx,c);break;case "bulb":drawBulb(ctx,c);break;
-          case "resistor":drawResistor(ctx);break;case "switch":drawSwitch(ctx,c);break;
-          case "ammeter":drawAmmeter(ctx,c);break;case "voltmeter":drawVoltmeter(ctx,c);break;
-          case "buzzer":drawBuzzer(ctx,c);break;case "fan":drawFan(ctx,c);break;
+          case "battery":drawBattery(ctx,c);break;
+          case "bulb":drawBulb(ctx,c);break;
+          case "resistor":drawResistor(ctx);break;
+          case "switch":drawSwitch(ctx,c);break;
+          case "ammeter":drawAmmeter(ctx,c);break;
+          case "voltmeter":drawVoltmeter(ctx,c);break;
+          case "buzzer":drawBuzzer(ctx,c);break;
+          case "fan":drawFan(ctx,c);break;
         }
         ctx.restore();
-
         if(!c.labelOffset)c.labelOffset=computeAutoLabelOffset(c);
         ensureLabelOffset(c);
-
-        const nameRect=getComponentNameRect(c,null,true);
-        ctx.save();ctx.font=`bold ${nameRect.fontSize}px sans-serif`;ctx.fillStyle="#1f2937";ctx.textAlign="center";ctx.textBaseline="middle";
-        ctx.lineWidth=5;ctx.strokeStyle="rgba(255,255,255,.95)";ctx.strokeText(componentShortName(c),nameRect.cx,nameRect.cy);
-        ctx.fillText(componentShortName(c),nameRect.cx,nameRect.cy);ctx.restore();
-
-        if(c.type==="battery"||c.type==="ammeter"||c.type==="voltmeter"||c.type==="bulb"){
+        const nr=getComponentNameRect(c,null,true);
+        ctx.save();ctx.font=`bold ${nr.fontSize}px sans-serif`;ctx.fillStyle="#1f2937";
+        ctx.textAlign="center";ctx.textBaseline="middle";ctx.lineWidth=5;
+        ctx.strokeStyle="rgba(255,255,255,.95)";ctx.strokeText(componentShortName(c),nr.cx,nr.cy);
+        ctx.fillText(componentShortName(c),nr.cx,nr.cy);ctx.restore();
+        if(["battery","ammeter","voltmeter","bulb"].includes(c.type)){
           const text=getValueLabelTextForComponent(c),style=getValueLabelStyle(c);
           const rect=getValueLabelRectForComponent(c,null,true);
           roundRect(ctx,rect.cx-rect.width/2,rect.cy-rect.height/2,rect.width,rect.height,11,"#fff",style.stroke,2);
-          ctx.save();ctx.font="bold 11px sans-serif";ctx.fillStyle=style.text;ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(text,rect.cx,rect.cy+0.5);ctx.restore();
+          ctx.save();ctx.font="bold 11px sans-serif";ctx.fillStyle=style.text;
+          ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(text,rect.cx,rect.cy+0.5);ctx.restore();
         }
-
         if(c.type==="resistor"){
           const rr=getResistorTextRect(c,true);
           roundRect(ctx,rr.cx-rr.width/2,rr.cy-rr.height/2,rr.width,rr.height,11,"rgba(255,255,255,.96)","#64748b",1.5);
-          ctx.save();ctx.font="bold 11px sans-serif";ctx.fillStyle="#334155";ctx.textAlign="center";ctx.textBaseline="middle";
+          ctx.save();ctx.font="bold 11px sans-serif";ctx.fillStyle="#334155";
+          ctx.textAlign="center";ctx.textBaseline="middle";
           ctx.fillText(`${formatNumber(c.resistance,2)} Ω`,rr.cx,rr.cy+0.5);ctx.restore();
         }
       }
-      function drawJunction(ctx){ctx.save();ctx.fillStyle="#111827";ctx.beginPath();ctx.arc(0,0,8,0,Math.PI*2);ctx.fill();ctx.restore()}
+      function drawJunction(ctx){
+        ctx.save();ctx.fillStyle="#111827";ctx.beginPath();ctx.arc(0,0,8,0,Math.PI*2);ctx.fill();ctx.restore();
+      }
       function drawTerminals(ctx){
         ctx.save();ctx.strokeStyle="#111827";ctx.lineWidth=4;ctx.beginPath();
         ctx.moveTo(-56,0);ctx.lineTo(-36,0);ctx.moveTo(36,0);ctx.lineTo(56,0);ctx.stroke();
@@ -1298,199 +1370,108 @@
       function drawBattery(ctx){
         ctx.save();ctx.strokeStyle="#111827";ctx.lineWidth=6;ctx.beginPath();
         ctx.moveTo(-12,-18);ctx.lineTo(-12,18);ctx.moveTo(12,-28);ctx.lineTo(12,28);ctx.stroke();
-        ctx.fillStyle="#111827";ctx.font="bold 13px sans-serif";ctx.fillText("−",-18,-34);ctx.fillStyle="#16a34a";ctx.fillText("+",8,-34);ctx.restore();
+        ctx.fillStyle="#111827";ctx.font="bold 13px sans-serif";ctx.fillText("−",-18,-34);
+        ctx.fillStyle="#16a34a";ctx.fillText("+",8,-34);ctx.restore();
       }
       function normalizedPower(c,pref){return Math.max(0,Math.min(1,Math.abs(c.power||0)/pref))}
-      function bulbVisualIntensityFromPhysics(c){
-        const current=Math.abs(c.current||0),power=Math.abs(c.power||(current*current*(c.resistance||20)));
-        const iNorm=Math.min(1,current/0.12),pNorm=Math.min(1,power/0.3);
-        let intensity=0.2*Math.pow(iNorm,0.75)+0.8*Math.pow(pNorm,0.60);
-        if(current<1e-6||power<1e-6)intensity=0;
-        return Math.max(0,Math.min(1,intensity));
+      function mixColor(a,b,f){
+        return `rgb(${a.map((v,i)=>Math.round(v+(b[i]-v)*f)).join(",")})`;
       }
       function drawBulb(ctx,c){
-        const intensity=bulbVisualIntensityFromPhysics(c),glow=14+intensity*88;
+        const intensity=computeBulbBrightnessNormalized(c);
+        const glow=30+72*Math.sqrt(intensity);
         ctx.save();
-        if(intensity>0.002){
-          const grad=ctx.createRadialGradient(0,0,8,0,0,glow);
-          grad.addColorStop(0,`rgba(255,249,204,${0.95*intensity+0.04})`);
-          grad.addColorStop(0.18,`rgba(255,235,140,${0.90*intensity})`);
-          grad.addColorStop(0.42,`rgba(255,210,80,${0.78*intensity})`);
-          grad.addColorStop(0.72,`rgba(255,176,32,${0.42*intensity})`);
+        if(intensity>0.0001){
+          const grad=ctx.createRadialGradient(0,0,6,0,0,glow);
+          grad.addColorStop(0,`rgba(255,249,204,${0.92*intensity})`);
+          grad.addColorStop(0.18,`rgba(255,235,140,${0.86*intensity})`);
+          grad.addColorStop(0.42,`rgba(255,210,80,${0.72*intensity})`);
+          grad.addColorStop(0.72,`rgba(255,176,32,${0.38*intensity})`);
           grad.addColorStop(1,"rgba(255,166,0,0)");
           ctx.fillStyle=grad;ctx.beginPath();ctx.arc(0,0,glow,0,Math.PI*2);ctx.fill();
         }
         ctx.lineWidth=6;ctx.strokeStyle="#111827";
-        ctx.fillStyle=intensity>0.80?"#ffe082":intensity>0.55?"#ffec9b":intensity>0.30?"#fff2b8":intensity>0.08?"#fff8da":"#fffdf2";
+        ctx.fillStyle=mixColor([255,253,242],[255,216,91],intensity);
         ctx.beginPath();ctx.arc(0,0,26,0,Math.PI*2);ctx.fill();ctx.stroke();
-        ctx.strokeStyle=intensity>0.06?"#d97706":"#9ca3af";ctx.lineWidth=4;ctx.beginPath();ctx.arc(0,4,12,Math.PI,0);ctx.stroke();
-        ctx.strokeStyle=intensity>0.06?"#f59e0b":"#9ca3af";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-10,8);ctx.quadraticCurveTo(0,-10-intensity*18,10,8);ctx.stroke();ctx.restore();
+        ctx.strokeStyle=mixColor([156,163,175],[217,119,6],intensity);
+        ctx.lineWidth=4;ctx.beginPath();ctx.arc(0,4,12,Math.PI,0);ctx.stroke();
+        ctx.strokeStyle=mixColor([156,163,175],[245,158,11],intensity);
+        ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-10,8);
+        ctx.quadraticCurveTo(0,-10-intensity*18,10,8);ctx.stroke();ctx.restore();
       }
       function drawResistor(ctx){
         ctx.save();ctx.strokeStyle="#111827";ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-28,0);
-        ctx.lineTo(-20,-10);ctx.lineTo(-12,10);ctx.lineTo(-4,-10);ctx.lineTo(4,10);ctx.lineTo(12,-10);ctx.lineTo(20,10);ctx.lineTo(28,0);ctx.stroke();ctx.restore();
+        ctx.lineTo(-20,-10);ctx.lineTo(-12,10);ctx.lineTo(-4,-10);ctx.lineTo(4,10);
+        ctx.lineTo(12,-10);ctx.lineTo(20,10);ctx.lineTo(28,0);ctx.stroke();ctx.restore();
       }
       function drawSwitch(ctx,c){
-        ctx.save();ctx.strokeStyle="#111827";ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-26,0);ctx.lineTo(-8,0);ctx.moveTo(8,0);ctx.lineTo(26,0);ctx.stroke();
+        ctx.save();ctx.strokeStyle="#111827";ctx.lineWidth=4;ctx.beginPath();
+        ctx.moveTo(-26,0);ctx.lineTo(-8,0);ctx.moveTo(8,0);ctx.lineTo(26,0);ctx.stroke();
         ctx.fillStyle="#111827";ctx.beginPath();ctx.arc(-8,0,4,0,Math.PI*2);ctx.arc(8,0,4,0,Math.PI*2);ctx.fill();
         ctx.strokeStyle=c.closed?"#16a34a":"#60a5fa";ctx.lineWidth=5;ctx.beginPath();
-        if(c.closed){ctx.moveTo(-8,0);ctx.lineTo(8,0)}else{ctx.moveTo(-8,0);ctx.lineTo(8,-16)}
-        ctx.stroke();ctx.restore();
+        ctx.moveTo(-8,0);ctx.lineTo(8,c.closed?0:-16);ctx.stroke();ctx.restore();
       }
       function drawAmmeter(ctx,c){
-        ctx.save();ctx.lineWidth=6;ctx.strokeStyle="#111827";ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(0,0,28,0,Math.PI*2);ctx.fill();ctx.stroke();
-        ctx.save();ctx.rotate(degToRad(-(c.angle||0)));ctx.fillStyle="#60a5fa";ctx.font="bold 28px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText("A",0,3);ctx.restore();ctx.restore();
+        ctx.save();ctx.lineWidth=6;ctx.strokeStyle="#111827";ctx.fillStyle="#fff";
+        ctx.beginPath();ctx.arc(0,0,28,0,Math.PI*2);ctx.fill();ctx.stroke();
+        ctx.rotate(degToRad(-(c.angle||0)));ctx.fillStyle="#60a5fa";
+        ctx.font="bold 28px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";
+        ctx.fillText("A",0,3);ctx.restore();
       }
       function drawVoltmeter(ctx,c){
-        ctx.save();ctx.lineWidth=6;ctx.strokeStyle="#111827";ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(0,0,28,0,Math.PI*2);ctx.fill();ctx.stroke();
-        ctx.save();ctx.rotate(degToRad(-(c.angle||0)));ctx.fillStyle="#ef4444";ctx.font="bold 24px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText("V",0,2);ctx.restore();ctx.restore();
+        ctx.save();ctx.lineWidth=6;ctx.strokeStyle="#111827";ctx.fillStyle="#fff";
+        ctx.beginPath();ctx.arc(0,0,28,0,Math.PI*2);ctx.fill();ctx.stroke();
+        ctx.rotate(degToRad(-(c.angle||0)));ctx.fillStyle="#ef4444";
+        ctx.font="bold 24px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";
+        ctx.fillText("V",0,2);ctx.restore();
       }
       function drawBuzzer(ctx,c){
         const strength=normalizedPower(c,0.18),pulse=0.5+0.5*Math.sin(state.frame*0.12);
-        ctx.save();ctx.strokeStyle="#111827";ctx.lineWidth=5;ctx.fillStyle=strength>0.02?"#fde68a":"#fff";ctx.beginPath();
-        ctx.moveTo(-18,-18);ctx.lineTo(4,-18);ctx.lineTo(22,-28);ctx.lineTo(22,28);ctx.lineTo(4,18);ctx.lineTo(-18,18);ctx.closePath();ctx.fill();ctx.stroke();
+        ctx.save();ctx.strokeStyle="#111827";ctx.lineWidth=5;ctx.fillStyle=strength>0.02?"#fde68a":"#fff";
+        ctx.beginPath();ctx.moveTo(-18,-18);ctx.lineTo(4,-18);ctx.lineTo(22,-28);
+        ctx.lineTo(22,28);ctx.lineTo(4,18);ctx.lineTo(-18,18);ctx.closePath();ctx.fill();ctx.stroke();
         if(strength>0.02){
           ctx.strokeStyle=`rgba(234,179,8,${0.35+0.45*strength*pulse})`;ctx.lineWidth=3;
-          for(let i=0;i<3;i++){const r=18+i*10+pulse*3;ctx.beginPath();ctx.arc(16,0,r,-0.6,0.6);ctx.stroke()}
+          for(let i=0;i<3;i++){
+            const r=18+i*10+pulse*3;ctx.beginPath();ctx.arc(16,0,r,-0.6,0.6);ctx.stroke();
+          }
         }
         ctx.restore();
       }
       function drawFan(ctx,c){
         const strength=normalizedPower(c,0.2),spin=strength>0.01?state.frame*(0.04+strength*0.22):0;
-        ctx.save();ctx.rotate(spin);ctx.strokeStyle="#111827";ctx.lineWidth=5;ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(0,0,26,0,Math.PI*2);ctx.fill();ctx.stroke();
+        ctx.save();ctx.rotate(spin);ctx.strokeStyle="#111827";ctx.lineWidth=5;ctx.fillStyle="#fff";
+        ctx.beginPath();ctx.arc(0,0,26,0,Math.PI*2);ctx.fill();ctx.stroke();
         ctx.fillStyle=strength>0.02?"#93c5fd":"#cbd5e1";
-        for(let i=0;i<3;i++){ctx.save();ctx.rotate(i*Math.PI*2/3);ctx.beginPath();ctx.moveTo(0,0);ctx.quadraticCurveTo(18,-10,26,0);ctx.quadraticCurveTo(18,10,0,0);ctx.fill();ctx.restore()}
+        for(let i=0;i<3;i++){
+          ctx.save();ctx.rotate(i*Math.PI*2/3);ctx.beginPath();ctx.moveTo(0,0);
+          ctx.quadraticCurveTo(18,-10,26,0);ctx.quadraticCurveTo(18,10,0,0);ctx.fill();ctx.restore();
+        }
         ctx.fillStyle="#111827";ctx.beginPath();ctx.arc(0,0,4,0,Math.PI*2);ctx.fill();ctx.restore();
       }
 
-      let readingCacheKey="";
-      let readingCacheInfo=null;
-      let readingDOMKey="";
-
+      let readingCacheKey="",readingCacheInfo=null,readingDOMKey="";
       function readingText(en,zh){return state.lang==="zhHant"?zh:en}
       function readingEscape(s){
-        return String(s).replace(/[&<>"']/g,ch=>({
-          "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-        }[ch]));
+        return String(s).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
       }
       function readingNumber(n,digits=6){
         if(n===Infinity)return "∞";
         if(!Number.isFinite(n))return "—";
-        if(Math.abs(n)<1e-13)return "0";
+        if(n===0)return "0";
         if(Math.abs(n)<1e-4||Math.abs(n)>=1e7){
           const parts=n.toExponential(3).split("e");
           return `${Number(parts[0])} × 10<sup>${Number(parts[1])}</sup>`;
         }
         return Number(n.toFixed(digits)).toString();
       }
-      function readingR(e){
-        if(e.component.type==="switch")return IDEAL_WIRE_RESISTANCE;
-        if(e.component.type==="ammeter")return AMMETER_RESISTANCE;
-        return Math.max(Number(e.component.resistance)||IDEAL_WIRE_RESISTANCE,IDEAL_WIRE_RESISTANCE);
-      }
-      function readingFrac(a,b){
-        return `<span class="math-frac"><span>${a}</span><span>${b}</span></span>`;
-      }
+      function readingFrac(a,b){return `<span class="math-frac"><span>${a}</span><span>${b}</span></span>`}
       function readingMath(s){return `<div class="math-line">${s}</div>`}
       function readingVar(letter,sub){return `<i>${letter}</i><sub>${sub}</sub>`}
-      function readingStep(n,title,html){
-        return `<section class="reading-step"><h5>${t("step"+n)}: ${title}</h5>${html}</section>`;
-      }
+      function readingStep(n,title,html){return `<section class="reading-step"><h5>${t("step"+n)}: ${title}</h5>${html}</section>`}
       function readingTable(headings,rows){
-        return `<div class="table-scroll"><table class="detail-table"><thead><tr>${
-          headings.map(h=>`<th>${h}</th>`).join("")
-        }</tr></thead><tbody>${rows.join("")}</tbody></table></div>`;
+        return `<div class="table-scroll"><table class="detail-table"><thead><tr>${headings.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`;
       }
-
-      function readingSolveLinear(A,b){
-        const n=A.length;
-        if(!n)return [];
-        const M=A.map((row,i)=>{
-          const scale=Math.max(...row.map(Math.abs));
-          return scale>0?[...row.map(v=>v/scale),b[i]/scale]:[...row,b[i]];
-        });
-        for(let col=0;col<n;col++){
-          let pivot=col;
-          for(let r=col+1;r<n;r++)if(Math.abs(M[r][col])>Math.abs(M[pivot][col]))pivot=r;
-          if(Math.abs(M[pivot][col])<1e-14)return null;
-          [M[col],M[pivot]]=[M[pivot],M[col]];
-          const div=M[col][col];
-          for(let j=col;j<=n;j++)M[col][j]/=div;
-          for(let r=0;r<n;r++){
-            if(r===col)continue;
-            const f=M[r][col];
-            if(f===0)continue;
-            for(let j=col;j<=n;j++)M[r][j]-=f*M[col][j];
-          }
-        }
-        const result=M.map(row=>row[n]);
-        return result.every(Number.isFinite)?result:null;
-      }
-
-      function readingTopology(){
-        const groups=getNodeGroups(),terminalNode=new Map();
-        let index=0;
-        for(const list of groups.values()){
-          for(const item of list)terminalNode.set(terminalKey(item.componentId,item.side),index);
-          index++;
-        }
-        const edges=[];
-        for(const c of state.components){
-          if(c.isJunction)continue;
-          const a=terminalNode.get(terminalKey(c.id,"left"));
-          const b=terminalNode.get(terminalKey(c.id,"right"));
-          if(a==null||b==null)continue;
-          edges.push({id:c.id,component:c,a,b,r:0,v:Number(c.sourceVoltage)||0});
-        }
-        for(const e of edges)e.r=readingR(e);
-        return {edges,terminalNode};
-      }
-
-      function readingConductive(e){
-        return e.component.type!=="voltmeter"&&
-          !(e.component.type==="switch"&&!e.component.closed);
-      }
-
-      function readingIsland(edges,start){
-        const nodes=new Set([start]),queue=[start];
-        for(let i=0;i<queue.length;i++){
-          const node=queue[i];
-          for(const e of edges){
-            if(!readingConductive(e))continue;
-            if(e.a!==node&&e.b!==node)continue;
-            const other=e.a===node?e.b:e.a;
-            if(!nodes.has(other)){nodes.add(other);queue.push(other)}
-          }
-        }
-        return nodes;
-      }
-
-      function readingMNA(nodes,resistors,sources,ground){
-        const unknown=[...nodes].filter(n=>n!==ground),map=new Map(unknown.map((n,i)=>[n,i]));
-        const nv=unknown.length,size=nv+sources.length;
-        const A=Array.from({length:size},()=>Array(size).fill(0)),rhs=Array(size).fill(0);
-        for(const e of resistors){
-          if(e.a===e.b)continue;
-          const g=1/e.r,ia=map.get(e.a),ib=map.get(e.b);
-          if(ia!=null)A[ia][ia]+=g;
-          if(ib!=null)A[ib][ib]+=g;
-          if(ia!=null&&ib!=null){A[ia][ib]-=g;A[ib][ia]-=g}
-        }
-        sources.forEach((e,k)=>{
-          const row=nv+k,ia=map.get(e.a),ib=map.get(e.b);
-          if(ia!=null){A[ia][row]+=1;A[row][ia]+=1}
-          if(ib!=null){A[ib][row]-=1;A[row][ib]-=1}
-          rhs[row]=e.v;
-        });
-        const solution=readingSolveLinear(A,rhs);
-        if(!solution)return null;
-        const voltages=new Map([[ground,0]]),currents=new Map();
-        unknown.forEach((n,i)=>voltages.set(n,solution[i]));
-        for(const e of resistors)currents.set(e.id,((voltages.get(e.a)||0)-(voltages.get(e.b)||0))/e.r);
-        sources.forEach((e,k)=>currents.set(e.id,solution[nv+k]));
-        return {voltages,currents,ground};
-      }
-
       function readingSourcePort(sources,resistors){
         if(sources.length===1){
           const s=sources[0];
@@ -1505,7 +1486,7 @@
         }
         const ends=[...incident.keys()].filter(n=>incident.get(n).length===1);
         if(ends.length!==2||[...incident.values()].some(list=>list.length>2))return null;
-        for(const [n,list]of incident){
+        for(const [n,list] of incident){
           if(list.length===2&&resistors.some(e=>e.a===n||e.b===n))return null;
         }
         let node=ends[0],v=0;
@@ -1520,7 +1501,6 @@
         if(used.size!==sources.length)return null;
         return {a:ends[0],b:ends[1],v,terms};
       }
-
       function readingEquivalent(resistors,a,b){
         if(a===b)return 0;
         const nodes=readingIsland(resistors,a);
@@ -1529,25 +1509,24 @@
         const test=readingMNA(nodes,relevant,[{id:"reading_test",a,b,v:1}],b);
         if(!test)return null;
         const current=Math.abs(test.currents.get("reading_test")||0);
-        return current>1e-15?1/current:Infinity;
+        return current>0?1/current:Infinity;
       }
-
       function readingReduce(resistors,a,b){
         let edges=resistors.filter(e=>e.a!==e.b).map(e=>({
-          a:e.a,b:e.b,r:e.r,kind:"leaf",component:e.component,children:[],ids:new Set([e.id])
+          a:e.a,b:e.b,r:e.r,kind:"leaf",component:e.component,
+          children:[],ids:new Set([e.id])
         }));
         const operations=[],discarded=[];
         function combine(kind,list,x,y){
-          let children=[];
+          const children=[];
           for(const e of list){
-            if(e.kind===kind)children.push(...e.children);
-            else children.push(e);
+            if(e.kind===kind)children.push(...e.children);else children.push(e);
           }
-          const r=kind==="series"?children.reduce((s,e)=>s+e.r,0):
-            1/children.reduce((s,e)=>s+1/e.r,0);
+          const r=kind==="series"
+            ?children.reduce((s,e)=>s+e.r,0)
+            :1/children.reduce((s,e)=>s+1/e.r,0);
           const edge={a:x,b:y,r,kind,children,ids:new Set(children.flatMap(e=>[...e.ids]))};
-          operations.push(edge);
-          return edge;
+          operations.push(edge);return edge;
         }
         for(let pass=0;pass<Math.max(10,resistors.length*4);pass++){
           let changed=false;
@@ -1560,7 +1539,8 @@
           for(const list of pairs.values()){
             if(list.length<2)continue;
             const replacement=combine("parallel",list,list[0].a,list[0].b);
-            const removed=new Set(list);edges=edges.filter(e=>!removed.has(e));edges.push(replacement);
+            const removed=new Set(list);
+            edges=edges.filter(e=>!removed.has(e));edges.push(replacement);
             changed=true;break;
           }
           if(changed)continue;
@@ -1583,17 +1563,14 @@
           if(!changed)break;
         }
         const root=edges.length===1&&
-          ((edges[0].a===a&&edges[0].b===b)||(edges[0].a===b&&edges[0].b===a))?edges[0]:null;
+          ((edges[0].a===a&&edges[0].b===b)||(edges[0].a===b&&edges[0].b===a))
+          ?edges[0]:null;
         return {root,operations,discarded,remaining:edges};
       }
-
       function readingLeaves(tree){
-        if(tree.kind==="leaf")return [tree.component];
-        return tree.children.flatMap(readingLeaves);
+        return tree.kind==="leaf"?[tree.component]:tree.children.flatMap(readingLeaves);
       }
-      function readingTreeNames(tree){
-        return readingLeaves(tree).map(componentShortName).join(" + ");
-      }
+      function readingTreeNames(tree){return readingLeaves(tree).map(componentShortName).join(" + ")}
       function readingAssignNames(root){
         let p=0;
         function visit(e){
@@ -1607,9 +1584,7 @@
         if(e.kind==="parallel")return readingVar("R",e.label||"parallel");
         return "("+e.children.map(readingTreeSymbol).join(" + ")+")";
       }
-      function readingPostorder(e){
-        return [...e.children.flatMap(readingPostorder),e];
-      }
+      function readingPostorder(e){return [...e.children.flatMap(readingPostorder),e]}
       function readingTreePredictions(root,voltage){
         const results=new Map();
         function distribute(e,v){
@@ -1622,50 +1597,63 @@
         }
         distribute(root,Math.abs(voltage));return results;
       }
-
       function readingBuildModel(c){
-        const topology=readingTopology(),meter=topology.edges.find(e=>e.id===c.id);
+        const topology=state.lastPhysics?.topology||readingTopology();
+        const meter=topology.edges.find(e=>e.id===c.id);
         if(!meter)return {error:readingText("The meter has no valid terminal pair.","儀表沒有有效的兩端節點。")};
         const nodes=readingIsland(topology.edges,meter.a);
         if(!nodes.has(meter.b)){
           return {error:readingText(
-            "The two meter terminals are in different electrically isolated networks. There is no defined common voltage reference or conducting measurement path.",
-            "儀表兩端位於不同且互相隔離的電路，沒有共同電位基準或可導通的量測路徑。"
+            "The two meter terminals are in different electrically isolated networks. Their relative voltage is undefined. A dash is shown instead of an invented voltage reading.",
+            "儀表兩端位於不同且互相隔離的電路，兩者的相對電壓沒有定義，因此顯示橫線，而不是虛構電壓讀值。"
           )};
         }
         const relevant=topology.edges.filter(e=>nodes.has(e.a)&&nodes.has(e.b));
-        const sources=relevant.filter(e=>e.component.type==="battery");
-        const resistors=relevant.filter(e=>readingConductive(e)&&e.component.type!=="battery");
-        if(!sources.length)return {error:readingText("No battery supplies this meter's network.","此儀表所在的電路沒有電池供電。")};
+        const sources=relevant.filter(e=>e.isBattery);
+        const resistors=relevant.filter(e=>readingConductive(e)&&!e.isBattery);
+        if(!sources.length)
+          return {error:readingText("No battery supplies this meter's network.","此儀表所在的電路沒有電池供電。")};
         const prediction=readingMNA(nodes,resistors,sources,sources[0].b);
-        if(!prediction)return {error:readingText(
-          "The source constraints cannot be solved uniquely. Check for a battery short circuit, contradictory ideal voltage sources, or invalid connections.",
-          "電源條件無法得到唯一解。請檢查電池短路、互相矛盾的理想電壓源或無效連接。"
-        )};
+        if(!prediction){
+          return {error:readingText(
+            "No finite operating point exists for these ideal-source constraints, or the system could not be resolved numerically. Check for a battery directly shorted by a wire or incompatible ideal batteries. Undefined readings are shown as dashes.",
+            "此理想電源條件沒有有限的工作點，或系統無法完成數值求解。請檢查電池是否被導線直接短接，以及理想電池是否互相矛盾。未定義的讀值會顯示橫線。"
+          )};
+        }
+        if(c.type==="ammeter"&&prediction.ambiguousCurrents.has(c.id)){
+          return {error:readingText(
+            "This meter current is not uniquely determined by the ideal circuit constraints. Check redundant ideal-source loops.",
+            "此儀表電流無法由理想電路條件唯一決定，請檢查重複的理想電源迴路。"
+          )};
+        }
         const port=readingSourcePort(sources,resistors);
         const reduction=port?readingReduce(resistors,port.a,port.b):null;
         const root=reduction?.root||null;
         if(root)readingAssignNames(root);
         const equivalent=port?(root?root.r:readingEquivalent(resistors,port.a,port.b)):null;
-        const totalI=port&&equivalent!=null?(equivalent===Infinity?0:Math.abs(port.v)/equivalent):null;
+        const totalI=port&&equivalent!=null
+          ?(equivalent===Infinity?0:equivalent>0?Math.abs(port.v)/equivalent:NaN):null;
         const treeResults=root?readingTreePredictions(root,port.v):null;
-        const predictedReading=c.type==="ammeter"?Math.abs(prediction.currents.get(c.id)||0):
-          Math.abs((prediction.voltages.get(meter.a)||0)-(prediction.voltages.get(meter.b)||0));
-        return {meter,nodes,relevant,sources,resistors,prediction,port,reduction,root,equivalent,totalI,treeResults,predictedReading};
+        const predictedReading=c.type==="ammeter"
+          ?Math.abs(prediction.currents.get(c.id)||0)
+          :Math.abs(prediction.voltages.get(meter.a)-prediction.voltages.get(meter.b));
+        return {
+          meter,nodes,relevant,sources,resistors,prediction,port,reduction,root,
+          equivalent,totalI,treeResults,predictedReading
+        };
       }
 
       function readingParallelStep(model){
         const {root}=model;
         if(!root){
-          const rows=model.resistors.filter(e=>!["ammeter","switch"].includes(e.component.type)).map(e=>
-            `<tr><td>${componentShortName(e.component)}</td><td>N${e.a+1} ↔ N${e.b+1}</td><td>${readingNumber(e.r)} Ω</td></tr>`
-          );
+          const rows=model.resistors.filter(e=>!["ammeter","switch"].includes(e.component.type))
+            .map(e=>`<tr><td>${componentShortName(e.component)}</td><td>N${e.a+1} ↔ N${e.b+1}</td><td>${readingNumber(e.r)} Ω</td></tr>`);
           return `<p>${readingText(
             "First, list the resistances and node connections. This network cannot be represented as one verified series–parallel reduction, or it has independent source connections. We therefore use Kirchhoff’s laws rather than incorrectly adding unrelated branches.",
             "先列出電阻與節點連接。此電路不能完全化簡成單一、經驗證的串並聯結構，或含有獨立電源連接，因此使用基爾霍夫定律，避免把不相關支路錯誤相加。"
-          )}</p>${readingTable([
-            readingText("Component","元件"),readingText("Connected nodes","連接節點"),readingText("Resistance","電阻")
-          ],rows)}`;
+          )}</p>${readingTable(
+            [readingText("Component","元件"),readingText("Connected nodes","連接節點"),readingText("Resistance","電阻")],rows
+          )}`;
         }
         const parallels=readingPostorder(root).filter(e=>e.kind==="parallel");
         if(!parallels.length){
@@ -1673,9 +1661,8 @@
             "There is no parallel section in this conducting path. All loads in the reduced main path are in series.",
             "此導通路徑沒有並聯部分，化簡後的主路徑負載全部串聯。"
           )}</p>${readingMath(
-            readingVar("R","series")+" = "+
-            readingLeaves(root).map(c=>readingVar("R",componentShortName(c))).join(" + ")+
-            " = "+readingLeaves(root).map(c=>readingNumber(readingR({component:c}))+" Ω").join(" + ")+
+            readingVar("R","series")+" = "+readingLeaves(root).map(c=>readingVar("R",componentShortName(c))).join(" + ")+" = "+
+            readingLeaves(root).map(c=>readingNumber(readingR({component:c}))+" Ω").join(" + ")+
             " ≈ <strong>"+readingNumber(root.r,4)+" Ω</strong>"
           )}`;
         }
@@ -1698,18 +1685,15 @@
               " ≈ <strong>"+readingNumber(branch.r,4)+" Ω</strong>"
             )}</li>`;
           });
-          html+=`</ul><p>${readingText(
-            "Now combine these parallel branches into a single equivalent resistance:",
-            "現在把這些並聯支路合併成單一等效電阻："
-          )}</p>`;
+          html+=`</ul><p>${readingText("Now combine these parallel branches into a single equivalent resistance:","現在把這些並聯支路合併成單一等效電阻：")}</p>`;
           html+=readingMath(
             readingFrac("1",readingVar("R",p.label))+" = "+
-            p.children.map((b,i)=>readingFrac("1",readingVar("R",p.label+"."+(i+1)))).join(" + ")+
-            " = "+p.children.map(b=>readingFrac("1",readingNumber(b.r))).join(" + ")
+            p.children.map((branch,i)=>readingFrac("1",readingVar("R",p.label+"."+(i+1)))).join(" + ")+" = "+
+            p.children.map(branch=>readingFrac("1",readingNumber(branch.r))).join(" + ")
           );
           html+=readingMath(
             readingVar("R",p.label)+" = "+
-            readingFrac("1",p.children.map(b=>readingFrac("1",readingNumber(b.r))).join(" + "))+
+            readingFrac("1",p.children.map(branch=>readingFrac("1",readingNumber(branch.r))).join(" + "))+
             " ≈ <strong>"+readingNumber(p.r,4)+" Ω</strong>"
           )+"</div>";
         }
@@ -1736,52 +1720,50 @@
             "電源兩端之間沒有閉合的電阻回路，可能由未閉合開關或斷開支路造成。"
           )}</p>${readingMath(readingVar("R","total")+" = ∞ Ω")}`;
         }
+        if(equivalent==null){
+          return `<p>${readingText("The equivalent-resistance test could not be solved.","等效電阻測試未能完成求解。")}</p>`;
+        }
         if(root){
           const parts=root.kind==="series"?root.children:[root];
           return `<p>${readingText(
-            root.kind==="series"?
-              "The reduced parallel sections and the remaining series elements are in series. Add their equivalent resistances to find the total circuit resistance:":
-              "The reduced network spans the two source terminals, so its equivalent resistance is the total circuit resistance:",
-            root.kind==="series"?
-              "化簡後的並聯部分與其餘元件串聯，把它們的等效電阻相加，得到全電路總電阻：":
-              "化簡後的電路跨接電源兩端，因此其等效電阻就是全電路總電阻："
+            root.kind==="series"?"The reduced parallel sections and the remaining series elements are in series. Add their equivalent resistances to find the total circuit resistance:":"The reduced network spans the two source terminals, so its equivalent resistance is the total circuit resistance:",
+            root.kind==="series"?"化簡後的並聯部分與其餘元件串聯，把它們的等效電阻相加，得到全電路總電阻：":"化簡後的電路跨接電源兩端，因此其等效電阻就是全電路總電阻："
           )}</p>${readingMath(
-            readingVar("R","total")+" = "+parts.map(readingTreeSymbol).join(" + ")+
-            " = "+parts.map(e=>readingNumber(e.r)+" Ω").join(" + ")+
+            readingVar("R","total")+" = "+parts.map(readingTreeSymbol).join(" + ")+" = "+
+            parts.map(e=>readingNumber(e.r)+" Ω").join(" + ")+
             " ≈ <strong>"+readingNumber(equivalent,4)+" Ω</strong>"
           )}`;
         }
         return `<p>${readingText(
           "A bridge or other non-reducible network requires nodal analysis. Apply a separate 1 V test source across the source port and solve the resistor network; this calculates resistance independently of the live meter readings.",
-          "橋式或其他不能直接串並聯化簡的電路須使用節點分析。另在电源端口施加 1 V 測試電源，求解電阻網絡；此方法不使用現有儀表讀值來反推電阻。"
+          "橋式或其他不能直接串並聯化簡的電路須使用節點分析。另在電源端口施加 1 V 測試電源，求解電阻網絡；此方法不使用現有儀表讀值來反推電阻。"
         )}</p>${readingMath(
-          readingVar("R","total")+" = "+readingFrac(readingVar("V","test"),readingVar("I","test"))+
-          " = "+readingFrac("1 V",readingNumber(1/equivalent)+" A")+
+          readingVar("R","total")+" = "+readingFrac(readingVar("V","test"),readingVar("I","test"))+" = "+
+          readingFrac("1 V",readingNumber(1/equivalent)+" A")+
           " ≈ <strong>"+readingNumber(equivalent,4)+" Ω</strong>"
         )}`;
       }
-
       function readingSourceVoltageFormula(port){
         return port.terms.map((term,i)=>{
-          const sign=term.sign<0?"−":i?" + ":"";
-          return sign+readingNumber(term.edge.v)+" V";
-        }).join(" ");
+          const value=term.sign*term.edge.v;
+          return (i?(value<0?" − ":" + "):(value<0?"−":""))+
+            readingNumber(Math.abs(value))+" V";
+        }).join("");
       }
-
       function readingTotalCurrentStep(model){
         let html="";
         if(model.port){
           html+=`<p>${readingText(
-            "Combine battery voltages according to their actual series connections and polarities. Then use Ohm’s law to predict the current leaving the source:",
-            "根據電池實際串聯連接及極性合併電壓，再使用歐姆定律預測離開電源的總電流："
+            "Combine battery voltages according to their actual series connections and polarities. The drawn right terminal is positive. Then use Ohm’s law to predict the source-current magnitude:",
+            "根據電池實際串聯連接及極性合併電壓。圖中的右端為正極，再使用歐姆定律預測電源電流大小："
           )}</p>`;
           html+=readingMath(
-            readingVar("V","total")+" = |"+readingSourceVoltageFormula(model.port)+"|"+
-            " = <strong>"+readingNumber(Math.abs(model.port.v))+" V</strong>"
+            readingVar("V","total")+" = |"+readingSourceVoltageFormula(model.port)+"| = <strong>"+
+            readingNumber(Math.abs(model.port.v))+" V</strong>"
           );
           html+=readingMath(
-            readingVar("I","total")+" = "+readingFrac(readingVar("V","total"),readingVar("R","total"))+
-            " = "+readingFrac(readingNumber(Math.abs(model.port.v))+" V",readingNumber(model.equivalent)+" Ω")+
+            readingVar("I","total")+" = "+readingFrac(readingVar("V","total"),readingVar("R","total"))+" = "+
+            readingFrac(readingNumber(Math.abs(model.port.v))+" V",readingNumber(model.equivalent)+" Ω")+
             " ≈ <strong>"+readingNumber(model.totalI)+" A</strong>"
           );
           if(model.root){
@@ -1807,8 +1789,7 @@
           )}</p>`;
           for(const s of model.sources){
             html+=readingMath(
-              readingVar("V","N"+(s.a+1))+" − "+readingVar("V","N"+(s.b+1))+
-              " = "+readingNumber(s.v)+" V"
+              readingVar("V","N"+(s.a+1))+" − "+readingVar("V","N"+(s.b+1))+" = "+readingNumber(s.v)+" V"
             );
           }
         }
@@ -1817,26 +1798,25 @@
             "At each ordinary node, the algebraic sum of currents is zero. The source constraints and these equations form the simultaneous nodal calculation:",
             "在每個普通節點，流入與流出電流的代數和為零。這些方程與電源條件構成聯立節點方程："
           )}</p>`;
-          html+=readingMath("Σ "+readingFrac(
-            readingVar("V","i")+" − "+readingVar("V","j"),readingVar("R","ij")
-          )+" + Σ "+readingVar("I","source")+" = 0");
+          html+=readingMath(
+            "Σ "+readingFrac(readingVar("V","i")+" − "+readingVar("V","j"),readingVar("R","ij"))+
+            " + Σ "+readingVar("I","source")+" = 0"
+          );
         }
-        const rows=model.sources.map(s=>`<tr>
-          <td>${componentShortName(s.component)}</td>
-          <td>${readingNumber(s.v)} V</td>
-          <td>${readingNumber(model.prediction.currents.get(s.id)||0)} A</td>
-        </tr>`);
-        html+=readingTable([
-          readingText("Source","電源"),readingText("Source voltage","電源電壓"),
-          readingText("Predicted current, left → right","預測電流，左端 → 右端")
-        ],rows);
+        const rows=model.sources.map(s=>{
+          const value=model.prediction.ambiguousCurrents.has(s.id)?NaN:model.prediction.currents.get(s.id);
+          return `<tr><td>${componentShortName(s.component)}</td><td>${readingNumber(s.component.sourceVoltage)} V</td><td>${readingNumber(value)} A</td></tr>`;
+        });
+        html+=readingTable(
+          [readingText("Source","電源"),readingText("Source voltage","電源電壓"),
+           readingText("Predicted current, left → right","預測電流，左端 → 右端")],rows
+        );
         html+=`<p>${readingText(
-          "A negative source current means the battery supplies current opposite to its left-to-right reference direction.",
-          "電源電流為負值，表示電池沿與左端到右端參考方向相反的方向供應電流。"
+          "Signed currents use the component’s local left-to-right direction. A negative sign means flow in the opposite direction; the meter labels display magnitudes.",
+          "帶正負號的電流以元件本身的左端到右端為參考方向。負號表示反向流動，儀表標籤則顯示大小。"
         )}</p>`;
         return html;
       }
-
       function readingBranchStep(model,c){
         let html=`<p>${readingText(
           "Use the calculated total current to work back through the network. Series elements carry the same current; parallel branches have the same voltage across their common endpoints.",
@@ -1846,8 +1826,8 @@
           const results=model.treeResults;
           function explain(e){
             if(e.kind==="leaf")return "";
-            const result=results.get(e);
             let out="";
+            const result=results.get(e);
             if(e.kind==="series"){
               out+=`<p>${readingText(
                 "For the series section ("+readingTreeNames(e)+"), predict each voltage drop:",
@@ -1856,17 +1836,17 @@
               for(const child of e.children){
                 const cr=results.get(child);
                 out+=readingMath(
-                  readingVar("V",child.kind==="parallel"?child.label:readingTreeNames(child))+
-                  " = "+readingVar("I","series")+" × "+readingTreeSymbol(child)+
-                  " = "+readingNumber(result.i)+" × "+readingNumber(child.r)+
+                  readingVar("V",child.kind==="parallel"?child.label:readingTreeNames(child))+" = "+
+                  readingVar("I","series")+" × "+readingTreeSymbol(child)+" = "+
+                  readingNumber(result.i)+" × "+readingNumber(child.r)+
                   " ≈ <strong>"+readingNumber(cr.v)+" V</strong>"
                 );
               }
             }else{
               out+=`<div class="reading-subsection"><h6>${readingText("Parallel section","並聯部分")} ${e.label}</h6>`;
               out+=readingMath(
-                readingVar("V",e.label)+" = "+readingVar("I",e.label)+" × "+readingVar("R",e.label)+
-                " = "+readingNumber(result.i)+" × "+readingNumber(e.r)+
+                readingVar("V",e.label)+" = "+readingVar("I",e.label)+" × "+readingVar("R",e.label)+" = "+
+                readingNumber(result.i)+" × "+readingNumber(e.r)+
                 " ≈ <strong>"+readingNumber(result.v)+" V</strong>"
               );
               out+=`<p>${readingText(
@@ -1875,19 +1855,17 @@
               )}</p>`;
               e.children.forEach((branch,i)=>{
                 const br=results.get(branch),name=e.label+"."+(i+1);
-                const meters=readingLeaves(branch).filter(x=>x.type==="ammeter").map(componentShortName);
-                out+=`<p><strong>${t("branchLabel")(i+1)} (${readingTreeNames(branch)}${meters.length?"; "+meters.join(", "):""}):</strong></p>`;
+                out+=`<p><strong>${t("branchLabel")(i+1)} (${readingTreeNames(branch)}):</strong></p>`;
                 out+=readingMath(
-                  readingVar("I",name)+" = "+readingFrac(readingVar("V",e.label),readingVar("R",name))+
-                  " = "+readingFrac(readingNumber(result.v)+" V",readingNumber(branch.r)+" Ω")+
+                  readingVar("I",name)+" = "+readingFrac(readingVar("V",e.label),readingVar("R",name))+" = "+
+                  readingFrac(readingNumber(result.v)+" V",readingNumber(branch.r)+" Ω")+
                   " ≈ <strong>"+readingNumber(br.i)+" A</strong>"
                 );
                 if(e.children.length===2){
                   const other=e.children[1-i];
                   out+=readingMath(
                     readingVar("I",name)+" = "+readingVar("I",e.label)+" × "+
-                    readingFrac(readingVar("R",e.label+"."+(2-i)),
-                      readingVar("R",e.label+".1")+" + "+readingVar("R",e.label+".2"))+
+                    readingFrac(readingVar("R",e.label+"."+(2-i)),readingVar("R",e.label+".1")+" + "+readingVar("R",e.label+".2"))+
                     " = "+readingNumber(result.i)+" × "+
                     readingFrac(readingNumber(other.r),readingNumber(e.children[0].r)+" + "+readingNumber(e.children[1].r))+
                     " ≈ <strong>"+readingNumber(br.i)+" A</strong>"
@@ -1915,37 +1893,60 @@
             "在橋式電路，每個元件形成其兩端節點之間的一條支路，使用預測節點電壓和該支路電阻求解："
           )}</p>`;
           html+=readingMath(
-            readingVar("V","branch")+" = "+readingVar("V","a")+" − "+readingVar("V","b")+
-            ", &nbsp; "+readingVar("I","branch")+" = "+readingFrac(readingVar("V","branch"),readingVar("R","branch"))
+            readingVar("V","branch")+" = "+readingVar("V","a")+" − "+readingVar("V","b")+", &nbsp; "+
+            readingVar("I","branch")+" = "+readingFrac(readingVar("V","branch"),readingVar("R","branch"))
           );
-          const voltageRows=[...model.nodes].sort((a,b)=>a-b).map(n=>
-            `<tr><td>N${n+1}${n===model.prediction.ground?" ("+readingText("reference","基準")+")":""}</td><td>${readingNumber(model.prediction.voltages.get(n)||0)} V</td></tr>`
+          const rows=[...model.nodes].sort((a,b)=>a-b).map(n=>
+            `<tr><td>N${n+1}${n===model.prediction.ground?" ("+readingText("reference","基準")+")":""}</td><td>${readingNumber(model.prediction.voltages.get(n))} V</td></tr>`
           );
-          html+=readingTable([readingText("Node","節點"),readingText("Predicted potential","預測電位")],voltageRows);
+          html+=readingTable([readingText("Node","節點"),readingText("Predicted potential","預測電位")],rows);
         }
 
         const branchRows=model.resistors.map(e=>{
-          const v=Math.abs((model.prediction.voltages.get(e.a)||0)-(model.prediction.voltages.get(e.b)||0));
-          const current=Math.abs(model.prediction.currents.get(e.id)||0);
-          return `<tr${e.id===c.id?' class="selected-meter-row"':""}>
-            <td>${componentShortName(e.component)}</td><td>${readingNumber(e.r)} Ω</td>
-            <td>${readingNumber(v)} V</td><td>${readingNumber(current)} A</td>
-          </tr>`;
+          const current=model.prediction.ambiguousCurrents.has(e.id)
+            ?NaN:Math.abs(model.prediction.currents.get(e.id)||0);
+          const v=current*e.r;
+          return `<tr${e.id===c.id?' class="selected-meter-row"':""}><td>${componentShortName(e.component)}</td><td>${readingNumber(e.r)} Ω</td><td>${readingNumber(v)} V</td><td>${readingNumber(current)} A</td></tr>`;
         });
         html+=`<p><strong>${readingText("Predicted component / branch values","各元件／支路的預測值")}</strong></p>`;
-        html+=readingTable([
-          readingText("Component","元件"),readingText("Resistance","電阻"),
-          readingText("Voltage magnitude","電壓大小"),readingText("Current magnitude","電流大小")
-        ],branchRows);
+        html+=readingTable(
+          [readingText("Component","元件"),readingText("Resistance","電阻"),
+           readingText("Voltage magnitude","電壓大小"),readingText("Current magnitude","電流大小")],branchRows
+        );
+
+        /*
+         * Explain bulb power explicitly, including an ammeter shunting a load.
+         * Scientific notation preserves very small nonzero leakage-like
+         * currents through branches bypassed by finite-resistance ammeters.
+         */
+        const bulbRows=model.resistors.filter(e=>e.component.type==="bulb").map(e=>{
+          const current=Math.abs(model.prediction.currents.get(e.id)||0);
+          const power=current*current*e.r;
+          return `<tr><td>${componentShortName(e.component)}</td><td>${readingNumber(current)} A</td><td>${readingNumber(power)} W</td></tr>`;
+        });
+        if(bulbRows.length){
+          html+=`<div class="reading-subsection"><h6>${readingText("Bulb brightness follows power","燈泡亮度取決於功率")}</h6>`;
+          html+=readingMath(
+            readingVar("P","bulb")+" = "+readingVar("I","bulb")+"² "+readingVar("R","bulb")+" = "+
+            readingFrac(readingVar("V","bulb")+"²",readingVar("R","bulb"))
+          );
+          html+=readingTable(
+            [readingText("Bulb","燈泡"),readingText("Current","電流"),readingText("Electrical power","電功率")],bulbRows
+          );
+          html+=`<p>${readingText(
+            "The visual glow uses one fixed power scale for every bulb. For equal current, a 20 Ω bulb dissipates four times the power of a 5 Ω bulb. An ammeter placed in parallel with a bulb or bulb branch nearly short-circuits that branch: its voltage, power and visible light become extremely small.",
+            "所有燈泡的光暈使用相同且固定的功率比例尺。在相同電流下，20 Ω 燈泡的功率是 5 Ω 燈泡的四倍。若電流表與燈泡或燈泡支路並聯，幾乎會短接該支路，使其電壓、功率及可見亮度變得極小。"
+          )}</p></div>`;
+        }
 
         const a=model.meter.a,b=model.meter.b;
-        const va=model.prediction.voltages.get(a)||0,vb=model.prediction.voltages.get(b)||0;
+        const va=model.prediction.voltages.get(a),vb=model.prediction.voltages.get(b);
         const meterName=componentShortName(c);
         html+=`<div class="reading-subsection"><h6>${readingText("Selected meter","所選儀表")}: ${meterName}</h6>`;
         if(c.type==="ammeter"){
           html+=`<p>${readingText(
-            "This ammeter is identified by its actual terminal connection, not by matching its numerical reading to another branch.",
-            "此電流表的量測位置由實際節點連接判定，不是把它的讀值與其他支路數值配對。"
+            "This ammeter is identified by its actual terminal connection, not by matching its numerical reading to another branch. Its current is solved directly using Kirchhoff’s laws; tiny terminal-voltage subtraction is not used by the numerical solver.",
+            "此電流表的量測位置由實際節點連接判定，而不是與其他支路讀值配對。數值求解器使用基爾霍夫定律直接求出電流，避免以極小的兩端電壓差相減造成誤差。"
           )}</p>`;
           html+=readingMath(
             readingVar("I",meterName)+" = "+
@@ -1958,34 +1959,25 @@
             "電壓表量度其實際兩端節點的電位差。只有跨接整個並聯部分的兩端，才量度整個並聯部分的電壓；跨接某個串聯元件時，只量度該元件的電壓降。"
           )}</p>`;
           html+=readingMath(
-            readingVar("V",meterName)+" = |"+readingVar("V","N"+(a+1))+" − "+readingVar("V","N"+(b+1))+"|"+
-            " = |"+readingNumber(va)+" − "+readingNumber(vb)+"|"+
-            " ≈ <strong>"+readingNumber(model.predictedReading)+" V</strong>"
+            readingVar("V",meterName)+" = |"+readingVar("V","N"+(a+1))+" − "+readingVar("V","N"+(b+1))+"| = |"+
+            readingNumber(va)+" − "+readingNumber(vb)+"| ≈ <strong>"+readingNumber(model.predictedReading)+" V</strong>"
           );
         }
-        const physics=state.lastPhysics;
-        if(physics?.solved){
-          const actual=c.type==="ammeter"?Math.abs(c.current||0):getVoltmeterReading(c);
-          const unit=c.type==="ammeter"?"A":"V";
-          const matches=Math.abs(actual-model.predictedReading)<=Math.max(1e-6,model.predictedReading*0.001);
-          html+=`<p>${readingText("Simulator reading","模擬器讀值")}: <strong>${readingNumber(actual)} ${unit}</strong>.</p>`;
-          html+=`<p>${matches?readingText(
-            "This matches the prediction within rounding and numerical tolerance.",
-            "此讀值與預測結果一致，差別僅在四捨五入及數值誤差範圍內。"
-          ):readingText(
-            "The live reading differs from the prediction. The explanation treats voltmeters and open switches as ideal open circuits; the unchanged simulator uses very large finite resistances. Numerical conditioning or a circuit-wide solver failure can also affect the live readings.",
-            "實際讀值與預測有差別。此說明把電壓表及未閉合開關視為理想開路；原有模擬器使用非常大的有限電阻。數值條件或整體求解失敗也可能影響實際讀值。"
-          )}</p>`;
-        }else{
-          html+=`<div class="reading-warning">${readingText(
-            "The existing simulator has not solved the complete workspace. The values above are independent predictions for this meter’s powered network, not confirmation of the currently displayed reading.",
-            "原有模擬器未成功求解整個工作區。上方數值是對此儀表所在供電網絡的獨立預測，並非確認目前顯示的讀值。"
-          )}</div>`;
-        }
-        html+="</div>";
+        const actual=c.type==="ammeter"
+          ?(c.currentValid?Math.abs(c.current):NaN):getVoltmeterReading(c);
+        const unit=c.type==="ammeter"?"A":"V";
+        html+=`<p>${readingText("Simulator reading","模擬器讀值")}: <strong>${readingNumber(actual)} ${unit}</strong>.</p>`;
+        const matches=Number.isFinite(actual)&&
+          Math.abs(actual-model.predictedReading)<=Math.max(1e-10,model.predictedReading*1e-7);
+        html+=`<p>${matches?readingText(
+          "The display and explanation use the same circuit model and solver; any displayed difference is rounding.",
+          "顯示讀值與說明使用相同的電路模型及求解器，顯示差異僅來自四捨五入。"
+        ):readingText(
+          "This reading is undefined or could not be verified. Check the circuit connections and source constraints.",
+          "此讀值未定義或無法確認，請檢查電路連接及電源條件。"
+        )}</p></div>`;
         return html;
       }
-
       function readingSummary(c){
         const title=c.type==="ammeter"?t("meterExplainTitleA"):t("meterExplainTitleV");
         const model=readingBuildModel(c);
@@ -1997,30 +1989,26 @@
           [t("keyTotalCurrent"),model.totalI!=null?readingNumber(model.totalI)+" A":readingText("Per-source currents","各電源電流")],
           [readingText("Predicted meter reading","預測儀表讀值"),readingNumber(model.predictedReading)+" "+unit]
         ];
-        let html=`<div class="explain-hero">
-          <h5>${readingText("Four-step circuit prediction","四步電路預測")}</h5>
-          <p>${readingText(
-            "Calculate resistance first, then predict total current, branch voltages and branch currents. Calculations use unrounded values; displayed results are rounded.",
-            "先計算電阻，再預測總電流、支路電壓及支路電流。計算使用未四捨五入的數值，顯示結果則經四捨五入。"
-          )}</p><div class="explain-summary-grid">${
-            values.map(([label,value])=>`<div class="summary-box"><div class="k">${label}</div><div class="v">${value}</div></div>`).join("")
-          }</div></div>`;
+        let html=`<div class="explain-hero"><h5>${readingText("Four-step circuit prediction","四步電路預測")}</h5><p>${readingText(
+          "Calculate resistance first, then predict total current, branch voltages and branch currents. Calculations use unrounded values; displayed results are rounded.",
+          "先計算電阻，再預測總電流、支路電壓及支路電流。計算使用未四捨五入的數值，顯示結果則經四捨五入。"
+        )}</p><div class="explain-summary-grid">${
+          values.map(([label,value])=>`<div class="summary-box"><div class="k">${label}</div><div class="v">${value}</div></div>`).join("")
+        }</div></div>`;
         html+=`<div class="explain-note">${readingText(
-          "Model used for these predictions: ideal wires and ideal voltage sources; the existing 0.00001 Ω ammeter and 0.0000001 Ω closed-switch resistances are included. Voltmeter loading and open-switch leakage are neglected. A battery’s palette resistance is not added, because the existing simulator models batteries as ideal voltage sources. Separate unpowered circuits do not contribute to this meter’s calculation.",
-          "本預測模型使用理想導線及理想電壓源，並保留原有電流表的 0.00001 Ω 電阻和閉合開關的 0.0000001 Ω 電阻。忽略電壓表負載與未閉合開關漏電流。由於原有模擬器把電池視為理想電壓源，故不把面板中的電池電阻加入計算。獨立、未供電的電路不參與此儀表的計算。"
+          "Model: ideal wires and ideal voltage sources; the existing 0.000001 Ω ammeter and 0.000000001 Ω closed-switch resistances are retained. Voltmeters are non-loading voltage probes and open switches conduct no current. The stored battery resistance is not added because batteries retain the existing ideal-source model. The drawn right battery terminal is positive. Separate electrical islands are solved independently.",
+          "模型使用理想導線與理想電壓源，保留原有 0.000001 Ω 電流表及 0.000000001 Ω 閉合開關電阻。電壓表是不取電流的電壓探針，未閉合開關不導通。電池維持原有理想電源模型，因此不加入儲存的電池電阻。圖中電池右端為正極，各獨立電路分別求解。"
         )}</div>`;
-        html+=readingStep(1,readingText(
-          "Find the Equivalent Resistance of the Parallel Sections","求並聯部分的等效電阻"
-        ),readingParallelStep(model));
-        html+=readingStep(2,readingText(
-          "Find the Total Resistance of the Circuit","求整個電路的總電阻"
-        ),readingTotalResistanceStep(model));
-        html+=readingStep(3,readingText(
-          "Predict the Total Voltage and Total Current","預測總電壓與總電流"
-        ),readingTotalCurrentStep(model));
-        html+=readingStep(4,readingText(
-          "Predict the Branch Voltages, Branch Currents and Meter Readings","預測支路電壓、支路電流與儀表讀值"
-        ),readingBranchStep(model,c));
+        if(model.prediction.rankDeficient){
+          html+=`<div class="reading-warning">${readingText(
+            "Some individual ideal-source currents are not unique because the source constraints are redundant. Such currents are shown as dashes; uniquely determined load and meter quantities remain available.",
+            "部分理想電源條件重複，使個別電源電流不能唯一決定。這些電流顯示橫線，仍可顯示唯一決定的負載及儀表數值。"
+          )}</div>`;
+        }
+        html+=readingStep(1,readingText("Find the Equivalent Resistance of the Parallel Sections","求並聯部分的等效電阻"),readingParallelStep(model));
+        html+=readingStep(2,readingText("Find the Total Resistance of the Circuit","求整個電路的總電阻"),readingTotalResistanceStep(model));
+        html+=readingStep(3,readingText("Predict the Total Voltage and Total Current","預測總電壓與總電流"),readingTotalCurrentStep(model));
+        html+=readingStep(4,readingText("Predict the Branch Voltages, Branch Currents and Meter Readings","預測支路電壓、支路電流與儀表讀值"),readingBranchStep(model,c));
         return {title,html};
       }
       function getCircuitSummaryForAmmeter(c){return readingSummary(c)}
@@ -2030,117 +2018,113 @@
         const modeText=state.mode==="select"?t("modeSelect"):state.mode==="wire"?t("modeWireStatus"):t("modePan");
         document.getElementById("modeStatus").textContent=modeText;
         document.getElementById("zoomStatus").textContent=I18N[state.lang].zoomLabel(state.view.scale);
-        const circuitEl=document.getElementById("circuitStatus");circuitEl.className="status-pill";
-        const physics=state.lastPhysics;
-        if(physics&&physics.solved&&physics.isShort){circuitEl.textContent=t("shortCircuit");circuitEl.classList.add("short")}
-        else if(physics&&physics.solved&&!physics.open){circuitEl.textContent=t("completeCircuit");circuitEl.classList.add("complete")}
-        else{circuitEl.textContent=t("openCircuit");circuitEl.classList.add("open")}
+        const circuitEl=document.getElementById("circuitStatus"),physics=state.lastPhysics;
+        circuitEl.className="status-pill";circuitEl.title="";
+        if(physics?.isShort){
+          circuitEl.textContent=t("shortCircuit");circuitEl.classList.add("short");
+        }else if(physics?.islands?.some(i=>i.sourceConflict)){
+          circuitEl.textContent=readingText("Source Conflict","電源衝突");circuitEl.classList.add("short");
+          circuitEl.title=readingText(
+            "Incompatible ideal voltage sources have no finite operating point.",
+            "互相矛盾的理想電壓源沒有有限工作點。"
+          );
+        }else if(physics?.solved&&!physics.open){
+          circuitEl.textContent=t("completeCircuit");circuitEl.classList.add("complete");
+        }else{
+          circuitEl.textContent=t("openCircuit");circuitEl.classList.add("open");
+        }
         document.getElementById("selectModeBtn").classList.toggle("toggle-active",state.mode==="select");
         document.getElementById("panModeBtn").classList.toggle("toggle-active",state.mode==="pan");
       }
       function solveAndRender(){rerouteAllWires();solveCircuit();updateAudio();render()}
       function setMode(mode){state.mode=mode;state.pendingWireStart=null;render()}
       function canvasPoint(evt){
-        const rect=state.canvas.getBoundingClientRect();return {x:evt.clientX-rect.left,y:evt.clientY-rect.top};
+        const rect=state.canvas.getBoundingClientRect();
+        return {x:evt.clientX-rect.left,y:evt.clientY-rect.top};
       }
-
       function getResistorTextRect(c,useRender=false){
         const pos=getCompPos(c,useRender),off=getValueLabelOffset(c);
         return {
-          cx:pos.x+off.x,
-          cy:pos.y+off.y,
-          width:72,
-          height:22,
-          x1:pos.x+off.x-36-LABEL_HIT_PAD,
-          y1:pos.y+off.y-11-LABEL_HIT_PAD,
-          x2:pos.x+off.x+36+LABEL_HIT_PAD,
-          y2:pos.y+off.y+11+LABEL_HIT_PAD
+          cx:pos.x+off.x,cy:pos.y+off.y,width:72,height:22,
+          x1:pos.x+off.x-36-LABEL_HIT_PAD,y1:pos.y+off.y-11-LABEL_HIT_PAD,
+          x2:pos.x+off.x+36+LABEL_HIT_PAD,y2:pos.y+off.y+11+LABEL_HIT_PAD
         };
       }
-
       function hitComponent(world){
         for(let i=state.components.length-1;i>=0;i--){
           const c=state.components[i],pos=getCompPos(c,true);
-          if(c.isJunction){if(Math.hypot(world.x-pos.x,world.y-pos.y)<=12)return c}
-          else{
+          if(c.isJunction){
+            if(Math.hypot(world.x-pos.x,world.y-pos.y)<=12)return c;
+          }else{
             const sc=getCompScale(c),local=inverseRotatePoint(world.x-pos.x,world.y-pos.y,c.angle);
             if(Math.abs(local.x)<=HIT_R*sc&&Math.abs(local.y)<=HIT_R*sc)return c;
           }
         }
         return null;
       }
-
+      function insideRect(world,r){
+        return world.x>=r.x1&&world.x<=r.x2&&world.y>=r.y1&&world.y<=r.y2;
+      }
       function hitEditableValue(world){
         for(let i=state.components.length-1;i>=0;i--){
-          const c=state.components[i];
-          if(c.isJunction)continue;
-          if(c.type==="battery"){
-            const vr=getValueLabelRectForComponent(c,null,true);
-            if(world.x>=vr.x1&&world.x<=vr.x2&&world.y>=vr.y1&&world.y<=vr.y2)return {component:c,kind:"batteryVoltage"};
-          }
-          if(c.type==="bulb"){
-            const vr=getValueLabelRectForComponent(c,null,true);
-            if(world.x>=vr.x1&&world.x<=vr.x2&&world.y>=vr.y1&&world.y<=vr.y2)return {component:c,kind:"bulbResistanceLabel"};
-          }
-          if(c.type==="resistor"){
-            const rr=getResistorTextRect(c,true);
-            if(world.x>=rr.x1&&world.x<=rr.x2&&world.y>=rr.y1&&world.y<=rr.y2)return {component:c,kind:"resistorResistanceLabel"};
-          }
+          const c=state.components[i];if(c.isJunction)continue;
+          if(c.type==="battery"&&insideRect(world,getValueLabelRectForComponent(c,null,true)))
+            return {component:c,kind:"batteryVoltage"};
+          if(c.type==="bulb"&&insideRect(world,getValueLabelRectForComponent(c,null,true)))
+            return {component:c,kind:"bulbResistanceLabel"};
+          if(c.type==="resistor"&&insideRect(world,getResistorTextRect(c,true)))
+            return {component:c,kind:"resistorResistanceLabel"};
         }
         return null;
       }
-
       function hitLabel(world){
         for(let i=state.components.length-1;i>=0;i--){
           const c=state.components[i];if(c.isJunction)continue;
-          const nr=getComponentNameRect(c,null,true);
-          if(world.x>=nr.x1&&world.x<=nr.x2&&world.y>=nr.y1&&world.y<=nr.y2)return {component:c,kind:"name"};
-          if(c.type==="ammeter"||c.type==="voltmeter"||c.type==="battery"||c.type==="bulb"||c.type==="resistor"){
-            const vr=c.type==="resistor"?getResistorTextRect(c,true):getValueLabelRectForComponent(c,null,true);
-            if(world.x>=vr.x1&&world.x<=vr.x2&&world.y>=vr.y1&&world.y<=vr.y2)return {component:c,kind:"value"};
-          }
+          if(insideRect(world,getComponentNameRect(c,null,true)))return {component:c,kind:"name"};
+          if(["ammeter","voltmeter","battery","bulb"].includes(c.type)&&
+             insideRect(world,getValueLabelRectForComponent(c,null,true)))
+            return {component:c,kind:"value"};
+          if(c.type==="resistor"&&insideRect(world,getResistorTextRect(c,true)))
+            return {component:c,kind:"value"};
         }
         return null;
       }
-
       function hitTerminal(world){
         for(let i=state.components.length-1;i>=0;i--){
-          const c=state.components[i];
-          for(const tt of getTerminals(c,true)){
-            if(Math.hypot(world.x-tt.x,world.y-tt.y)<=TERM_R+3)return {componentId:c.id,side:tt.side};
+          for(const tt of getTerminals(state.components[i],true)){
+            if(Math.hypot(world.x-tt.x,world.y-tt.y)<=TERM_R+3)
+              return {componentId:tt.componentId,side:tt.side};
           }
         }
         return null;
       }
-      function distancePointToSegment(p,a,b){
-        const dx=b.x-a.x,dy=b.y-a.y,len2=dx*dx+dy*dy;
-        if(len2===0)return Math.hypot(p.x-a.x,p.y-a.y);
-        let tt=((p.x-a.x)*dx+(p.y-a.y)*dy)/len2;tt=Math.max(0,Math.min(1,tt));
-        const proj={x:a.x+tt*dx,y:a.y+tt*dy};return Math.hypot(p.x-proj.x,p.y-proj.y);
-      }
+      function distancePointToSegment(p,a,b){return pointProjectionOnSegment(p,a,b).dist}
       function hitWire(world){
         for(let i=state.wires.length-1;i>=0;i--){
           const w=state.wires[i],path=w.path||computeWirePath(w.from,w.to,true);
-          for(let j=0;j<path.length-1;j++)if(distancePointToSegment(world,path[j],path[j+1])<=10)return w;
+          for(let j=0;j<path.length-1;j++)
+            if(distancePointToSegment(world,path[j],path[j+1])<=10)return w;
         }
         return null;
       }
       function moveSelectedPreviewByWorld(dx,dy){
         if(!state.selectedComponents.size)return;
-        for(const c of state.components)if(state.selectedComponents.has(c.id)){c.renderX+=dx;c.renderY+=dy}
+        for(const c of state.components){
+          if(state.selectedComponents.has(c.id)){c.renderX+=dx;c.renderY+=dy}
+        }
         rerouteAllWires(true);
       }
       function commitSelectedRenderPositions(){
         const movedIds=new Set(state.selectedComponents);
         for(const c of state.components){
-          if(movedIds.has(c.id)){c.x=snap(c.renderX);c.y=snap(c.renderY);c.renderX=c.x;c.renderY=c.y}
+          if(movedIds.has(c.id)){
+            c.x=snap(c.renderX);c.y=snap(c.renderY);c.renderX=c.x;c.renderY=c.y;
+          }
         }
-        let bad=false;
         for(const c of state.components){
-          if(movedIds.has(c.id)&&placementOverlaps(c.type,c.x,c.y,movedIds)){bad=true;break}
+          if(movedIds.has(c.id)&&placementOverlaps(c.type,c.x,c.y,movedIds))return false;
         }
-        if(bad)return false;
-        rerouteAllWires(false);return true;
+        rerouteAllWires();return true;
       }
       function resetRenderToLogical(){
         for(const c of state.components){c.renderX=c.x;c.renderY=c.y}
@@ -2148,7 +2132,8 @@
       }
       function selectWithinBox(box){
         clearSelection();
-        const x1=Math.min(box.x1,box.x2),y1=Math.min(box.y1,box.y2),x2=Math.max(box.x1,box.x2),y2=Math.max(box.y1,box.y2);
+        const x1=Math.min(box.x1,box.x2),y1=Math.min(box.y1,box.y2);
+        const x2=Math.max(box.x1,box.x2),y2=Math.max(box.y1,box.y2);
         for(const c of state.components){
           const b=componentBounds(c,0,true);
           if(b.x1>=x1&&b.x2<=x2&&b.y1>=y1&&b.y2<=y2)state.selectedComponents.add(c.id);
@@ -2162,7 +2147,8 @@
         if(!state.selectedComponents.size&&!state.selectedWires.size)return;
         pushHistory();
         const compIds=new Set(state.selectedComponents),wireIds=new Set(state.selectedWires);
-        state.wires=state.wires.filter(w=>!wireIds.has(w.id)&&!compIds.has(w.from.componentId)&&!compIds.has(w.to.componentId));
+        state.wires=state.wires.filter(w=>
+          !wireIds.has(w.id)&&!compIds.has(w.from.componentId)&&!compIds.has(w.to.componentId));
         state.components=state.components.filter(c=>!compIds.has(c.id));
         clearSelection();state.meterExplainTarget=null;stopRemovedBuzzers();solveAndRender();
       }
@@ -2170,74 +2156,67 @@
         const c=state.components.find(x=>x.id===id);
         if(c&&c.type==="switch"){pushHistory();c.closed=!c.closed;solveAndRender()}
       }
-
-      function requestNumberValue(message, initialValue, fallbackValue){
-        const raw=window.prompt(message, String(initialValue));
+      function requestNumberValue(message,initialValue,fallbackValue){
+        const raw=window.prompt(message,String(initialValue));
         if(raw===null)return null;
         const value=Number(String(raw).trim().replace(/[^\d.\-+eE]/g,""));
-        if(!Number.isFinite(value) || value<=0)return fallbackValue;
-        return value;
+        return Number.isFinite(value)&&value>0?value:fallbackValue;
       }
-
       function editComponentValue(c){
         if(!c)return false;
+        let next;
         if(c.type==="bulb"){
-          const msg=state.lang==="zhHant"?"請輸入燈泡電阻（Ω）":"Enter bulb resistance (Ω)";
-          const next=requestNumberValue(msg,c.resistance||DEFAULT_BULB_RESISTANCE,c.resistance||DEFAULT_BULB_RESISTANCE);
-          if(next==null)return false;
-          pushHistory();c.resistance=next;solveAndRender();return true;
-        }
-        if(c.type==="resistor"){
-          const msg=state.lang==="zhHant"?"請輸入電阻值（Ω）":"Enter resistor value (Ω)";
-          const next=requestNumberValue(msg,c.resistance||DEFAULT_RESISTOR_RESISTANCE,c.resistance||DEFAULT_RESISTOR_RESISTANCE);
-          if(next==null)return false;
-          pushHistory();c.resistance=next;solveAndRender();return true;
-        }
-        if(c.type==="battery"){
-          const msg=state.lang==="zhHant"?"請輸入電池電壓（V）":"Enter battery voltage (V)";
-          const next=requestNumberValue(msg,c.sourceVoltage||DEFAULT_BATTERY_VOLTAGE,c.sourceVoltage||DEFAULT_BATTERY_VOLTAGE);
-          if(next==null)return false;
-          pushHistory();c.sourceVoltage=next;solveAndRender();return true;
-        }
-        return false;
+          next=requestNumberValue(t("editBulbResistance"),c.resistance||DEFAULT_BULB_RESISTANCE,c.resistance||DEFAULT_BULB_RESISTANCE);
+          if(next==null)return false;pushHistory();c.resistance=next;
+        }else if(c.type==="resistor"){
+          next=requestNumberValue(t("editResistorResistance"),c.resistance||DEFAULT_RESISTOR_RESISTOR_VALUE(),c.resistance||DEFAULT_RESISTOR_RESISTANCE);
+          if(next==null)return false;pushHistory();c.resistance=next;
+        }else if(c.type==="battery"){
+          next=requestNumberValue(t("editBatteryVoltage"),c.sourceVoltage||DEFAULT_BATTERY_VOLTAGE,c.sourceVoltage||DEFAULT_BATTERY_VOLTAGE);
+          if(next==null)return false;pushHistory();c.sourceVoltage=next;
+        }else return false;
+        solveAndRender();return true;
       }
-
+      function DEFAULT_RESISTOR_RESISTOR_VALUE(){return DEFAULT_RESISTOR_RESISTANCE}
       function addComponentAt(type,p){
         const x=snap(p.x),y=snap(p.y);
         if(type==="junction"){
           const near=getNearestWirePoint({x,y},14);
           if(near){
-            pushHistory();const node=splitWireAtPoint(near.wire,near.x,near.y);
+            pushHistory();
+            const node=splitWireAtPoint(near.wire,near.x,near.y);
             if(!node)return false;
             clearSelection();state.selectedComponents.add(node.id);solveAndRender();return true;
           }
         }
         if(placementOverlaps(type,x,y))return false;
-        pushHistory();const c=createComponent(type,x,y);state.components.push(c);
+        pushHistory();
+        const c=createComponent(type,x,y);state.components.push(c);
         clearSelection();state.selectedComponents.add(c.id);solveAndRender();return true;
       }
       function candidateAnglesFromTerminal(type,anchorRef){
         const c=state.components.find(x=>x.id===anchorRef.componentId);
         if(!c)return [0,180,90,-90];
         const base=c.angle||0;
-        if(type==="battery"&&c.type==="battery"){
-          if(anchorRef.side==="right")return [base,base+90,base-90,base+180];
-          if(anchorRef.side==="left")return [base,base+90,base-90,base+180];
-        }
-        if(anchorRef.side==="left")return [base+180,base+135,base-135,base+90,base-90,base,base+45,base-45];
-        if(anchorRef.side==="right")return [base,base+45,base-45,base+90,base-90,base+180,base+135,base-135];
+        if(type==="battery"&&c.type==="battery"&&["left","right"].includes(anchorRef.side))
+          return [base,base+90,base-90,base+180];
+        if(anchorRef.side==="left")
+          return [base+180,base+135,base-135,base+90,base-90,base,base+45,base-45];
+        if(anchorRef.side==="right")
+          return [base,base+45,base-45,base+90,base-90,base+180,base+135,base-135];
         return [0,180,90,-90,45,-45,135,-135];
       }
       function findPlacementFromTerminal(type,anchorRef){
-        const anchor=getTerminalPosition(anchorRef),angles=candidateAnglesFromTerminal(type,anchorRef),distances=[72,96,128,160,192];
+        const anchor=getTerminalPosition(anchorRef);
+        const angles=candidateAnglesFromTerminal(type,anchorRef),distances=[72,96,128,160,192];
         for(const dist of distances){
           for(const ang0 of angles){
-            const ang=normalizeComponentAngle(type,((ang0%360)+360)%360),dir=rotatePoint(dist,0,ang);
+            const ang=normalizeComponentAngle(type,ang0),dir=rotatePoint(dist,0,ang);
             const x=snap(anchor.x+dir.x),y=snap(anchor.y+dir.y);
             if(placementOverlaps(type,x,y))continue;
-            const temp=createComponent(type,x,y);temp.angle=ang;temp.renderX=x;temp.renderY=y;
-            const terminals=getTerminals(temp);let bestTerminal=null,bestDist=Infinity;
-            for(const tt of terminals){
+            const temp=createComponent(type,x,y);temp.angle=ang;
+            let bestTerminal=null,bestDist=Infinity;
+            for(const tt of getTerminals(temp)){
               const d=Math.hypot(tt.x-anchor.x,tt.y-anchor.y);
               if(d<bestDist){bestDist=d;bestTerminal=tt}
             }
@@ -2259,33 +2238,44 @@
         return null;
       }
       function addComponentFromExistingTerminal(type,anchorRef){
-        const place=findPlacementFromTerminal(type,anchorRef);if(!place)return false;
-        pushHistory();const c=createComponent(type,place.x,place.y);
-        c.angle=normalizeComponentAngle(c.type,place.angle);c.renderX=c.x;c.renderY=c.y;state.components.push(c);
-        addWire(anchorRef,{componentId:c.id,side:place.terminalSide});
+        const place=findPlacementFromTerminal(type,anchorRef);
+        if(!place)return false;
+        pushHistory();
+        const c=createComponent(type,place.x,place.y);
+        c.angle=normalizeComponentAngle(c.type,place.angle);c.renderX=c.x;c.renderY=c.y;
+        state.components.push(c);addWire(anchorRef,{componentId:c.id,side:place.terminalSide});
         clearSelection();state.selectedComponents.add(c.id);solveAndRender();return true;
       }
       function zoomAt(screenPoint,factor){
-        const oldScale=state.view.scale,newScale=Math.max(state.view.minScale,Math.min(state.view.maxScale,oldScale*factor));
+        const oldScale=state.view.scale;
+        const newScale=Math.max(state.view.minScale,Math.min(state.view.maxScale,oldScale*factor));
         if(newScale===oldScale)return;
         const worldBefore=screenToWorld(screenPoint);state.view.scale=newScale;
-        state.view.offsetX=screenPoint.x-worldBefore.x*newScale;state.view.offsetY=screenPoint.y-worldBefore.y*newScale;render();
+        state.view.offsetX=screenPoint.x-worldBefore.x*newScale;
+        state.view.offsetY=screenPoint.y-worldBefore.y*newScale;render();
       }
       function rotateSelected(delta){
         if(!state.selectedComponents.size)return;
         pushHistory();
-        for(const c of state.components)if(state.selectedComponents.has(c.id)&&!c.isJunction)c.angle=normalizeComponentAngle(c.type,(c.angle||0)+delta);
+        for(const c of state.components){
+          if(state.selectedComponents.has(c.id)&&!c.isJunction)
+            c.angle=normalizeComponentAngle(c.type,(c.angle||0)+delta);
+        }
         solveAndRender();
       }
       function rotateWholeCircuit(){
         if(!state.components.length)return;
-        pushHistory();let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+        pushHistory();
+        let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
         for(const c of state.components){
-          const b=componentBounds(c,0,false);minX=Math.min(minX,b.x1);minY=Math.min(minY,b.y1);maxX=Math.max(maxX,b.x2);maxY=Math.max(maxY,b.y2);
+          const b=componentBounds(c);
+          minX=Math.min(minX,b.x1);minY=Math.min(minY,b.y1);
+          maxX=Math.max(maxX,b.x2);maxY=Math.max(maxY,b.y2);
         }
         const cx=(minX+maxX)/2,cy=(minY+maxY)/2;
         for(const c of state.components){
-          const rp=rotatePoint(c.x-cx,c.y-cy,90);c.x=snap(cx+rp.x);c.y=snap(cy+rp.y);c.renderX=c.x;c.renderY=c.y;
+          const rp=rotatePoint(c.x-cx,c.y-cy,90);
+          c.x=snap(cx+rp.x);c.y=snap(cy+rp.y);c.renderX=c.x;c.renderY=c.y;
           if(!c.isJunction)c.angle=normalizeComponentAngle(c.type,(c.angle||0)+90);
           if(c.labelOffset){
             const lo=rotatePoint(c.labelOffset.x,c.labelOffset.y,90);
@@ -2298,25 +2288,35 @@
         }
         solveAndRender();
       }
+
       function initAudio(){
         if(!state.audioCtx){
-          const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;state.audioCtx=new Ctx();
+          const Ctx=window.AudioContext||window.webkitAudioContext;
+          if(!Ctx)return;
+          state.audioCtx=new Ctx();
         }
-        if(state.audioCtx.state==="suspended")state.audioCtx.resume();
+        if(state.audioCtx.state==="suspended")state.audioCtx.resume().catch(()=>{});
       }
       function ensureBuzzerSound(c){
         if(!state.audioEnabled)return;
-        initAudio();if(!state.audioCtx||state.buzzerOscillators.has(c.id))return;
-        const osc=state.audioCtx.createOscillator(),gain=state.audioCtx.createGain(),trem=state.audioCtx.createOscillator(),tremGain=state.audioCtx.createGain();
+        initAudio();
+        if(!state.audioCtx||state.buzzerOscillators.has(c.id))return;
+        const osc=state.audioCtx.createOscillator(),gain=state.audioCtx.createGain();
+        const trem=state.audioCtx.createOscillator(),tremGain=state.audioCtx.createGain();
         osc.type="square";osc.frequency.value=880;gain.gain.value=0.0001;
         trem.type="sine";trem.frequency.value=9;tremGain.gain.value=0.02;
-        trem.connect(tremGain);tremGain.connect(gain.gain);osc.connect(gain);gain.connect(state.audioCtx.destination);
+        trem.connect(tremGain);tremGain.connect(gain.gain);
+        osc.connect(gain);gain.connect(state.audioCtx.destination);
         osc.start();trem.start();state.buzzerOscillators.set(c.id,{osc,gain,trem,tremGain});
       }
       function stopBuzzerSound(id){
         const item=state.buzzerOscillators.get(id);if(!item)return;
-        try{item.osc.stop()}catch{}try{item.trem.stop()}catch{}try{item.osc.disconnect()}catch{}
-        try{item.gain.disconnect()}catch{}try{item.trem.disconnect()}catch{}try{item.tremGain.disconnect()}catch{}
+        try{item.osc.stop()}catch{}
+        try{item.trem.stop()}catch{}
+        try{item.osc.disconnect()}catch{}
+        try{item.gain.disconnect()}catch{}
+        try{item.trem.disconnect()}catch{}
+        try{item.tremGain.disconnect()}catch{}
         state.buzzerOscillators.delete(id);
       }
       function stopRemovedBuzzers(){
@@ -2329,29 +2329,30 @@
           if(c.type!=="buzzer")continue;
           const p=normalizedPower(c,0.18);
           if(p>0.01){
-            ensureBuzzerSound(c);const item=state.buzzerOscillators.get(c.id);
-            if(item){item.osc.frequency.value=650+p*550;item.gain.gain.setTargetAtTime(0.01+p*0.05,state.audioCtx.currentTime,0.03)}
+            ensureBuzzerSound(c);
+            const item=state.buzzerOscillators.get(c.id);
+            if(item){
+              item.osc.frequency.value=650+p*550;
+              item.gain.gain.setTargetAtTime(0.01+p*0.05,state.audioCtx.currentTime,0.03);
+            }
           }else stopBuzzerSound(c.id);
         }
       }
-
       function updateMeterExplainCard(){
-        const card=document.getElementById("meterExplainCard"),title=document.getElementById("meterExplainTitle"),body=document.getElementById("meterExplainBody");
+        const card=document.getElementById("meterExplainCard");
+        const title=document.getElementById("meterExplainTitle"),body=document.getElementById("meterExplainBody");
         if(!state.meterExplainTarget){card.classList.remove("show");return}
         const c=state.components.find(x=>x.id===state.meterExplainTarget);
         if(!c||!["ammeter","voltmeter"].includes(c.type)){card.classList.remove("show");return}
-
         const key=JSON.stringify({
           target:c.id,lang:state.lang,
           components:state.components.map(x=>({
-            id:x.id,type:x.type,x:x.x,y:x.y,angle:x.angle,scale:x.scale,
-            isJunction:x.isJunction,resistance:x.resistance,
-            sourceVoltage:x.sourceVoltage,closed:x.closed,
-            current:x.current,voltage:x.voltage
+            id:x.id,type:x.type,x:x.x,y:x.y,angle:x.angle,scale:x.scale,isJunction:x.isJunction,
+            resistance:x.resistance,sourceVoltage:x.sourceVoltage,closed:x.closed,
+            current:x.current,voltage:x.voltage,currentValid:x.currentValid,voltageValid:x.voltageValid
           })),
           wires:state.wires.map(w=>({id:w.id,from:w.from,to:w.to,path:w.path})),
-          solved:state.lastPhysics?.solved,
-          nodes:state.lastPhysics?.nodeVoltages
+          solved:state.lastPhysics?.solved,nodes:state.lastPhysics?.nodeVoltages
         });
         if(key!==readingCacheKey){
           readingCacheKey=key;
@@ -2360,24 +2361,54 @@
         if(readingDOMKey!==key){
           readingDOMKey=key;
           const scrollTop=card.scrollTop;
-          title.textContent=readingCacheInfo.title;
-          body.innerHTML=readingCacheInfo.html;
+          title.textContent=readingCacheInfo.title;body.innerHTML=readingCacheInfo.html;
           card.scrollTop=scrollTop;
         }
         card.classList.add("show");
       }
-
+      function getLabelKindOffset(c,kind){return kind==="name"?c.labelOffset:c.valueLabelOffset}
+      function setLabelKindOffset(c,kind,offset){
+        if(kind==="name")c.labelOffset=offset;else c.valueLabelOffset=offset;
+      }
+      function consumeClickCandidate(){
+        const cand=state.clickCandidate;if(!cand)return;
+        state.clickCandidate=null;
+        if(cand.type==="component"){
+          const c=state.components.find(x=>x.id===cand.id);if(!c)return;
+          if(c.type==="switch"){toggleSwitchById(c.id);return}
+          if(c.type==="ammeter"||c.type==="voltmeter"){
+            state.meterExplainTarget=c.id;updateMeterExplainCard();
+            document.getElementById("meterExplainCard").classList.add("show");return;
+          }
+          clearSelection();state.selectedComponents.add(c.id);render();return;
+        }
+        if(cand.type==="wire"){
+          clearSelection();state.selectedWires.add(cand.id);render();return;
+        }
+        if(cand.type==="empty"){clearSelection();render()}
+      }
+      function registerSingleClickCandidate(candidate){
+        state.clickCandidate=candidate;
+        setTimeout(()=>{
+          if(state.clickCandidate===candidate)consumeClickCandidate();
+        },DOUBLE_CLICK_MS+20);
+      }
       function initCanvasInteractions(){
         const canvas=state.canvas;
         canvas.addEventListener("contextmenu",evt=>evt.preventDefault());
         canvas.addEventListener("wheel",evt=>{
           evt.preventDefault();zoomAt(canvasPoint(evt),evt.deltaY<0?1.1:0.9);
         },{passive:false});
+        canvas.addEventListener("dblclick",evt=>{
+          const world=screenToWorld(canvasPoint(evt)),editable=hitEditableValue(world);
+          if(editable){state.clickCandidate=null;editComponentValue(editable.component)}
+        });
         canvas.addEventListener("pointerdown",evt=>{
           initAudio();canvas.setPointerCapture(evt.pointerId);
           const p=canvasPoint(evt);state.pointers.set(evt.pointerId,p);
           if(state.pointers.size===2){
-            const pts=[...state.pointers.values()];state.panning=true;
+            const pts=[...state.pointers.values()];
+            state.panning=true;state.panLastScreen=p;
             state.pinchStart={
               dist:Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y),
               mid:{x:(pts[0].x+pts[1].x)/2,y:(pts[0].y+pts[1].y)/2},
@@ -2385,63 +2416,65 @@
             };
             return;
           }
-          if(evt.button===2||state.mode==="pan"){state.panning=true;state.panLastScreen=p;return}
-          const world=screenToWorld(p),editable=hitEditableValue(world),labelHit=hitLabel(world),term=hitTerminal(world),comp=hitComponent(world),wire=hitWire(world),nearWire=getNearestWirePoint(world,14);
-
-          if(editable){
-            editComponentValue(editable.component);
-            return;
+          if(evt.button===2||state.mode==="pan"){
+            state.panning=true;state.panLastScreen=p;return;
           }
-
+          const world=screenToWorld(p),labelHit=hitLabel(world),term=hitTerminal(world);
+          const comp=hitComponent(world),wire=hitWire(world),nearWire=getNearestWirePoint(world,14);
           if(labelHit){
-            const targetComp=labelHit.component;
-            pushHistory();
-            ensureLabelOffset(targetComp);
+            state.clickCandidate=null;pushHistory();ensureLabelOffset(labelHit.component);
+            const currentOff=getLabelKindOffset(labelHit.component,labelHit.kind);
             state.labelDragging={
-              componentId:targetComp.id,
-              startWorld:world,
-              startOffset:{...targetComp.labelOffset},
-              startValueOffset:{...targetComp.valueLabelOffset}
+              componentId:labelHit.component.id,kind:labelHit.kind,startWorld:world,startOffset:{...currentOff}
             };
             return;
           }
           if(state.pendingAddType){
             if(state.pendingAddType==="wire"){
               state.mode="wire";state.pendingAddType=null;refreshPaletteSelection();render();
-              if(term&&!state.pendingWireStart)state.pendingWireStart=term;return;
+              if(term&&!state.pendingWireStart)state.pendingWireStart=term;
+              return;
             }
             if(state.pendingAddType==="junction"&&nearWire){
               const ok=addComponentAt("junction",{x:nearWire.x,y:nearWire.y});
-              if(ok){state.pendingAddType=null;refreshPaletteSelection()}return;
+              if(ok){state.pendingAddType=null;refreshPaletteSelection()}
+              return;
             }
             if(term&&state.pendingAddType!=="junction"){
               const ok=addComponentFromExistingTerminal(state.pendingAddType,term);
-              if(ok){state.pendingAddType=null;refreshPaletteSelection()}return;
+              if(ok){state.pendingAddType=null;refreshPaletteSelection()}
+              return;
             }
             if(state.pendingAddType!=="junction"&&nearWire){
               const existing=state.components.find(c=>c.isJunction&&c.x===nearWire.x&&c.y===nearWire.y);
               if(existing){
                 const ok=addComponentFromExistingTerminal(state.pendingAddType,{componentId:existing.id,side:"node"});
-                if(ok){state.pendingAddType=null;refreshPaletteSelection()}return;
+                if(ok){state.pendingAddType=null;refreshPaletteSelection()}
+                return;
               }
             }
             const ok=addComponentAt(state.pendingAddType,world);
-            if(ok){state.pendingAddType=null;refreshPaletteSelection()}return;
+            if(ok){state.pendingAddType=null;refreshPaletteSelection()}
+            return;
           }
           if(state.mode==="wire"){
             if(!state.pendingWireStart){
               if(term){state.pendingWireStart=term;render();return}
               if(nearWire){
-                pushHistory();const node=splitWireAtPoint(nearWire.wire,nearWire.x,nearWire.y);
-                if(node){state.pendingWireStart={componentId:node.id,side:"node"};solveAndRender()}return;
+                pushHistory();
+                const node=splitWireAtPoint(nearWire.wire,nearWire.x,nearWire.y);
+                if(node){state.pendingWireStart={componentId:node.id,side:"node"};solveAndRender()}
+                return;
               }
               render();return;
             }
             if(term){
-              pushHistory();addWire(state.pendingWireStart,term);state.pendingWireStart=null;solveAndRender();return;
+              pushHistory();addWire(state.pendingWireStart,term);
+              state.pendingWireStart=null;solveAndRender();return;
             }
             if(nearWire){
-              pushHistory();let node=state.components.find(c=>c.isJunction&&c.x===nearWire.x&&c.y===nearWire.y);
+              pushHistory();
+              let node=state.components.find(c=>c.isJunction&&c.x===nearWire.x&&c.y===nearWire.y);
               if(!node)node=splitWireAtPoint(nearWire.wire,nearWire.x,nearWire.y);
               if(node){
                 addWire(state.pendingWireStart,{componentId:node.id,side:"node"});
@@ -2449,7 +2482,8 @@
               }
               return;
             }
-            pushHistory();const j=ensureJunctionAt(world.x,world.y);
+            pushHistory();
+            const j=ensureJunctionAt(world.x,world.y);
             if(j){
               addWire(state.pendingWireStart,{componentId:j.id,side:"node"});
               state.pendingWireStart={componentId:j.id,side:"node"};solveAndRender();
@@ -2459,25 +2493,33 @@
           if(comp){
             if(!state.selectedComponents.has(comp.id)){clearSelection();state.selectedComponents.add(comp.id)}
             state.dragging=true;state.dragLastWorld=world;state.dragStartWorld=world;state.dragMoved=false;
-            state.pressedComponentId=comp.id;state.pressedWireId=null;state.dragSnapshot=cloneData();resetRenderToLogical();render();return;
+            state.pressedComponentId=comp.id;state.pressedWireId=null;
+            state.dragSnapshot=cloneData();resetRenderToLogical();render();return;
           }
           if(wire){
-            clearSelection();state.selectedWires.add(wire.id);state.pressedWireId=wire.id;state.pressedComponentId=null;render();return;
+            clearSelection();state.selectedWires.add(wire.id);
+            state.pressedWireId=wire.id;state.pressedComponentId=null;
+            state.lastPointerDown={type:"wire",id:wire.id,world};render();return;
           }
           if(!evt.shiftKey)clearSelection();
           state.selectionBox={x1:world.x,y1:world.y,x2:world.x,y2:world.y};render();
         });
         canvas.addEventListener("pointermove",evt=>{
-          const p=canvasPoint(evt);state.pointers.set(evt.pointerId,p);
+          const p=canvasPoint(evt);
+          if(state.pointers.has(evt.pointerId))state.pointers.set(evt.pointerId,p);
           if(state.pointers.size===2&&state.pinchStart){
-            const pts=[...state.pointers.values()],dist=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);
-            const mid={x:(pts[0].x+pts[1].x)/2,y:(pts[0].y+pts[1].y)/2},factor=dist/Math.max(1,state.pinchStart.dist);
+            const pts=[...state.pointers.values()];
+            const dist=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);
+            const mid={x:(pts[0].x+pts[1].x)/2,y:(pts[0].y+pts[1].y)/2};
+            const factor=dist/Math.max(1,state.pinchStart.dist);
             const targetScale=Math.max(state.view.minScale,Math.min(state.view.maxScale,state.pinchStart.scale*factor));
             state.view.scale=targetScale;
             state.view.offsetX=state.pinchStart.offsetX+(mid.x-state.pinchStart.mid.x);
-            state.view.offsetY=state.pinchStart.offsetY+(mid.y-state.pinchStart.mid.y);render();return;
+            state.view.offsetY=state.pinchStart.offsetY+(mid.y-state.pinchStart.mid.y);
+            render();return;
           }
           if(state.panning){
+            if(!state.panLastScreen){state.panLastScreen=p;return}
             const dx=p.x-state.panLastScreen.x,dy=p.y-state.panLastScreen.y;
             state.view.offsetX+=dx;state.view.offsetY+=dy;state.panLastScreen=p;render();return;
           }
@@ -2492,16 +2534,10 @@
           if(state.labelDragging){
             const c=state.components.find(x=>x.id===state.labelDragging.componentId);
             if(c){
-              const dx=world.x-state.labelDragging.startWorld.x;
-              const dy=world.y-state.labelDragging.startWorld.y;
-              c.labelOffset={
-                x:state.labelDragging.startOffset.x+dx,
-                y:state.labelDragging.startOffset.y+dy
-              };
-              c.valueLabelOffset={
-                x:state.labelDragging.startValueOffset.x+dx,
-                y:state.labelDragging.startValueOffset.y+dy
-              };
+              const dx=world.x-state.labelDragging.startWorld.x,dy=world.y-state.labelDragging.startWorld.y;
+              setLabelKindOffset(c,state.labelDragging.kind,{
+                x:state.labelDragging.startOffset.x+dx,y:state.labelDragging.startOffset.y+dy
+              });
             }
             render();return;
           }
@@ -2521,36 +2557,42 @@
           if(state.pointers.size<2)state.pinchStart=null;
           if(state.labelDragging){state.labelDragging=null;solveAndRender();return}
           if(state.panning&&(evt.button===2||state.mode==="pan"||evt.pointerType==="touch")){
-            if(state.pointers.size<1){state.panning=false;state.panLastScreen=null}return;
+            if(state.pointers.size<1){state.panning=false;state.panLastScreen=null}
+            else state.panLastScreen=[...state.pointers.values()][0];
+            return;
           }
           if(state.dragging){
             const pressedId=state.pressedComponentId,moved=state.dragMoved,before=state.dragSnapshot;
-            state.dragging=false;state.dragLastWorld=null;state.dragStartWorld=null;state.dragMoved=false;state.pressedComponentId=null;state.dragSnapshot=null;
+            state.dragging=false;state.dragLastWorld=null;state.dragStartWorld=null;
+            state.dragMoved=false;state.pressedComponentId=null;state.dragSnapshot=null;
             let committed=true;
             if(moved)committed=commitSelectedRenderPositions();
+            else resetRenderToLogical();
             if(!committed)restoreData(before);
             else{
               const after=cloneData();
-              if(moved&&JSON.stringify(before.components)!==JSON.stringify(after.components))state.history.push(before);
+              if(moved&&JSON.stringify(before.components)!==JSON.stringify(after.components))
+                state.history.push(before);
             }
             solveAndRender();
-            if(!moved&&pressedId){
-              const c=state.components.find(x=>x.id===pressedId);
-              if(c){
-                if(c.type==="switch"){toggleSwitchById(pressedId);return}
-                if(c.type==="bulb"||c.type==="resistor"){editComponentValue(c);return}
-                if(c.type==="ammeter"||c.type==="voltmeter"){
-                  state.meterExplainTarget=c.id;updateMeterExplainCard();
-                  document.getElementById("meterExplainCard").classList.add("show");return;
-                }
-              }
-            }
+            if(!moved&&pressedId)registerSingleClickCandidate({type:"component",id:pressedId});
             return;
           }
-          if(state.selectionBox){selectWithinBox(state.selectionBox);state.selectionBox=null;render()}
+          if(state.selectionBox){
+            const box=state.selectionBox,dx=Math.abs(box.x2-box.x1),dy=Math.abs(box.y2-box.y1);
+            state.selectionBox=null;
+            if(dx<4/state.view.scale&&dy<4/state.view.scale)registerSingleClickCandidate({type:"empty"});
+            else{selectWithinBox(box);render()}
+            return;
+          }
+          if(state.pressedWireId){
+            registerSingleClickCandidate({type:"wire",id:state.pressedWireId});state.pressedWireId=null;
+          }
         }
-        canvas.addEventListener("pointerup",releasePointer);canvas.addEventListener("pointercancel",releasePointer);
+        canvas.addEventListener("pointerup",releasePointer);
+        canvas.addEventListener("pointercancel",releasePointer);
       }
+
       function refreshPaletteSelection(){
         document.querySelectorAll(".part").forEach(node=>{
           const isWire=node.dataset.type==="wire"&&state.mode==="wire"&&!state.pendingAddType;
@@ -2566,9 +2608,11 @@
           div.innerHTML=`<div class="icon">${def.icon}</div><div class="name">${lang["part"+cap]}</div><div class="small">${lang["partNote"+cap]||""}</div>`;
           div.addEventListener("click",()=>{
             if(def.type==="wire"){
-              state.pendingAddType=null;state.pendingWireStart=null;state.mode=state.mode==="wire"?"select":"wire";
+              state.pendingAddType=null;state.pendingWireStart=null;
+              state.mode=state.mode==="wire"?"select":"wire";
             }else{
-              state.pendingAddType=state.pendingAddType===def.type?null:def.type;state.mode="select";state.pendingWireStart=null;
+              state.pendingAddType=state.pendingAddType===def.type?null:def.type;
+              state.mode="select";state.pendingWireStart=null;
             }
             refreshPaletteSelection();render();
           });
@@ -2579,16 +2623,14 @@
       function applyLanguage(){
         document.documentElement.lang=state.lang==="en"?"en":"zh-Hant";
         const bindings={
-          brandTitle:"brandTitle",brandSubtitle:"brandSubtitle",
-          selectModeBtn:"selectMode",panModeBtn:"panMode",rotateLeftBtn:"rotateLeft",
-          rotateRightBtn:"rotateRight",rotateCircuitBtn:"rotateCircuit",undoBtn:"undo",
+          brandTitle:"brandTitle",brandSubtitle:"brandSubtitle",selectModeBtn:"selectMode",panModeBtn:"panMode",
+          rotateLeftBtn:"rotateLeft",rotateRightBtn:"rotateRight",rotateCircuitBtn:"rotateCircuit",undoBtn:"undo",
           deleteBtn:"delete",clearBtn:"clear",saveProjectBtn:"saveProject",loadProjectBtn:"loadProject",
-          exportJpegBtn:"exportJpeg",tutorialBtn:"tutorial",languageBtn:"language",
-          partsTitle:"partsTitle",guideTitle:"guideTitle",guideIntro:"guideIntro",
-          notesTitle:"notesTitle",notesBody:"notesBody",tutorialModalTitle:"tutorialModalTitle",
-          tutorialPrevBtn:"tutorialPrev",tutorialNextBtn:"tutorialNext"
+          exportJpegBtn:"exportJpeg",tutorialBtn:"tutorial",languageBtn:"language",partsTitle:"partsTitle",
+          guideTitle:"guideTitle",guideIntro:"guideIntro",notesTitle:"notesTitle",notesBody:"notesBody",
+          tutorialModalTitle:"tutorialModalTitle",tutorialPrevBtn:"tutorialPrev",tutorialNextBtn:"tutorialNext"
         };
-        for(const [id,key]of Object.entries(bindings))document.getElementById(id).textContent=t(key);
+        for(const [id,key] of Object.entries(bindings))document.getElementById(id).textContent=t(key);
         const list=document.getElementById("guideList");list.innerHTML="";
         I18N[state.lang].guideList.forEach(item=>{
           const li=document.createElement("li");li.textContent=item;list.appendChild(li);
@@ -2596,39 +2638,50 @@
         populateParts();updateTutorialModal();render();
       }
       function updateTutorialModal(){
-        const pages=I18N[state.lang].tutPages;state.tutorialPage=Math.max(0,Math.min(state.tutorialPage,pages.length-1));
+        const pages=I18N[state.lang].tutPages;
+        state.tutorialPage=Math.max(0,Math.min(state.tutorialPage,pages.length-1));
         const page=pages[state.tutorialPage];
         document.getElementById("tutorialPageTitle").textContent=page.title;
         document.getElementById("tutorialPageBody").innerHTML=page.body;
         document.getElementById("tutorialPageIndicator").textContent=`${state.tutorialPage+1} / ${pages.length}`;
         document.getElementById("tutorialPrevBtn").disabled=state.tutorialPage===0;
-        document.getElementById("tutorialNextBtn").textContent=state.tutorialPage===pages.length-1?t("tutorialDone"):t("tutorialNext");
+        document.getElementById("tutorialNextBtn").textContent=
+          state.tutorialPage===pages.length-1?t("tutorialDone"):t("tutorialNext");
       }
       function openModal(id){document.getElementById(id).classList.add("show")}
       function closeModal(id){document.getElementById(id).classList.remove("show")}
       function clearAll(){
-        pushHistory();state.components=[];state.wires=[];clearSelection();state.pendingAddType=null;
-        state.pendingWireStart=null;state.meterExplainTarget=null;stopRemovedBuzzers();refreshPaletteSelection();solveAndRender();
+        pushHistory();state.components=[];state.wires=[];clearSelection();
+        state.pendingAddType=null;state.pendingWireStart=null;state.meterExplainTarget=null;
+        stopRemovedBuzzers();refreshPaletteSelection();solveAndRender();
       }
       function serializeProject(){
         return {
           app:"Circuit Learning Studio",version:PROJECT_FILE_VERSION,savedAt:new Date().toISOString(),
           lang:state.lang,view:{...state.view},
-          components:JSON.parse(JSON.stringify(state.components)),wires:JSON.parse(JSON.stringify(state.wires))
+          components:JSON.parse(JSON.stringify(state.components)),
+          wires:JSON.parse(JSON.stringify(state.wires))
         };
       }
       function saveProject(){
-        const data=serializeProject(),blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");
-        a.href=url;a.download="circuit-project.json";document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+        const data=serializeProject();
+        const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+        const url=URL.createObjectURL(blob),a=document.createElement("a");
+        a.href=url;a.download="circuit-project.json";
+        document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
       }
       function loadProjectFromData(data){
-        if(!data||!Array.isArray(data.components)||!Array.isArray(data.wires))throw new Error("Invalid project file.");
-        pushHistory();state.components=JSON.parse(JSON.stringify(data.components));state.wires=JSON.parse(JSON.stringify(data.wires));
+        if(!data||!Array.isArray(data.components)||!Array.isArray(data.wires))
+          throw new Error("Invalid project file.");
+        pushHistory();
+        state.components=JSON.parse(JSON.stringify(data.components));
+        state.wires=JSON.parse(JSON.stringify(data.wires));
         state.view=data.view?{...state.view,...data.view}:state.view;
         if(data.lang&&I18N[data.lang])state.lang=data.lang;
         clearSelection();state.pendingAddType=null;state.pendingWireStart=null;state.meterExplainTarget=null;
         for(const c of state.components){
-          c.renderX=c.x;c.renderY=c.y;c.angle=normalizeComponentAngle(c.type,typeof c.angle==="number"?c.angle:0);
+          c.renderX=c.x;c.renderY=c.y;
+          c.angle=normalizeComponentAngle(c.type,typeof c.angle==="number"?c.angle:0);
           if(typeof c.current!=="number")c.current=0;
           if(typeof c.voltage!=="number")c.voltage=0;
           if(typeof c.power!=="number")c.power=0;
@@ -2642,13 +2695,16 @@
         const input=document.getElementById("projectFileInput");input.value="";input.click();
       }
       function exportJPEG(){
-        const prevExplain=state.meterExplainTarget,prevHover=state.hoverTerminal,prevSelBox=state.selectionBox,prevPendingWire=state.pendingWireStart;
+        const prevExplain=state.meterExplainTarget,prevHover=state.hoverTerminal;
+        const prevSelBox=state.selectionBox,prevPendingWire=state.pendingWireStart;
         const prevSelComps=new Set(state.selectedComponents),prevSelWires=new Set(state.selectedWires);
-        state.meterExplainTarget=null;state.hoverTerminal=null;state.selectionBox=null;state.pendingWireStart=null;
+        state.meterExplainTarget=null;state.hoverTerminal=null;
+        state.selectionBox=null;state.pendingWireStart=null;
         state.selectedComponents.clear();state.selectedWires.clear();render(true);
         const url=state.canvas.toDataURL("image/jpeg",0.95),a=document.createElement("a");
         a.href=url;a.download="circuit-diagram.jpg";document.body.appendChild(a);a.click();a.remove();
-        state.meterExplainTarget=prevExplain;state.hoverTerminal=prevHover;state.selectionBox=prevSelBox;state.pendingWireStart=prevPendingWire;
+        state.meterExplainTarget=prevExplain;state.hoverTerminal=prevHover;
+        state.selectionBox=prevSelBox;state.pendingWireStart=prevPendingWire;
         state.selectedComponents=prevSelComps;state.selectedWires=prevSelWires;render();
       }
       function bindUI(){
@@ -2665,7 +2721,7 @@
         document.getElementById("exportJpegBtn").addEventListener("click",exportJPEG);
         document.getElementById("projectFileInput").addEventListener("change",async e=>{
           const file=e.target.files&&e.target.files[0];if(!file)return;
-          try{const text=await file.text();loadProjectFromData(JSON.parse(text))}catch(err){console.error(err)}
+          try{loadProjectFromData(JSON.parse(await file.text()))}catch(err){console.error(err)}
         });
         document.getElementById("languageBtn").addEventListener("click",()=>{
           state.lang=state.lang==="en"?"zhHant":"en";applyLanguage();
@@ -2693,22 +2749,26 @@
           if((e.ctrlKey||e.metaKey)&&key==="z"){e.preventDefault();undo();return}
           if((e.ctrlKey||e.metaKey)&&key==="s"){e.preventDefault();saveProject();return}
           if(key==="delete"||key==="backspace"){
-            if(state.selectedComponents.size||state.selectedWires.size){e.preventDefault();deleteSelection()}return;
+            if(state.selectedComponents.size||state.selectedWires.size){e.preventDefault();deleteSelection()}
+            return;
           }
           if(e.key==="["){e.preventDefault();rotateSelected(-ROTATE_STEP);return}
           if(e.key==="]"){e.preventDefault();rotateSelected(ROTATE_STEP);return}
           if(e.key==="Escape"){
-            closeModal("tutorialModalBackdrop");state.pendingWireStart=null;state.pendingAddType=null;
-            state.selectionBox=null;state.dragging=false;state.panning=false;state.labelDragging=null;
-            state.meterExplainTarget=null;state.mode="select";refreshPaletteSelection();resetRenderToLogical();render();
+            closeModal("tutorialModalBackdrop");state.pendingWireStart=null;
+            state.pendingAddType=null;state.selectionBox=null;state.dragging=false;
+            state.panning=false;state.labelDragging=null;state.meterExplainTarget=null;state.mode="select";
+            state.clickCandidate=null;refreshPaletteSelection();resetRenderToLogical();render();
           }
         });
-        window.addEventListener("resize",render);
+        window.addEventListener("resize",()=>render());
       }
       function animate(){state.frame++;render();requestAnimationFrame(animate)}
       function init(){
-        state.canvas=document.getElementById("canvas");state.ctx=state.canvas.getContext("2d");
-        bindUI();initCanvasInteractions();applyLanguage();ensureAllLabelOffsets();solveAndRender();animate();
+        state.canvas=document.getElementById("canvas");
+        state.ctx=state.canvas.getContext("2d");
+        bindUI();initCanvasInteractions();applyLanguage();
+        ensureAllLabelOffsets();solveAndRender();animate();
       }
       init();
     })();
