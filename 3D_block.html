@@ -1,0 +1,2461 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Revised Purdue Spatial Visualization Test: Visualization of Rotations (Revised PSVT:R) (Yoon, 2011)</title>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"
+    }
+  }
+  </script>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    :root {
+      --bg: #eef2f6;
+      --card: #ffffff;
+      --line: #d8e0e9;
+      --line-soft: #e3e9f0;
+      --text: #172033;
+      --muted: #617085;
+      --accent: #0f5bd8;
+      --accent-soft: #edf3ff;
+      --overlay: rgba(10, 18, 31, .55);
+    }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background: var(--bg);
+      font-family: Arial, system-ui, sans-serif;
+    }
+
+    a { color: inherit; }
+
+    header {
+      padding: 16px 20px 14px;
+      background: #fff;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .header-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(14px, 1.55vw, 20px);
+      line-height: 1.25;
+      white-space: nowrap;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    main {
+      max-width: 1360px;
+      margin: auto;
+      padding: 14px 18px 96px;
+    }
+
+    button {
+      padding: 8px 12px;
+      border: 1px solid #c8d3e1;
+      border-radius: 8px;
+      background: #fff;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    button:hover { background: var(--accent-soft); }
+
+    button:disabled {
+      opacity: .4;
+      cursor: default;
+    }
+
+    button:focus-visible,
+    input:focus-visible,
+    summary:focus-visible,
+    a:focus-visible {
+      outline: 3px solid #83b4ff;
+      outline-offset: 2px;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: auto 1fr auto auto;
+      gap: 10px;
+      align-items: start;
+      margin-bottom: 14px;
+    }
+
+    .question-strip-wrap {
+      min-width: 0;
+    }
+
+    .question-strip-label {
+      margin: 0 0 6px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .question-strip {
+      display: grid;
+      grid-template-columns: repeat(10, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .question-tile {
+      min-width: 0;
+      padding: 8px 0;
+      text-align: center;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .question-tile.active {
+      background: #dbe9ff;
+      border-color: #8bb3f8;
+      color: #0d4fb9;
+    }
+
+    .question-tile.visited:not(.active) {
+      background: #f7faff;
+    }
+
+    .toolbar-side {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      align-items: start;
+    }
+
+    .card {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--card);
+    }
+
+    .card-header {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line-soft);
+    }
+
+    .card-header-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .card-header-top .title-wrap {
+      min-width: 0;
+    }
+
+    .card-tools-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .inline-tools {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: nowrap;
+    }
+
+    .inline-tools button,
+    .inline-tools label,
+    .card-header .reset {
+      font-size: 13px;
+      padding: 6px 8px;
+      white-space: nowrap;
+    }
+
+    .inline-tools label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid #c8d3e1;
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    .inline-tools label:hover {
+      background: var(--accent-soft);
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.2;
+    }
+
+    .subtitle {
+      display: none;
+    }
+
+    .viewport {
+      position: relative;
+      height: clamp(200px, 19.2vw, 256px);
+      background: #fff;
+    }
+
+    .viewport canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    [hidden] { display: none !important; }
+
+    .body { padding: 12px 14px 14px; }
+
+    .rotation-controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      align-items: start;
+    }
+
+    .axis-column {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden;
+      background: #fafcff;
+    }
+
+    .axis-head {
+      padding: 8px 6px;
+      text-align: center;
+      font-weight: 800;
+      border-bottom: 1px solid var(--line);
+      background: #f2f6fb;
+    }
+
+    .axis-head.x { color: #c52a3c; }
+    .axis-head.y { color: #178342; }
+    .axis-head.z { color: #2861c7; }
+
+    .axis-buttons {
+      display: grid;
+      grid-template-rows: 1fr 1fr;
+      gap: 0;
+    }
+
+    .axis-buttons button {
+      border: 0;
+      border-radius: 0;
+      border-top: 1px solid var(--line-soft);
+      background: transparent;
+      min-height: 40px;
+    }
+
+    .axis-buttons button:first-child {
+      border-top: 0;
+    }
+
+    .rotation-readout {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .rotation-value {
+      padding: 10px 6px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f5f8fc;
+      font-weight: 750;
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .rotation-note {
+      margin: 8px 0 0;
+      color: #607085;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .history-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid var(--line-soft);
+      flex-wrap: wrap;
+    }
+
+    .rotation-history {
+      margin-top: 0;
+      padding-top: 0;
+      border-top: 0;
+      flex: 1 1 auto;
+      min-width: 220px;
+    }
+
+    .rotation-history summary {
+      font-weight: 650;
+      cursor: pointer;
+    }
+
+    .rotation-history ol {
+      max-height: 120px;
+      overflow-y: auto;
+      padding-left: 24px;
+      margin-bottom: 0;
+      font-size: 12px;
+      line-height: 1.7;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .history-empty {
+      color: #607085;
+      font-size: 12px;
+    }
+
+    .copy-record {
+      margin-top: 0;
+      flex: 0 0 auto;
+      white-space: nowrap;
+      font-size: 13px;
+      padding: 6px 8px;
+    }
+
+    .description {
+      display: none;
+    }
+
+    .error {
+      margin-top: 14px;
+      padding: 14px 16px;
+      color: #ad2033;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+
+    .brand-badge {
+      position: fixed;
+      right: 14px;
+      bottom: 12px;
+      z-index: 35;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: rgba(23, 32, 51, .88);
+      color: #fff;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .16);
+      backdrop-filter: blur(4px);
+    }
+
+    .brand-badge img {
+      height: 42px;
+      width: auto;
+      display: block;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+
+    .brand-text {
+      line-height: 1.15;
+      min-width: 0;
+    }
+
+    .brand-text a {
+      color: #fff;
+      text-decoration: none;
+      font-family: Arial Black, Arial, sans-serif;
+      font-weight: 900;
+      font-size: 15px;
+    }
+
+    .brand-text a:hover {
+      text-decoration: underline;
+    }
+
+    .brand-sub {
+      margin-top: 3px;
+      font-size: 11px;
+      color: rgba(255, 255, 255, .9);
+      white-space: nowrap;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: var(--overlay);
+    }
+
+    .modal.open {
+      display: flex;
+    }
+
+    .modal-panel {
+      width: min(760px, 100%);
+      max-height: min(84vh, 760px);
+      overflow: auto;
+      background: #fff;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      box-shadow: 0 14px 40px rgba(0, 0, 0, .22);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line-soft);
+      position: sticky;
+      top: 0;
+      background: #fff;
+      z-index: 1;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .modal-body {
+      padding: 16px;
+      line-height: 1.7;
+      color: #263246;
+      font-size: 14px;
+    }
+
+    .modal-body p:first-child {
+      margin-top: 0;
+    }
+
+    .modal-body ul {
+      padding-left: 20px;
+    }
+
+    .modal-body .references-title {
+      margin-top: 18px;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+
+    .modal-body .references-list {
+      padding-left: 22px;
+      margin-top: 0;
+    }
+
+    .modal-body .references-list li {
+      margin-bottom: 8px;
+    }
+
+    @media (max-width: 1100px) {
+      h1 {
+        white-space: normal;
+      }
+    }
+
+    @media (max-width: 980px) {
+      .toolbar {
+        grid-template-columns: 1fr;
+      }
+
+      .question-strip {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+      }
+
+      .toolbar-side {
+        flex-direction: row;
+        flex-wrap: wrap;
+      }
+    }
+
+    @media (max-width: 780px) {
+      .grid { grid-template-columns: 1fr; }
+      .viewport { height: 240px; }
+      .question-strip { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+      .header-top {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .header-actions {
+        justify-content: flex-start;
+      }
+      main {
+        padding: 12px 12px 104px;
+      }
+      .brand-badge {
+        right: 10px;
+        left: 10px;
+        width: auto;
+        justify-content: center;
+      }
+      .brand-sub {
+        white-space: normal;
+      }
+      .card-tools-row {
+        align-items: stretch;
+      }
+      .inline-tools {
+        flex-wrap: wrap;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .question-strip {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .rotation-value {
+        font-size: 13px;
+      }
+
+      .brand-badge img {
+        height: 36px;
+      }
+
+      .brand-text a {
+        font-size: 13px;
+      }
+
+      .brand-sub {
+        font-size: 10px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="header-top">
+      <h1 id="page-title">Revised Purdue Spatial Visualization Test: Visualization of Rotations (Revised PSVT:R) (Yoon, 2011)</h1>
+
+      <div class="header-actions">
+        <button id="language-button" type="button" aria-haspopup="false">繁中</button>
+        <button id="intro-button" type="button" aria-haspopup="dialog" aria-controls="intro-modal">Introduction</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="toolbar">
+      <button id="previous" type="button">← Previous</button>
+
+      <div class="question-strip-wrap">
+        <p class="question-strip-label" id="question-strip-label">Questions</p>
+        <div id="question-strip" class="question-strip" aria-label="Question selection"></div>
+      </div>
+
+      <button id="next" type="button">Next →</button>
+
+      <div class="toolbar-side">
+        <button id="sample-button" type="button">Sample</button>
+        <button id="reset-both" type="button">Reset both blocks</button>
+        <button id="toggle-shadow" type="button" aria-pressed="false">Show Shadow</button>
+      </div>
+    </div>
+
+    <section id="panels" class="grid"></section>
+
+    <p id="error" class="error" role="alert" hidden></p>
+
+    <noscript>
+      <p class="error">Enable JavaScript to use the viewer.</p>
+    </noscript>
+  </main>
+
+  <div id="intro-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="intro-title" hidden>
+    <div class="modal-panel">
+      <div class="modal-header">
+        <h3 id="intro-title">Introduction</h3>
+        <button id="intro-close" type="button" aria-label="Close introduction">✕</button>
+      </div>
+      <div id="intro-content" class="modal-body"></div>
+    </div>
+  </div>
+
+  <div class="brand-badge" aria-label="Author and institution">
+    <div class="brand-text">
+      <a
+        id="brand-link"
+        href="https://repository.eduhk.hk/en/persons/chung-yiu-richard%E6%A5%8A%E4%BB%B2%E5%A0%AF-yeung/"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Richard C. Y. YEUNG, EdUHK
+      </a>
+      <div class="brand-sub" id="brand-sub">Academy for Education Development and Innovation</div>
+    </div>
+    <img src="EdUHK.png" alt="EdUHK logo">
+  </div>
+
+  <script type="module">
+    try {
+      const THREE = await import("three");
+      startApplication(THREE);
+    } catch (error) {
+      console.error(error);
+      const message = document.querySelector("#error");
+      message.hidden = false;
+      message.textContent =
+        "The viewer could not start. Check your internet connection and browser WebGL support. " +
+        error.message;
+    }
+
+    function startApplication(THREE) {
+      const STEP = 10;
+      const EPS = 1e-5;
+      const MODEL_SCALE_MULTIPLIER = 0.8;
+      const V = (x, y, z) => new THREE.Vector3(x, y, z);
+
+      const AXES = {
+        x: V(1, 0, 0),
+        y: V(0, 1, 0),
+        z: V(0, 0, 1)
+      };
+
+      const ISO_VIEW = [7, 7, 7];
+
+      const I18N = {
+        en: {
+          htmlLang: "en",
+          pageTitle: "Revised Purdue Spatial Visualization Test: Visualization of Rotations (Revised PSVT:R) (Yoon, 2011)",
+          introButton: "Introduction",
+          languageButton: "繁中",
+          previous: "← Previous",
+          next: "Next →",
+          sample: "Sample",
+          resetBoth: "Reset both blocks",
+          showShadow: "Show Shadow",
+          hideShadow: "Hide Shadow",
+          questionStripLabel: "Questions",
+          referenceBlock: "Reference Block",
+          sampleQuestion: "Sample Question",
+          questionLabel: n => `Question ${n}`,
+          questionSubtitle: ({ questionNumber, group, mirrored }) =>
+            `Question ${questionNumber} — reference group ${group}` + (mirrored ? " — mirror-image block" : ""),
+          reset: "Reset",
+          zoomIn: "Zoom in",
+          zoomOut: "Zoom out",
+          showAxes: "Show axes",
+          xMinus: "−10°",
+          xPlus: "+10°",
+          yMinus: "−10°",
+          yPlus: "+10°",
+          zMinus: "−10°",
+          zPlus: "+10°",
+          signedTotalsNote: "The final orientation is recomputed from ΣX, ΣY, and ΣZ in a fixed deterministic order: X, then Y, then Z. Therefore, the same totals always produce the same orientation, regardless of click order.",
+          rotationHistory: "Rotation history",
+          steps: n => `(${n} ${n === 1 ? "step" : "steps"})`,
+          noRotationsRecorded: "No rotations recorded.",
+          copyRotationRecord: "Copy rotation record",
+          copied: "Copied",
+          closeIntroduction: "Close introduction",
+          introTitle: "Introduction",
+          introHtml: `
+            <p><strong>Revised PSVT:R</strong> is a spatial ability instrument designed to assess mental rotation and the visualization of three-dimensional objects from different orientations.</p>
+            <p>This viewer presents a reference block and a question block side by side so that users can inspect and rotate each object in fixed 10° steps about the global X, Y, and Z axes.</p>
+            <p><strong>Rotation rule in this version:</strong> the displayed orientation is recomputed only from the cumulative totals \\(\\Sigma X\\), \\(\\Sigma Y\\), and \\(\\Sigma Z\\), using a fixed order of X then Y then Z. This makes the totals deterministic: identical totals always yield identical orientations.</p>
+            <p><strong>Suggested use:</strong></p>
+            <ul>
+              <li>Compare the reference block with the question block.</li>
+              <li>Use the rotation controls to examine spatial correspondences.</li>
+              <li>Reset either panel or both panels when needed.</li>
+            </ul>
+            <p class="references-title"><strong>References (APA 7th edition)</strong></p>
+            <ol class="references-list">
+              <li>Guay, R. B. (1977). <em>Purdue Spatial Visualization Test</em>. Purdue Research Foundation.</li>
+              <li>Yoon, S. Y. (2011). <em>Psychometric properties of the Revised Purdue Spatial Visualization Tests: Visualization of Rotations (The Revised PSVT:R)</em> [Doctoral dissertation, Purdue University]. Purdue e-Pubs.</li>
+            </ol>
+          `,
+          brandSub: "Academy for Education Development and Innovation",
+          copiedPrompt: "Copy this rotation record:",
+          accumulatedRotations: "Accumulated fixed-axis totals:",
+          totalsRelative: "The current orientation is recomputed from these totals only.",
+          notEuler: "Deterministic order used: X then Y then Z.",
+          orderedHistory: "Ordered button history:",
+          noRotations: "No rotations."
+        },
+        zhHant: {
+          htmlLang: "zh-Hant",
+          pageTitle: "修訂版普渡空間視覺測驗：旋轉視覺化（Revised PSVT:R）（Yoon，2011）",
+          introButton: "簡介",
+          languageButton: "EN",
+          previous: "← 上一題",
+          next: "下一題 →",
+          sample: "範例",
+          resetBoth: "重設兩個方塊",
+          showShadow: "顯示陰影",
+          hideShadow: "隱藏陰影",
+          questionStripLabel: "題目",
+          referenceBlock: "參考方塊",
+          sampleQuestion: "範例題目",
+          questionLabel: n => `第 ${n} 題`,
+          questionSubtitle: ({ questionNumber, group, mirrored }) =>
+            `第 ${questionNumber} 題 — 參考組別 ${group}` + (mirrored ? " — 鏡像方塊" : ""),
+          reset: "重設",
+          zoomIn: "放大",
+          zoomOut: "縮小",
+          showAxes: "顯示座標軸",
+          xMinus: "−10°",
+          xPlus: "+10°",
+          yMinus: "−10°",
+          yPlus: "+10°",
+          zMinus: "−10°",
+          zPlus: "+10°",
+          signedTotalsNote: "目前朝向只會根據 ΣX、ΣY、ΣZ 重新計算，並以固定且可重現的次序 X → Y → Z 套用。因此，只要總值相同，不論按鍵次序如何，結果都會相同。",
+          rotationHistory: "旋轉記錄",
+          steps: n => `（${n} 步）`,
+          noRotationsRecorded: "尚未記錄任何旋轉。",
+          copyRotationRecord: "複製旋轉記錄",
+          copied: "已複製",
+          closeIntroduction: "關閉簡介",
+          introTitle: "簡介",
+          introHtml: `
+            <p><strong>修訂版 PSVT:R</strong> 是一項用於評估空間能力的工具，主要測量個體對三維物件進行心理旋轉與視覺化的能力。</p>
+            <p>本檢視器把參考方塊與題目方塊並排呈現，使用者可沿全域 X、Y、Z 軸以固定 10° 步距旋轉物件，以便比較其空間關係。</p>
+            <p><strong>本版本的旋轉規則：</strong>畫面顯示的朝向只根據累計總值 \\(\\Sigma X\\)、\\(\\Sigma Y\\)、\\(\\Sigma Z\\) 重新計算，並以固定次序 X → Y → Z 套用。因此，總值相同時，不論按鍵順序如何，最後朝向都相同。</p>
+            <p><strong>建議使用方式：</strong></p>
+            <ul>
+              <li>比較參考方塊與題目方塊的形狀與方向。</li>
+              <li>利用旋轉控制檢視空間對應關係。</li>
+              <li>有需要時可重設單一面板或兩個面板。</li>
+            </ul>
+            <p class="references-title"><strong>參考文獻（APA 第 7 版）</strong></p>
+            <ol class="references-list">
+              <li>Guay, R. B. (1977). <em>Purdue Spatial Visualization Test</em>. Purdue Research Foundation.</li>
+              <li>Yoon, S. Y. (2011). <em>Psychometric properties of the Revised Purdue Spatial Visualization Tests: Visualization of Rotations (The Revised PSVT:R)</em> [Doctoral dissertation, Purdue University]. Purdue e-Pubs.</li>
+            </ol>
+          `,
+          brandSub: "教育發展與創新學院",
+          copiedPrompt: "請複製以下旋轉記錄：",
+          accumulatedRotations: "固定座標軸累計總值：",
+          totalsRelative: "目前朝向只根據這些總值重新計算。",
+          notEuler: "固定使用次序：X → Y → Z。",
+          orderedHistory: "按鍵次序記錄：",
+          noRotations: "沒有旋轉。"
+        }
+      };
+
+      let currentLanguage = "en";
+      let shadowEnabled = false;
+      let showingSampleMode = false;
+      const visitedQuestions = new Set([0]);
+
+      function t(key, ...args) {
+        const value = I18N[currentLanguage][key];
+        return typeof value === "function" ? value(...args) : value;
+      }
+
+      function orientationFromBasis(xDirection, yDirection, zDirection) {
+        const matrix = new THREE.Matrix4().makeBasis(xDirection, yDirection, zDirection);
+
+        if (Math.abs(matrix.determinant() - 1) > EPS) {
+          throw new Error("Invalid starting-orientation basis.");
+        }
+
+        return new THREE.Quaternion()
+          .setFromRotationMatrix(matrix)
+          .normalize();
+      }
+
+      function axisRotation(axis, degrees) {
+        return new THREE.Quaternion().setFromAxisAngle(
+          AXES[axis],
+          THREE.MathUtils.degToRad(degrees)
+        );
+      }
+
+      function recomputeQuaternion(baseQuaternion, rotationDegrees) {
+        const qx = axisRotation("x", rotationDegrees.x);
+        const qy = axisRotation("y", rotationDegrees.y);
+        const qz = axisRotation("z", rotationDegrees.z);
+
+        return qz
+          .clone()
+          .multiply(qy)
+          .multiply(qx)
+          .multiply(baseQuaternion.clone())
+          .normalize();
+      }
+
+      const SAMPLE_ORIENTATIONS = {
+        A: orientationFromBasis(V(1, 0, 0), V(0, 1, 0), V(0, 0, 1)),
+        B: orientationFromBasis(V(0, 0, 1), V(1, 0, 0), V(0, 1, 0)),
+        C: orientationFromBasis(V(1, 0, 0), V(0, 0, -1), V(0, 1, 0)),
+        D: orientationFromBasis(V(0, 1, 0), V(-1, 0, 0), V(0, 0, 1)),
+        E: orientationFromBasis(V(0, 1, 0), V(0, 0, 1), V(1, 0, 0)),
+        F: orientationFromBasis(V(0, 0, 1), V(0, -1, 0), V(1, 0, 0))
+      };
+
+      const SAMPLE_GROUP_BY_QUESTION = [
+        "A","A","B","B","C","C","D","D","E","A",
+        "B","A","B","A","B","B","D","D","A","A",
+        "E","F","F","D","C","C","A","E","D","C"
+      ];
+
+      const MIRRORED_REFERENCE_QUESTIONS = new Set([
+        5, 6, 7, 8, 17, 18, 22, 23, 24, 25, 26, 29, 30
+      ]);
+
+      const QUESTION_ORIENTATION_OVERRIDES = new Map([
+        [7, axisRotation("y", 90)],
+        [13, axisRotation("y", 90)],
+        [18, axisRotation("y", -90)]
+      ]);
+
+      function getQuestionStartingOrientation(questionNumber) {
+        return (QUESTION_ORIENTATION_OVERRIDES.get(questionNumber) || new THREE.Quaternion()).clone();
+      }
+
+      const COLORS = { x: 0xc92b3d, y: 0x168343, z: 0x2862cc };
+      const signed = value => value > 0 ? `+${value}` : `${value}`;
+
+      const subdivisions = (start, end, count) =>
+        Array.from({ length: count + 1 }, (_, i) => start + (end - start) * i / count);
+
+      const lineMaterial = new THREE.LineBasicMaterial({
+        color: 0x202020,
+        depthTest: true,
+        depthWrite: false
+      });
+
+      function createSurfaceMaterial() {
+        return shadowEnabled
+          ? new THREE.MeshLambertMaterial({
+              color: 0xffffff,
+              side: THREE.DoubleSide,
+              polygonOffset: true,
+              polygonOffsetFactor: 1,
+              polygonOffsetUnits: 1
+            })
+          : new THREE.MeshBasicMaterial({
+              color: 0xffffff,
+              side: THREE.DoubleSide,
+              polygonOffset: true,
+              polygonOffsetFactor: 1,
+              polygonOffsetUnits: 1
+            });
+      }
+
+      class Plane {
+        constructor(normal, w) {
+          this.normal = normal;
+          this.w = w;
+        }
+        clone() { return new Plane(this.normal.clone(), this.w); }
+        flip() {
+          this.normal.negate();
+          this.w = -this.w;
+        }
+        static fromPoints(a, b, c) {
+          const normal = b.clone().sub(a).cross(c.clone().sub(a)).normalize();
+          return new Plane(normal, normal.dot(a));
+        }
+        splitPolygon(polygon, coplanarFront, coplanarBack, front, back) {
+          const COPLANAR = 0, FRONT = 1, BACK = 2, SPANNING = 3;
+          let polygonType = COPLANAR;
+          const types = [];
+
+          for (const vertex of polygon.vertices) {
+            const tv = this.normal.dot(vertex) - this.w;
+            const type = tv < -EPS ? BACK : tv > EPS ? FRONT : COPLANAR;
+            polygonType |= type;
+            types.push(type);
+          }
+
+          if (polygonType === COPLANAR) {
+            (this.normal.dot(polygon.plane.normal) > 0 ? coplanarFront : coplanarBack).push(polygon);
+          } else if (polygonType === FRONT) {
+            front.push(polygon);
+          } else if (polygonType === BACK) {
+            back.push(polygon);
+          } else if (polygonType === SPANNING) {
+            const f = [];
+            const b = [];
+
+            for (let i = 0; i < polygon.vertices.length; i++) {
+              const j = (i + 1) % polygon.vertices.length;
+              const ti = types[i];
+              const tj = types[j];
+              const vi = polygon.vertices[i];
+              const vj = polygon.vertices[j];
+
+              if (ti !== BACK) f.push(vi.clone());
+              if (ti !== FRONT) b.push(vi.clone());
+
+              if ((ti | tj) === SPANNING) {
+                const direction = vj.clone().sub(vi);
+                const t = (this.w - this.normal.dot(vi)) / this.normal.dot(direction);
+                const vertex = vi.clone().lerp(vj, t);
+                f.push(vertex.clone());
+                b.push(vertex.clone());
+              }
+            }
+
+            const fp = Polygon.create(f);
+            const bp = Polygon.create(b);
+            if (fp) front.push(fp);
+            if (bp) back.push(bp);
+          }
+        }
+      }
+
+      class Polygon {
+        constructor(vertices, plane) {
+          this.vertices = vertices;
+          this.plane = plane;
+        }
+        static create(vertices) {
+          const clean = [];
+          for (const vertex of vertices) {
+            if (!clean.length || clean[clean.length - 1].distanceToSquared(vertex) > EPS * EPS) {
+              clean.push(vertex.clone());
+            }
+          }
+
+          if (clean.length > 1 && clean[0].distanceToSquared(clean[clean.length - 1]) < EPS * EPS) {
+            clean.pop();
+          }
+
+          if (clean.length < 3) return null;
+
+          for (let i = 1; i + 1 < clean.length; i++) {
+            const cross = clean[i].clone().sub(clean[0]).cross(clean[i + 1].clone().sub(clean[0]));
+            if (cross.lengthSq() > 1e-14) {
+              return new Polygon(clean, Plane.fromPoints(clean[0], clean[i], clean[i + 1]));
+            }
+          }
+
+          return null;
+        }
+        clone() {
+          return new Polygon(this.vertices.map(vertex => vertex.clone()), this.plane.clone());
+        }
+        flip() {
+          this.vertices.reverse();
+          this.plane.flip();
+        }
+      }
+
+      class BSPNode {
+        constructor(polygons = []) {
+          this.plane = null;
+          this.front = null;
+          this.back = null;
+          this.polygons = [];
+          if (polygons.length) this.build(polygons);
+        }
+        invert() {
+          for (const polygon of this.polygons) polygon.flip();
+          if (this.plane) this.plane.flip();
+          if (this.front) this.front.invert();
+          if (this.back) this.back.invert();
+          [this.front, this.back] = [this.back, this.front];
+        }
+        clipPolygons(polygons) {
+          if (!this.plane) return polygons.slice();
+
+          let front = [];
+          let back = [];
+
+          for (const polygon of polygons) {
+            this.plane.splitPolygon(polygon, front, back, front, back);
+          }
+
+          if (this.front) front = this.front.clipPolygons(front);
+          back = this.back ? this.back.clipPolygons(back) : [];
+          return front.concat(back);
+        }
+        clipTo(node) {
+          this.polygons = node.clipPolygons(this.polygons);
+          if (this.front) this.front.clipTo(node);
+          if (this.back) this.back.clipTo(node);
+        }
+        allPolygons() {
+          let result = this.polygons.slice();
+          if (this.front) result = result.concat(this.front.allPolygons());
+          if (this.back) result = result.concat(this.back.allPolygons());
+          return result;
+        }
+        build(polygons) {
+          if (!polygons.length) return;
+          if (!this.plane) this.plane = polygons[0].plane.clone();
+
+          const front = [];
+          const back = [];
+
+          for (const polygon of polygons) {
+            this.plane.splitPolygon(polygon, this.polygons, this.polygons, front, back);
+          }
+
+          if (front.length) {
+            if (!this.front) this.front = new BSPNode();
+            this.front.build(front);
+          }
+
+          if (back.length) {
+            if (!this.back) this.back = new BSPNode();
+            this.back.build(back);
+          }
+        }
+      }
+
+      class Solid {
+        constructor(polygons = []) {
+          this.polygons = polygons;
+        }
+        clone() {
+          return new Solid(this.polygons.map(p => p.clone()));
+        }
+        union(other) {
+          if (!this.polygons.length) return other.clone();
+          if (!other.polygons.length) return this.clone();
+
+          const a = new BSPNode(this.polygons.map(p => p.clone()));
+          const b = new BSPNode(other.polygons.map(p => p.clone()));
+
+          a.clipTo(b);
+          b.clipTo(a);
+          b.invert();
+          b.clipTo(a);
+          b.invert();
+          a.build(b.allPolygons());
+
+          return new Solid(a.allPolygons());
+        }
+        subtract(other) {
+          if (!this.polygons.length || !other.polygons.length) return this.clone();
+
+          const a = new BSPNode(this.polygons.map(p => p.clone()));
+          const b = new BSPNode(other.polygons.map(p => p.clone()));
+
+          a.invert();
+          a.clipTo(b);
+          b.clipTo(a);
+          b.invert();
+          b.clipTo(a);
+          b.invert();
+          a.build(b.allPolygons());
+          a.invert();
+
+          return new Solid(a.allPolygons());
+        }
+        intersect(other) {
+          if (!this.polygons.length || !other.polygons.length) return new Solid();
+
+          const a = new BSPNode(this.polygons.map(p => p.clone()));
+          const b = new BSPNode(other.polygons.map(p => p.clone()));
+
+          a.invert();
+          b.clipTo(a);
+          b.invert();
+          a.clipTo(b);
+          b.clipTo(a);
+          a.build(b.allPolygons());
+          a.invert();
+
+          return new Solid(a.allPolygons());
+        }
+      }
+
+      function orientedPolygon(points, normal) {
+        const polygon = Polygon.create(points);
+        if (polygon && polygon.plane.normal.dot(normal) < 0) polygon.flip();
+        return polygon;
+      }
+
+      function unionAll(solids) {
+        return solids.reduce((result, solid) => result.union(solid), new Solid());
+      }
+
+      function box(x0, x1, y0, y1, z0, z1) {
+        const polygons = [];
+
+        function face(points, normal) {
+          const polygon = orientedPolygon(points, normal);
+          if (polygon) polygons.push(polygon);
+        }
+
+        face([V(x0,y0,z0), V(x1,y0,z0), V(x1,y1,z0), V(x0,y1,z0)], V(0,0,-1));
+        face([V(x0,y0,z1), V(x0,y1,z1), V(x1,y1,z1), V(x1,y0,z1)], V(0,0,1));
+        face([V(x0,y0,z0), V(x0,y1,z0), V(x0,y1,z1), V(x0,y0,z1)], V(-1,0,0));
+        face([V(x1,y0,z0), V(x1,y0,z1), V(x1,y1,z1), V(x1,y1,z0)], V(1,0,0));
+        face([V(x0,y0,z0), V(x0,y0,z1), V(x1,y0,z1), V(x1,y0,z0)], V(0,-1,0));
+        face([V(x0,y1,z0), V(x1,y1,z0), V(x1,y1,z1), V(x0,y1,z1)], V(0,1,0));
+
+        return new Solid(polygons);
+      }
+
+      function extrudeProfile(profile, axis, length, offset = 0) {
+        let area = 0;
+
+        for (let i = 0; i < profile.length; i++) {
+          const a = profile[i];
+          const b = profile[(i + 1) % profile.length];
+          area += a[0] * b[1] - b[0] * a[1];
+        }
+
+        const points = area < 0 ? [...profile].reverse() : [...profile];
+        const triangles = THREE.ShapeUtils.triangulateShape(points.map(([u, y]) => new THREE.Vector2(u, y)), []);
+        const map = (u, y, depth) => axis === "x" ? V(depth, y, u) : V(u, y, depth);
+        const polygons = [];
+
+        function add(vertices, normal) {
+          const polygon = orientedPolygon(vertices, normal);
+          if (polygon) polygons.push(polygon);
+        }
+
+        for (const triangle of triangles) {
+          add(triangle.map(i => map(...points[i], offset)), AXES[axis].clone().negate());
+          add(triangle.map(i => map(...points[i], offset + length)), AXES[axis]);
+        }
+
+        for (let i = 0; i < points.length; i++) {
+          const a = points[i];
+          const b = points[(i + 1) % points.length];
+          const du = b[0] - a[0];
+          const dy = b[1] - a[1];
+          const normal = axis === "x" ? V(0, -du, dy) : V(dy, -du, 0);
+
+          add([
+            map(...a, offset),
+            map(...b, offset),
+            map(...b, offset + length),
+            map(...a, offset + length)
+          ], normal);
+        }
+
+        return new Solid(polygons);
+      }
+
+      function planPrism(plan, top, bottom = () => 0) {
+        const triangles = THREE.ShapeUtils.triangulateShape(plan.map(([x, z]) => new THREE.Vector2(x, z)), []);
+        const polygons = [];
+
+        function add(vertices, normal) {
+          const polygon = orientedPolygon(vertices, normal);
+          if (polygon) polygons.push(polygon);
+        }
+
+        for (const triangle of triangles) {
+          add(triangle.map(i => {
+            const [x, z] = plan[i];
+            return V(x, top(x, z), z);
+          }), V(0, 1, 0));
+
+          add(triangle.map(i => {
+            const [x, z] = plan[i];
+            return V(x, bottom(x, z), z);
+          }), V(0, -1, 0));
+        }
+
+        let area = 0;
+        for (let i = 0; i < plan.length; i++) {
+          const a = plan[i];
+          const b = plan[(i + 1) % plan.length];
+          area += a[0] * b[1] - b[0] * a[1];
+        }
+
+        for (let i = 0; i < plan.length; i++) {
+          const a = plan[i];
+          const b = plan[(i + 1) % plan.length];
+          const dx = b[0] - a[0];
+          const dz = b[1] - a[1];
+          const normal = area > 0 ? V(dz, 0, -dx) : V(-dz, 0, dx);
+
+          add([
+            V(a[0], bottom(...a), a[1]),
+            V(b[0], bottom(...b), b[1]),
+            V(b[0], top(...b), b[1]),
+            V(a[0], top(...a), a[1])
+          ], normal);
+        }
+
+        return new Solid(polygons);
+      }
+
+      function rampX(x0, x1, z0, z1, high, low = 0, base = 0) {
+        return planPrism(
+          [[x0,z0], [x1,z0], [x1,z1], [x0,z1]],
+          x => high + (low - high) * (x - x0) / (x1 - x0),
+          () => base
+        );
+      }
+
+      function rampZ(x0, x1, z0, z1, high, low = 0, base = 0) {
+        return planPrism(
+          [[x0,z0], [x1,z0], [x1,z1], [x0,z1]],
+          (x, z) => high + (low - high) * (z - z0) / (z1 - z0),
+          () => base
+        );
+      }
+
+      function tetrahedron(points) {
+        const center = points.reduce((sum, point) => sum.add(point), V(0,0,0)).multiplyScalar(.25);
+        const polygons = [];
+
+        for (const indices of [[0,1,2], [0,3,1], [0,2,3], [1,3,2]]) {
+          const polygon = Polygon.create(indices.map(i => points[i]));
+          if (!polygon) continue;
+          if (polygon.plane.normal.dot(center) - polygon.plane.w > 0) polygon.flip();
+          polygons.push(polygon);
+        }
+
+        return new Solid(polygons);
+      }
+
+      function quarterCircleProfile(radius = 2, segments = 64) {
+        const profile = [[0,0], [radius,0]];
+        for (let i = 1; i <= segments; i++) {
+          const angle = Math.PI / 2 * i / segments;
+          profile.push([radius * Math.cos(angle), radius * Math.sin(angle)]);
+        }
+        return profile;
+      }
+
+      function semicircleProfile(radius = 1, segments = 72) {
+        const profile = [[0,0], [0,2 * radius]];
+        for (let i = 1; i <= segments; i++) {
+          const angle = Math.PI * i / segments;
+          profile.push([radius * Math.sin(angle), radius + radius * Math.cos(angle)]);
+        }
+        return profile;
+      }
+
+      function fullCircleProfile(radius = 1, segments = 128) {
+        const profile = [];
+        for (let i = 0; i < segments; i++) {
+          const angle = 2 * Math.PI * i / segments;
+          profile.push([radius * Math.sin(angle), radius + radius * Math.cos(angle)]);
+        }
+        return profile;
+      }
+
+      function heightSolid(xs, zs, top, bottom = () => 0) {
+        const polygons = [];
+        const nx = xs.length - 1;
+        const nz = zs.length - 1;
+
+        const cells = Array.from({ length: nx }, () => Array(nz).fill(null));
+
+        function triangle(a, b, c, normal) {
+          const polygon = orientedPolygon([a,b,c], normal);
+          if (polygon) polygons.push(polygon);
+        }
+
+        function quad(a, b, c, d, normal) {
+          triangle(a,b,c,normal);
+          triangle(a,c,d,normal);
+        }
+
+        for (let i = 0; i < nx; i++) {
+          for (let j = 0; j < nz; j++) {
+            const x0 = xs[i];
+            const x1 = xs[i + 1];
+            const z0 = zs[j];
+            const z1 = zs[j + 1];
+
+            const mx = (x0 + x1) / 2;
+            const mz = (z0 + z1) / 2;
+
+            if (top(mx,mz,mx,mz) == null) continue;
+
+            const plan = [[x0,z0], [x1,z0], [x1,z1], [x0,z1]];
+            const upper = plan.map(([x,z]) => V(x, top(x,z,mx,mz), z));
+            const lower = plan.map(([x,z]) => V(x, bottom(x,z), z));
+
+            cells[i][j] = { upper, lower };
+
+            quad(upper[0], upper[3], upper[2], upper[1], V(0,1,0));
+            quad(lower[0], lower[1], lower[2], lower[3], V(0,-1,0));
+          }
+        }
+
+        const sides = [
+          { di:0, dj:-1, a:0, b:1, na:3, nb:2, normal:V(0,0,-1) },
+          { di:1, dj:0, a:1, b:2, na:0, nb:3, normal:V(1,0,0) },
+          { di:0, dj:1, a:2, b:3, na:1, nb:0, normal:V(0,0,1) },
+          { di:-1, dj:0, a:3, b:0, na:2, nb:1, normal:V(-1,0,0) }
+        ];
+
+        for (let i = 0; i < nx; i++) {
+          for (let j = 0; j < nz; j++) {
+            const cell = cells[i][j];
+            if (!cell) continue;
+
+            for (const side of sides) {
+              const neighbor = cells[i + side.di]?.[j + side.dj] || null;
+              const a = cell.upper[side.a];
+              const b = cell.upper[side.b];
+              const lowA = neighbor ? neighbor.upper[side.na] : cell.lower[side.a];
+              const lowB = neighbor ? neighbor.upper[side.nb] : cell.lower[side.b];
+
+              if (a.y - lowA.y > EPS || b.y - lowB.y > EPS) {
+                quad(lowA, a, b, lowB, side.normal);
+              }
+            }
+          }
+        }
+
+        return new Solid(polygons);
+      }
+
+      function buildQ6() {
+        const radius = 1;
+        const length = 2;
+        const cylinder = extrudeProfile(fullCircleProfile(radius, 128), "x", length);
+        const rearDepth = -.20;
+        const frontDepth = .94;
+        const floorHeight = .65;
+        const cavity = box(-.05, length + .05, floorHeight, 2.4, rearDepth, 1.25);
+        const recessedCylinder = cylinder.subtract(cavity);
+        const highEdge = radius + Math.sqrt(radius * radius - rearDepth * rearDepth);
+        const insetRamp = rampZ(0, 1, rearDepth, frontDepth, highEdge, floorHeight, floorHeight).intersect(cylinder);
+        return recessedCylinder.union(insetRamp);
+      }
+
+      function buildQ8() {
+        return unionAll([
+          rampZ(0,1,0,1,2,1),
+          planPrism([[0,1],[1,1],[0,2]], () => 1),
+          rampX(1,2,0,1,1,0)
+        ]);
+      }
+
+      function buildQ12() {
+        return unionAll([
+          box(0,2,0,2,0,1),
+          planPrism([[0,1],[2,1],[1,2],[0,2]], () => 1)
+        ]);
+      }
+
+      function buildQ14() {
+        return extrudeProfile([[0,0],[1,0],[2,1],[1,2],[0,2]], "x", 1);
+      }
+
+      function buildQ15() {
+        return unionAll([
+          rampZ(0,1,0,1,2,1),
+          planPrism([[1,0],[2,0],[1,1]], () => 1)
+        ]);
+      }
+
+      function buildQ16() {
+        return unionAll([
+          box(0,1,0,2,0,1),
+          rampX(0,1,1,2,1,0)
+        ]);
+      }
+
+      function buildQ17() {
+        return unionAll([
+          box(0,1,0,2,0,2),
+          rampZ(1,2,0,1,2,1),
+          box(1,2,0,1,1,2)
+        ]);
+      }
+
+      function buildQ21() {
+        const block = unionAll([
+          box(0,2,0,2,0,1),
+          box(0,1,0,2,1,2)
+        ]);
+
+        return block.subtract(
+          tetrahedron([V(2,2,1), V(1,2,1), V(2,2,0), V(2,1,1)])
+        );
+      }
+
+      function buildQ22() {
+        const lowBlock = box(0,1,0,1,1,2);
+        const corner = tetrahedron([V(1,1,2), V(0,1,2), V(1,1,1), V(1,0,2)]);
+        return rampX(0,2,0,1,2,0).union(lowBlock.subtract(corner));
+      }
+
+      function buildQ23() {
+        return unionAll([
+          rampX(0,2,0,1,2,0),
+          box(0,2,0,1,1,2)
+        ]);
+      }
+
+      function buildQ24() {
+        const largeProfile = [[0,0],[0,2]];
+        for (let i = 1; i <= 72; i++) {
+          const angle = Math.PI * i / 72;
+          largeProfile.push([-Math.sin(angle), 1 + Math.cos(angle)]);
+        }
+
+        const smallProfile = [[0,0],[0,1],[1,1]];
+        for (let i = 1; i <= 48; i++) {
+          const angle = Math.PI / 2 * i / 48;
+          smallProfile.push([Math.cos(angle), 1 - Math.sin(angle)]);
+        }
+
+        return unionAll([
+          extrudeProfile(largeProfile, "z", 2),
+          extrudeProfile(smallProfile, "z", 1)
+        ]);
+      }
+
+      function buildQ25() {
+        return unionAll([
+          rampX(0,2,0,1,2,0),
+          rampZ(0,1,1,2,1,0)
+        ]);
+      }
+
+      function buildQ27() {
+        return unionAll([
+          rampX(0,1,1,2,2,1),
+          rampZ(0,1,0,1,2,1)
+        ]);
+      }
+
+      function buildQ28() {
+        return planPrism([[0,0],[2,0],[2,1],[1,1],[0,2]], x => 2 - x);
+      }
+
+      function cornerCutCube(size = 2) {
+        const s = size;
+        return box(0,s,0,s,0,s).subtract(
+          tetrahedron([V(s,s,s), V(0,s,s), V(s,0,s), V(s,s,0)])
+        );
+      }
+
+      function buildQ30() {
+        const leftRamp = rampZ(0,1,0,2,2,0);
+        const lowFrontBlock = box(1,2,0,1,1,2);
+        const solidRearWedge = rampX(1,2,0,1,1,2,0);
+        return unionAll([leftRamp, lowFrontBlock, solidRearWedge]);
+      }
+
+      const questions = [
+        { name: "Low base with a transverse rear ramp", build: () => unionAll([rampX(0,1,0,1,2,1), box(0,1,0,1,1,2)]) },
+        { name: "Upright quarter-cylinder sector", build: () => extrudeProfile(quarterCircleProfile(), "x", 1) },
+        { name: "Prism with a side V-recess", build: () => extrudeProfile([[0,0],[2,0],[1,1],[2,2],[0,2]], "z", 2) },
+        { name: "Three-unit stepped block", build: () => unionAll([box(0,1,0,2,0,1), box(1,2,0,1,0,1)]) },
+        { name: "Rear wall with a left ramp and recess", build: () => unionAll([box(0,2,0,2,0,1), rampZ(0,1,1,2,2,1), box(1,2,0,1,1,2)]) },
+        { name: "Full cylinder with a recessed cut", build: buildQ6 },
+        { name: "Tall slab with a front-right cube", build: () => unionAll([box(0,2,0,2,0,1), box(1,2,0,1,1,2)]) },
+        { name: "Raised rear ramp with two low branches", build: buildQ8 },
+        { name: "Planar wedge beside a curved wedge", build: () => heightSolid(subdivisions(0,2,96), [0,1,2], (x,z,mx,mz) => mz >= 1 ? 2 - x : Math.sqrt(Math.max(0,4 - x * x))) },
+        { name: "Rear ramp with two adjacent low cubes", build: () => unionAll([rampZ(0,1,0,1,2,1), box(0,1,0,1,1,2), box(1,2,0,1,0,1)]) },
+        { name: "Ramp descending onto a low block", build: () => unionAll([rampX(0,1,0,1,2,1), box(1,2,0,1,0,1)]) },
+        { name: "Rear wall with a diagonal-front step", build: buildQ12 },
+        { name: "Left ramp adjoining a tall right block", build: () => unionAll([rampZ(0,1,0,1,2,1), box(1,2,0,2,0,1)]) },
+        { name: "Flat-topped prism with a beveled nose", build: buildQ14 },
+        { name: "Raised ramp with a diagonal-front low block", build: buildQ15 },
+        { name: "Tall pillar with a transverse front wedge", build: buildQ16 },
+        { name: "Left slab with a right ramp and recess", build: buildQ17 },
+        { name: "Upright half-cylinder slab", build: () => extrudeProfile(semicircleProfile(), "x", 2) },
+        { name: "Two offset ramps with stepped tops", build: () => unionAll([box(0,1,0,2,0,.5), rampZ(0,1,.5,1.5,2,1), box(1,2,0,1,0,.5), rampZ(1,2,.5,1.5,1,0)]) },
+        { name: "Tall slab beside a descending wedge", build: () => unionAll([box(0,1,0,2,0,2), rampZ(1,2,0,2,2,0)]) },
+        { name: "Tall L-block with a triangular cut", build: buildQ21 },
+        { name: "Main ramp with a triangular-cut low block", build: buildQ22 },
+        { name: "Main ramp with a full-width front block", build: buildQ23 },
+        { name: "Rounded slab with a curved lower shelf", build: buildQ24 },
+        { name: "Main ramp with a perpendicular low wedge", build: buildQ25 },
+        { name: "Broad inclined block with a front notch", build: () => heightSolid([0,1,2], [0,1,2], (x,z,mx,mz) => mx >= 1 && mz >= 1 ? null : 2 - z) },
+        { name: "Perpendicular inclined banks", build: buildQ27 },
+        { name: "Notched ramp with a diagonal boundary", build: buildQ28 },
+        { name: "Cube with a large triangular corner cut", build: () => cornerCutCube() },
+        { name: "Long ramp with solid polygonal blocks", build: buildQ30 }
+      ];
+
+      function buildSampleQuestionSolid() {
+        return rampZ(0, 1.4, 0, 2.8, 2.8, 1.1);
+      }
+
+      function prepareModelData(solid) {
+        const polygons = solid.polygons.map(p => p.clone());
+
+        if (!polygons.length) {
+          throw new Error("The model contains no surfaces.");
+        }
+
+        const bounds = new THREE.Box3();
+        for (const polygon of polygons) {
+          for (const vertex of polygon.vertices) bounds.expandByPoint(vertex);
+        }
+
+        const center = bounds.getCenter(V(0,0,0));
+        const size = bounds.getSize(V(0,0,0));
+        const scale = 2.7 / Math.max(size.x, size.y, size.z) * MODEL_SCALE_MULTIPLIER;
+
+        for (const polygon of polygons) {
+          for (const vertex of polygon.vertices) {
+            vertex.sub(center).multiplyScalar(scale);
+          }
+
+          const updated = Polygon.create(polygon.vertices);
+          if (updated) polygon.plane = updated.plane;
+        }
+
+        const positions = [];
+
+        for (const polygon of polygons) {
+          for (let i = 1; i + 1 < polygon.vertices.length; i++) {
+            const a = polygon.vertices[0];
+            const b = polygon.vertices[i];
+            const c = polygon.vertices[i + 1];
+
+            if (b.clone().sub(a).cross(c.clone().sub(a)).lengthSq() < 1e-14) continue;
+
+            positions.push(a.x,a.y,a.z, b.x,b.y,b.z, c.x,c.y,c.z);
+          }
+        }
+
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+        geometry.computeVertexNormals();
+        geometry.computeBoundingSphere();
+
+        const vertices = [];
+        const vertexMap = new Map();
+
+        function vertexId(vertex) {
+          const key = [
+            Math.round(vertex.x * 100000),
+            Math.round(vertex.y * 100000),
+            Math.round(vertex.z * 100000)
+          ].join(",");
+
+          if (!vertexMap.has(key)) {
+            vertexMap.set(key, vertices.length);
+            vertices.push(vertex.clone());
+          }
+
+          return vertexMap.get(key);
+        }
+
+        for (const polygon of polygons) {
+          for (const vertex of polygon.vertices) vertexId(vertex);
+        }
+
+        const faces = polygons.map(p => ({ normal: p.plane.normal.clone() }));
+        const edgeMap = new Map();
+        const tolerance = 3e-5;
+
+        polygons.forEach((polygon, faceId) => {
+          for (let i = 0; i < polygon.vertices.length; i++) {
+            const a = polygon.vertices[i];
+            const b = polygon.vertices[(i + 1) % polygon.vertices.length];
+            const direction = b.clone().sub(a);
+            const lengthSq = direction.lengthSq();
+            if (lengthSq < 1e-12) continue;
+
+            const cuts = [{ t:0, id:vertexId(a) }, { t:1, id:vertexId(b) }];
+
+            vertices.forEach((vertex, id) => {
+              const t = vertex.clone().sub(a).dot(direction) / lengthSq;
+              if (t <= tolerance || t >= 1 - tolerance) return;
+
+              const nearest = a.clone().addScaledVector(direction, t);
+              if (nearest.distanceToSquared(vertex) < tolerance * tolerance) {
+                cuts.push({ t, id });
+              }
+            });
+
+            cuts.sort((u, v) => u.t - v.t);
+
+            for (let k = 0; k + 1 < cuts.length; k++) {
+              const idA = cuts[k].id;
+              const idB = cuts[k + 1].id;
+              if (idA === idB) continue;
+
+              const key = idA < idB ? `${idA}:${idB}` : `${idB}:${idA}`;
+
+              if (!edgeMap.has(key)) {
+                edgeMap.set(key, { a:idA, b:idB, faces:[] });
+              }
+
+              const edge = edgeMap.get(key);
+              if (!edge.faces.includes(faceId)) edge.faces.push(faceId);
+            }
+          }
+        });
+
+        const creaseCosine = Math.cos(THREE.MathUtils.degToRad(10));
+        const edges = [...edgeMap.values()];
+
+        for (const edge of edges) {
+          edge.sharp = edge.faces.length === 1;
+
+          for (let i = 0; i < edge.faces.length; i++) {
+            for (let j = i + 1; j < edge.faces.length; j++) {
+              if (faces[edge.faces[i]].normal.dot(faces[edge.faces[j]].normal) < creaseCosine) {
+                edge.sharp = true;
+              }
+            }
+          }
+        }
+
+        return { geometry, topology: { vertices, faces, edges } };
+      }
+
+      class BlockModel {
+        constructor(solid) {
+          const data = prepareModelData(solid);
+          this.topology = data.topology;
+          this.group = new THREE.Group();
+
+          this.mesh = new THREE.Mesh(data.geometry, createSurfaceMaterial());
+          this.mesh.castShadow = shadowEnabled;
+          this.mesh.receiveShadow = shadowEnabled;
+          this.group.add(this.mesh);
+
+          this.linePositions = new Float32Array(this.topology.edges.length * 6);
+          this.lineGeometry = new THREE.BufferGeometry();
+          this.lineGeometry.setAttribute(
+            "position",
+            new THREE.BufferAttribute(this.linePositions, 3).setUsage(THREE.DynamicDrawUsage)
+          );
+          this.lineGeometry.setDrawRange(0,0);
+
+          this.lines = new THREE.LineSegments(this.lineGeometry, lineMaterial);
+          this.lines.frustumCulled = false;
+          this.lines.renderOrder = 1;
+          this.group.add(this.lines);
+        }
+
+        setShadowMode(enabled) {
+          if (!this.mesh) return;
+          this.mesh.material.dispose?.();
+          this.mesh.material = createSurfaceMaterial();
+          this.mesh.castShadow = enabled;
+          this.mesh.receiveShadow = enabled;
+        }
+
+        updateEdges(camera) {
+          this.group.updateWorldMatrix(true,false);
+          camera.updateWorldMatrix(true,false);
+
+          const towardCamera = camera.getWorldDirection(V(0,0,0)).negate();
+          const inverse = this.group.getWorldQuaternion(new THREE.Quaternion()).invert();
+          towardCamera.applyQuaternion(inverse);
+
+          const { vertices, faces, edges } = this.topology;
+          const facing = faces.map(face => face.normal.dot(towardCamera));
+
+          let offset = 0;
+
+          for (const edge of edges) {
+            let draw = edge.sharp;
+
+            if (!draw && edge.faces.length >= 2) {
+              let front = false;
+              let back = false;
+
+              for (const faceId of edge.faces) {
+                if (facing[faceId] > 1e-7) front = true;
+                if (facing[faceId] < -1e-7) back = true;
+              }
+
+              draw = front && back;
+            }
+
+            if (!draw) continue;
+
+            const a = vertices[edge.a];
+            const b = vertices[edge.b];
+
+            this.linePositions[offset++] = a.x;
+            this.linePositions[offset++] = a.y;
+            this.linePositions[offset++] = a.z;
+            this.linePositions[offset++] = b.x;
+            this.linePositions[offset++] = b.y;
+            this.linePositions[offset++] = b.z;
+          }
+
+          this.lineGeometry.setDrawRange(0, offset / 3);
+          this.lineGeometry.attributes.position.needsUpdate = true;
+        }
+      }
+
+      function labelSprite(text,color) {
+        const canvas = document.createElement("canvas");
+        canvas.width = canvas.height = 128;
+
+        const context = canvas.getContext("2d");
+        context.font = "bold 82px Arial";
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.fillStyle = color;
+        context.fillText(text,64,64);
+
+        const sprite = new THREE.Sprite(
+          new THREE.SpriteMaterial({
+            map: new THREE.CanvasTexture(canvas),
+            transparent: true,
+            depthTest: false,
+            depthWrite: false
+          })
+        );
+
+        sprite.scale.set(.28,.28,1);
+        sprite.renderOrder = 20;
+        return sprite;
+      }
+
+      function createAxes() {
+        const group = new THREE.Group();
+        const length = 2.05;
+
+        for (const axis of ["x","y","z"]) {
+          const arrow = new THREE.ArrowHelper(AXES[axis], V(0,0,0), length, COLORS[axis], .15, .09);
+
+          for (const part of [arrow.line, arrow.cone]) {
+            part.material.depthTest = false;
+            part.material.depthWrite = false;
+            part.material.transparent = true;
+            part.material.opacity = .75;
+            part.renderOrder = 10;
+          }
+
+          group.add(arrow);
+
+          const color = "#" + COLORS[axis].toString(16).padStart(6,"0");
+          const label = labelSprite(axis.toUpperCase(), color);
+          label.position.copy(AXES[axis]).multiplyScalar(length + .16);
+          group.add(label);
+        }
+
+        return group;
+      }
+
+      function makeState(block, description, view = ISO_VIEW, initialQuaternion = new THREE.Quaternion()) {
+        const baseQuaternion = initialQuaternion.clone().normalize();
+
+        return {
+          block,
+          description,
+          view: [...view],
+          baseQuaternion: baseQuaternion.clone(),
+          initialQuaternion: baseQuaternion.clone(),
+          quaternion: baseQuaternion.clone(),
+          rotationDegrees: { x: 0, y: 0, z: 0 },
+          history: [],
+          zoom: 1
+        };
+      }
+
+      class Viewer {
+        constructor(kind) {
+          this.kind = kind;
+          this.state = null;
+          this.block = null;
+          this.edgeDirty = true;
+          this.renderDirty = true;
+
+          this.card = document.createElement("article");
+          this.card.className = "card";
+          this.card.innerHTML = `
+            <div class="card-header">
+              <div class="card-header-top">
+                <div class="title-wrap">
+                  <h2></h2>
+                  <div class="subtitle"></div>
+                </div>
+                <button class="reset" type="button"></button>
+              </div>
+
+              <div class="card-tools-row">
+                <div class="inline-tools">
+                  <button class="zoom-in" type="button"></button>
+                  <button class="zoom-out" type="button"></button>
+                  <label>
+                    <input class="axes-toggle" type="checkbox">
+                    <span class="axes-label"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="viewport"></div>
+
+            <div class="body">
+              <div class="rotation-controls">
+                ${["x","y","z"].map(axis => `
+                  <div class="axis-column">
+                    <div class="axis-head ${axis}">${axis.toUpperCase()}</div>
+                    <div class="axis-buttons">
+                      <button type="button" data-axis="${axis}" data-sign="-1"></button>
+                      <button type="button" data-axis="${axis}" data-sign="1"></button>
+                    </div>
+                  </div>
+                `).join("")}
+              </div>
+
+              <div class="rotation-readout" aria-live="polite" aria-atomic="true">
+                <div class="rotation-value x" data-total="x">ΣX 0°</div>
+                <div class="rotation-value y" data-total="y">ΣY 0°</div>
+                <div class="rotation-value z" data-total="z">ΣZ 0°</div>
+              </div>
+
+              <p class="rotation-note"></p>
+
+              <div class="history-row">
+                <details class="rotation-history">
+                  <summary>
+                    <span class="history-title"></span>
+                    <span class="history-count">(0 steps)</span>
+                  </summary>
+                  <p class="history-empty"></p>
+                  <ol class="history-list"></ol>
+                </details>
+
+                <button class="copy-record" type="button"></button>
+              </div>
+
+              <div class="description"></div>
+            </div>
+          `;
+
+          document.querySelector("#panels").appendChild(this.card);
+
+          this.viewport = this.card.querySelector(".viewport");
+          this.scene = new THREE.Scene();
+          this.scene.background = new THREE.Color(0xffffff);
+
+          this.camera = new THREE.OrthographicCamera(-3,3,3,-3,.1,100);
+          this.camera.position.set(...ISO_VIEW);
+          this.camera.up.set(0,1,0);
+          this.camera.lookAt(0,0,0);
+
+          this.renderer = new THREE.WebGLRenderer({ antialias:true, alpha:false });
+          this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+          this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+          this.renderer.shadowMap.enabled = shadowEnabled;
+          this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+          this.renderer.domElement.setAttribute("role", "img");
+          this.viewport.appendChild(this.renderer.domElement);
+
+          this.ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
+          this.directionalLight = new THREE.DirectionalLight(0xffffff, 0.85);
+          this.directionalLight.position.set(4.5, 7.5, 6);
+          this.directionalLight.castShadow = true;
+          this.directionalLight.shadow.mapSize.width = 1024;
+          this.directionalLight.shadow.mapSize.height = 1024;
+          this.directionalLight.shadow.camera.near = 0.5;
+          this.directionalLight.shadow.camera.far = 30;
+          this.directionalLight.shadow.camera.left = -6;
+          this.directionalLight.shadow.camera.right = 6;
+          this.directionalLight.shadow.camera.top = 6;
+          this.directionalLight.shadow.camera.bottom = -6;
+
+          this.shadowPlane = new THREE.Mesh(
+            new THREE.PlaneGeometry(12, 12),
+            new THREE.ShadowMaterial({ color: 0x000000, opacity: 0.18 })
+          );
+          this.shadowPlane.rotation.x = -Math.PI / 2;
+          this.shadowPlane.position.y = -1.75;
+          this.shadowPlane.receiveShadow = true;
+          this.shadowPlane.visible = shadowEnabled;
+
+          this.scene.add(this.ambientLight);
+          this.scene.add(this.directionalLight);
+          this.scene.add(this.shadowPlane);
+
+          this.axes = createAxes();
+          this.axes.visible = false;
+          this.scene.add(this.axes);
+
+          this.card.querySelectorAll("[data-axis]").forEach(button => {
+            button.onclick = () => this.rotate(button.dataset.axis, Number(button.dataset.sign) * STEP);
+          });
+
+          this.card.querySelector(".reset").onclick = () => this.reset();
+          this.card.querySelector(".zoom-in").onclick = () => this.changeZoom(1.1);
+          this.card.querySelector(".zoom-out").onclick = () => this.changeZoom(1 / 1.1);
+          this.card.querySelector(".axes-toggle").onchange = event => {
+            this.axes.visible = event.target.checked;
+            this.renderDirty = true;
+          };
+          this.card.querySelector(".copy-record").onclick = () => this.copyRotationRecord();
+
+          this.resizeObserver = new ResizeObserver(() => this.resize());
+          this.resizeObserver.observe(this.viewport);
+
+          this.resize();
+          this.updateStaticText();
+          this.setShadowMode(shadowEnabled);
+        }
+
+        setShadowMode(enabled) {
+          this.renderer.shadowMap.enabled = enabled;
+          this.directionalLight.visible = enabled;
+          this.shadowPlane.visible = enabled;
+          if (this.block) this.block.setShadowMode(enabled);
+          this.renderDirty = true;
+        }
+
+        updateStaticText() {
+          this.card.querySelector(".reset").textContent = t("reset");
+          this.card.querySelector(".zoom-in").textContent = t("zoomIn");
+          this.card.querySelector(".zoom-out").textContent = t("zoomOut");
+          this.card.querySelector(".axes-label").textContent = t("showAxes");
+          this.card.querySelector(".rotation-note").textContent = t("signedTotalsNote");
+          this.card.querySelector(".history-title").textContent = t("rotationHistory");
+          this.card.querySelector(".history-empty").textContent = t("noRotationsRecorded");
+          this.card.querySelector(".copy-record").textContent = t("copyRotationRecord");
+
+          this.card.querySelector('[data-axis="x"][data-sign="-1"]').textContent = t("xMinus");
+          this.card.querySelector('[data-axis="x"][data-sign="1"]').textContent = t("xPlus");
+          this.card.querySelector('[data-axis="y"][data-sign="-1"]').textContent = t("yMinus");
+          this.card.querySelector('[data-axis="y"][data-sign="1"]').textContent = t("yPlus");
+          this.card.querySelector('[data-axis="z"][data-sign="-1"]').textContent = t("zMinus");
+          this.card.querySelector('[data-axis="z"][data-sign="1"]').textContent = t("zPlus");
+
+          this.updateRotationRecord();
+        }
+
+        applyStartingCamera() {
+          if (!this.state) return;
+
+          this.camera.position.set(...this.state.view);
+          this.camera.up.set(0,1,0);
+          this.camera.lookAt(0,0,0);
+          this.camera.updateMatrixWorld(true);
+
+          this.edgeDirty = true;
+          this.renderDirty = true;
+        }
+
+        changeZoom(factor) {
+          if (!this.state) return;
+
+          this.state.zoom = Math.max(.6, Math.min(2.3, this.state.zoom * factor));
+          this.camera.zoom = this.state.zoom;
+          this.camera.updateProjectionMatrix();
+          this.renderDirty = true;
+        }
+
+        applyDeterministicOrientation() {
+          if (!this.block || !this.state) return;
+          this.state.quaternion = recomputeQuaternion(this.state.baseQuaternion, this.state.rotationDegrees);
+          this.block.group.quaternion.copy(this.state.quaternion).normalize();
+          this.edgeDirty = true;
+          this.renderDirty = true;
+        }
+
+        rotate(axis,degrees) {
+          if (!this.block || !this.state) return;
+
+          this.state.rotationDegrees[axis] += degrees;
+          this.state.history.push({
+            axis,
+            degrees,
+            totals: { ...this.state.rotationDegrees }
+          });
+
+          this.applyDeterministicOrientation();
+          this.updateRotationRecord();
+        }
+
+        updateRotationRecord() {
+          const totals = this.state?.rotationDegrees || { x:0,y:0,z:0 };
+          const history = this.state?.history || [];
+
+          for (const axis of ["x","y","z"]) {
+            this.card.querySelector(`[data-total="${axis}"]`).textContent =
+              `Σ${axis.toUpperCase()} ${signed(totals[axis])}°`;
+          }
+
+          this.card.querySelector(".history-count").textContent = t("steps", history.length);
+          this.card.querySelector(".history-empty").hidden = history.length > 0;
+          this.card.querySelector(".history-empty").textContent = t("noRotationsRecorded");
+
+          const list = this.card.querySelector(".history-list");
+          list.replaceChildren();
+          const fragment = document.createDocumentFragment();
+
+          for (const entry of history) {
+            const item = document.createElement("li");
+            item.textContent =
+              `${entry.axis.toUpperCase()} ${signed(entry.degrees)}° → ` +
+              `ΣX ${signed(entry.totals.x)}°, ΣY ${signed(entry.totals.y)}°, ΣZ ${signed(entry.totals.z)}°`;
+            fragment.appendChild(item);
+          }
+
+          list.appendChild(fragment);
+          this.card.querySelector(".copy-record").disabled = !this.block;
+        }
+
+        async copyRotationRecord() {
+          if (!this.state || !this.block) return;
+
+          const totals = this.state.rotationDegrees;
+          const lines = [
+            this.card.querySelector("h2").textContent,
+            "",
+            t("accumulatedRotations"),
+            `ΣX ${signed(totals.x)} deg, ΣY ${signed(totals.y)} deg, ΣZ ${signed(totals.z)} deg`,
+            "",
+            t("totalsRelative"),
+            t("notEuler"),
+            "",
+            t("orderedHistory")
+          ];
+
+          if (!this.state.history.length) {
+            lines.push(t("noRotations"));
+          } else {
+            this.state.history.forEach((entry,index) => {
+              lines.push(`${index + 1}. ${entry.axis.toUpperCase()} ${signed(entry.degrees)} deg`);
+            });
+          }
+
+          const text = lines.join("\n");
+          const button = this.card.querySelector(".copy-record");
+
+          try {
+            if (!navigator.clipboard) throw new Error("Clipboard unavailable");
+            await navigator.clipboard.writeText(text);
+            button.textContent = t("copied");
+            setTimeout(() => {
+              button.textContent = t("copyRotationRecord");
+            },1400);
+          } catch {
+            window.prompt(t("copiedPrompt"), text);
+          }
+        }
+
+        resize() {
+          const width = this.viewport.clientWidth;
+          const height = this.viewport.clientHeight;
+          if (!width || !height) return;
+
+          const aspect = width / height;
+          const halfHeight = Math.max(2.1, 2.1 / aspect);
+
+          this.camera.left = -halfHeight * aspect;
+          this.camera.right = halfHeight * aspect;
+          this.camera.top = halfHeight;
+          this.camera.bottom = -halfHeight;
+
+          this.camera.updateProjectionMatrix();
+          this.renderer.setSize(width, height, false);
+          this.renderDirty = true;
+        }
+
+        show(state) {
+          if (this.block) this.scene.remove(this.block.group);
+
+          this.state = state;
+          this.block = state.block;
+
+          if (this.block) {
+            this.applyDeterministicOrientation();
+            this.block.setShadowMode(shadowEnabled);
+            this.scene.add(this.block.group);
+          }
+
+          this.applyStartingCamera();
+          this.camera.zoom = state.zoom;
+          this.camera.updateProjectionMatrix();
+
+          this.card.querySelector(".description").textContent = state.description;
+
+          this.card.querySelectorAll("[data-axis]").forEach(button => {
+            button.disabled = !this.block;
+          });
+
+          for (const selector of [".reset", ".zoom-in", ".zoom-out"]) {
+            this.card.querySelector(selector).disabled = !this.block;
+          }
+
+          this.card.querySelector(".axes-toggle").disabled = !this.block;
+          this.updateRotationRecord();
+          this.edgeDirty = true;
+          this.renderDirty = true;
+        }
+
+        reset() {
+          if (!this.state) return;
+
+          this.state.rotationDegrees = { x:0, y:0, z:0 };
+          this.state.history = [];
+          this.state.zoom = 1;
+          this.state.quaternion.copy(this.state.baseQuaternion).normalize();
+
+          if (this.block) {
+            this.block.group.quaternion.copy(this.state.baseQuaternion).normalize();
+          }
+
+          this.applyStartingCamera();
+
+          this.camera.zoom = 1;
+          this.camera.updateProjectionMatrix();
+
+          this.updateRotationRecord();
+
+          this.edgeDirty = true;
+          this.renderDirty = true;
+        }
+
+        render() {
+          if (!this.renderDirty) return;
+
+          if (this.block && this.edgeDirty) {
+            this.block.updateEdges(this.camera);
+            this.edgeDirty = false;
+          }
+
+          this.renderer.render(this.scene, this.camera);
+          this.renderDirty = false;
+        }
+      }
+
+      function sampleSolid() {
+        return unionAll([
+          box(0,2,0,4,0,4),
+          box(2,4,0,4,0,1),
+          box(2,4,0,2,3,4)
+        ]);
+      }
+
+      function mirroredSampleSolid() {
+        return unionAll([
+          box(0,2,0,4,0,4),
+          box(2,4,0,4,0,1),
+          box(2,4,2,4,3,4)
+        ]);
+      }
+
+      const sampleBlock = new BlockModel(sampleSolid());
+      const mirroredSampleBlock = new BlockModel(mirroredSampleSolid());
+      const sampleQuestionBlock = new BlockModel(buildSampleQuestionSolid());
+
+      const sampleStates = new Array(questions.length);
+      const questionStates = new Array(questions.length);
+      let sampleQuestionState = null;
+      let sampleReferenceState = null;
+
+      function getSampleState(index) {
+        if (!sampleStates[index]) {
+          const questionNumber = index + 1;
+          const group = SAMPLE_GROUP_BY_QUESTION[index];
+          const usesMirroredReference = MIRRORED_REFERENCE_QUESTIONS.has(questionNumber);
+          const referenceBlock = usesMirroredReference ? mirroredSampleBlock : sampleBlock;
+
+          sampleStates[index] = makeState(referenceBlock, "", ISO_VIEW, SAMPLE_ORIENTATIONS[group]);
+        }
+
+        return sampleStates[index];
+      }
+
+      function getQuestionState(index) {
+        if (!questionStates[index]) {
+          const definition = questions[index];
+          questionStates[index] = makeState(
+            new BlockModel(definition.build()),
+            "",
+            ISO_VIEW,
+            getQuestionStartingOrientation(index + 1)
+          );
+        }
+
+        return questionStates[index];
+      }
+
+      function getSampleQuestionState() {
+        if (!sampleQuestionState) {
+          sampleQuestionState = makeState(
+            sampleQuestionBlock,
+            "",
+            ISO_VIEW,
+            new THREE.Quaternion()
+          );
+        }
+        return sampleQuestionState;
+      }
+
+      function getSampleReferenceState() {
+        if (!sampleReferenceState) {
+          sampleReferenceState = makeState(
+            sampleBlock,
+            "",
+            ISO_VIEW,
+            SAMPLE_ORIENTATIONS.A
+          );
+        }
+        return sampleReferenceState;
+      }
+
+      const sampleViewer = new Viewer("reference");
+      const questionViewer = new Viewer("question");
+
+      function createQuestionTiles() {
+        const strip = document.querySelector("#question-strip");
+        strip.replaceChildren();
+
+        const fragment = document.createDocumentFragment();
+
+        questions.forEach((_, index) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "question-tile";
+          button.dataset.index = String(index);
+          button.textContent = String(index + 1);
+          button.setAttribute("aria-label", t("questionLabel", index + 1));
+          button.onclick = () => {
+            showingSampleMode = false;
+            safelyShowQuestion(index);
+          };
+          fragment.appendChild(button);
+        });
+
+        strip.appendChild(fragment);
+      }
+
+      let currentQuestion = 0;
+
+      function refreshQuestionTiles() {
+        document.querySelectorAll(".question-tile").forEach(button => {
+          const index = Number(button.dataset.index);
+          button.classList.toggle("active", !showingSampleMode && index === currentQuestion);
+          button.classList.toggle("visited", visitedQuestions.has(index));
+          button.setAttribute("aria-current", !showingSampleMode && index === currentQuestion ? "true" : "false");
+          button.setAttribute("aria-label", t("questionLabel", index + 1));
+        });
+      }
+
+      function showQuestion(index) {
+        const nextIndex = Math.max(0, Math.min(questions.length - 1, index));
+        const questionState = getQuestionState(nextIndex);
+        const sampleState = getSampleState(nextIndex);
+
+        currentQuestion = nextIndex;
+        visitedQuestions.add(currentQuestion);
+        showingSampleMode = false;
+
+        document.querySelector("#previous").disabled = currentQuestion === 0;
+        document.querySelector("#next").disabled = currentQuestion === questions.length - 1;
+
+        const questionNumber = currentQuestion + 1;
+        const group = SAMPLE_GROUP_BY_QUESTION[currentQuestion];
+        const usesMirroredReference = MIRRORED_REFERENCE_QUESTIONS.has(questionNumber);
+
+        sampleViewer.card.querySelector("h2").textContent = t("referenceBlock");
+        sampleViewer.card.querySelector(".subtitle").textContent =
+          t("questionSubtitle", { questionNumber, group, mirrored: usesMirroredReference });
+
+        sampleViewer.renderer.domElement.setAttribute(
+          "aria-label",
+          `${usesMirroredReference ? "Mirror-image sample" : "Sample"} reference block for Question ${questionNumber}, three-dimensional view`
+        );
+
+        questionViewer.card.querySelector("h2").textContent = t("questionLabel", questionNumber);
+        questionViewer.card.querySelector(".subtitle").textContent = "";
+
+        questionViewer.renderer.domElement.setAttribute(
+          "aria-label",
+          `Question ${questionNumber}, three-dimensional view`
+        );
+
+        sampleViewer.show(sampleState);
+        questionViewer.show(questionState);
+
+        document.title = t("pageTitle");
+        refreshQuestionTiles();
+      }
+
+      function showSampleQuestion() {
+        showingSampleMode = true;
+        document.querySelector("#previous").disabled = true;
+        document.querySelector("#next").disabled = true;
+
+        sampleViewer.card.querySelector("h2").textContent = t("referenceBlock");
+        sampleViewer.card.querySelector(".subtitle").textContent = "";
+        sampleViewer.renderer.domElement.setAttribute(
+          "aria-label",
+          "Reference block for sample question, three-dimensional view"
+        );
+
+        questionViewer.card.querySelector("h2").textContent = t("sampleQuestion");
+        questionViewer.card.querySelector(".subtitle").textContent = "";
+        questionViewer.renderer.domElement.setAttribute(
+          "aria-label",
+          "Sample question, three-dimensional view"
+        );
+
+        sampleViewer.show(getSampleReferenceState());
+        questionViewer.show(getSampleQuestionState());
+
+        document.title = t("pageTitle");
+        refreshQuestionTiles();
+      }
+
+      function safelyShowQuestion(index) {
+        try {
+          showQuestion(index);
+          document.querySelector("#error").hidden = true;
+        } catch (error) {
+          console.error(error);
+          const message = document.querySelector("#error");
+          message.hidden = false;
+          message.textContent = "The requested model could not be displayed. " + error.message;
+        }
+      }
+
+      function safelyShowSampleQuestion() {
+        try {
+          showSampleQuestion();
+          document.querySelector("#error").hidden = true;
+        } catch (error) {
+          console.error(error);
+          const message = document.querySelector("#error");
+          message.hidden = false;
+          message.textContent = "The sample question could not be displayed. " + error.message;
+        }
+      }
+
+      const introModal = document.querySelector("#intro-modal");
+      const introButton = document.querySelector("#intro-button");
+      const introClose = document.querySelector("#intro-close");
+      const introContent = document.querySelector("#intro-content");
+
+      function openIntro() {
+        introContent.innerHTML = t("introHtml");
+        introModal.hidden = false;
+        introModal.classList.add("open");
+        introClose.focus();
+      }
+
+      function closeIntro() {
+        introModal.classList.remove("open");
+        introModal.hidden = true;
+        introButton.focus();
+      }
+
+      introButton.onclick = openIntro;
+      introClose.onclick = closeIntro;
+
+      introModal.addEventListener("click", event => {
+        if (event.target === introModal) closeIntro();
+      });
+
+      document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && !introModal.hidden) closeIntro();
+      });
+
+      function updateShadowButton() {
+        const button = document.querySelector("#toggle-shadow");
+        button.textContent = shadowEnabled ? t("hideShadow") : t("showShadow");
+        button.setAttribute("aria-pressed", shadowEnabled ? "true" : "false");
+      }
+
+      function applyLanguage() {
+        const lang = I18N[currentLanguage];
+        document.documentElement.lang = lang.htmlLang;
+        document.querySelector("#page-title").textContent = lang.pageTitle;
+        document.querySelector("#intro-button").textContent = lang.introButton;
+        document.querySelector("#language-button").textContent = lang.languageButton;
+        document.querySelector("#previous").textContent = lang.previous;
+        document.querySelector("#next").textContent = lang.next;
+        document.querySelector("#sample-button").textContent = lang.sample;
+        document.querySelector("#reset-both").textContent = lang.resetBoth;
+        document.querySelector("#question-strip-label").textContent = lang.questionStripLabel;
+        document.querySelector("#intro-title").textContent = lang.introTitle;
+        document.querySelector("#intro-close").setAttribute("aria-label", lang.closeIntroduction);
+        document.querySelector("#brand-sub").textContent = lang.brandSub;
+
+        updateShadowButton();
+        sampleViewer.updateStaticText();
+        questionViewer.updateStaticText();
+        createQuestionTiles();
+
+        if (showingSampleMode) {
+          showSampleQuestion();
+        } else {
+          showQuestion(currentQuestion);
+        }
+      }
+
+      document.querySelector("#previous").onclick = () => safelyShowQuestion(currentQuestion - 1);
+      document.querySelector("#next").onclick = () => safelyShowQuestion(currentQuestion + 1);
+      document.querySelector("#sample-button").onclick = () => safelyShowSampleQuestion();
+      document.querySelector("#reset-both").onclick = () => {
+        sampleViewer.reset();
+        questionViewer.reset();
+      };
+
+      document.querySelector("#toggle-shadow").onclick = () => {
+        shadowEnabled = !shadowEnabled;
+        sampleBlock.setShadowMode(shadowEnabled);
+        mirroredSampleBlock.setShadowMode(shadowEnabled);
+        sampleQuestionBlock.setShadowMode(shadowEnabled);
+
+        questionStates.forEach(state => {
+          if (state?.block) state.block.setShadowMode(shadowEnabled);
+        });
+
+        sampleViewer.setShadowMode(shadowEnabled);
+        questionViewer.setShadowMode(shadowEnabled);
+        updateShadowButton();
+      };
+
+      document.querySelector("#language-button").onclick = () => {
+        currentLanguage = currentLanguage === "en" ? "zhHant" : "en";
+        applyLanguage();
+      };
+
+      applyLanguage();
+      showQuestion(0);
+
+      function animate() {
+        requestAnimationFrame(animate);
+        sampleViewer.render();
+        questionViewer.render();
+      }
+
+      animate();
+    }
+  </script>
+</body>
+</html>
